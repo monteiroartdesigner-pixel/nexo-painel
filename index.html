@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#050B15">
+<title>NEXO System · Painel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&display=swap">
+<style>
+:root{
+  --bg:#050B15; --panel:#0c1a33; --card:#112447; --line:#2B8CEB; --cyan:#3CC4E6;
+  --fg:#eaf1fa; --muted:#9db1cf; --dark:#0a1630;
+  --ok:#4cc27a; --warn:#f2c94c; --bad:#ff5a4e; --onca:#f2b632; --onca-out:#13234d; --cream:#fff4dc; --gorro:#2a56d6;
+  --f:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --borda:color-mix(in srgb,var(--line) 40%,transparent); --fina:color-mix(in srgb,var(--line) 18%,transparent);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);margin:0}
+body{color:var(--fg);font-family:var(--f);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:48px}
+a{color:var(--cyan)}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.oculto{display:none!important}
+
+/* topo */
+.topo{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap;padding-block:max(14px,env(safe-area-inset-top,0px)) 12px;border-bottom:1px solid var(--fina);position:sticky;top:0;z-index:5;background:var(--bg)}
+.marca{display:flex;align-items:center;gap:10px;min-width:0}
+.marca svg{width:40px;height:40px;flex:0 0 auto}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
+h1{margin:0;font-size:clamp(19px,2vw,24px);font-weight:900;font-stretch:118%;line-height:1.05}
+h2{margin:0 0 4px;font-size:19px;font-weight:900;font-stretch:112%}
+h3{margin:0;font-size:16px;font-weight:800}
+.seletor{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
+.seletor select{background:var(--panel);border:1px solid var(--borda);border-radius:10px;padding:7px 10px;max-width:260px}
+.sair{background:none;border:1px solid var(--borda);border-radius:999px;padding:6px 12px;color:var(--muted);cursor:pointer}
+.menu{display:flex;gap:4px;overflow-x:auto;flex-basis:100%;scrollbar-width:none;padding-bottom:2px}
+.menu::-webkit-scrollbar{display:none}
+.menu button{background:none;border:0;font-size:14px;font-weight:700;color:var(--muted);padding:8px 13px;border-radius:999px;white-space:nowrap;cursor:pointer}
+.menu button[aria-current="page"]{color:var(--bg);background:var(--onca)}
+.menu button b{font-family:var(--mono);margin-left:5px;color:var(--onca)}
+.menu button[aria-current="page"] b{color:var(--bg)}
+
+/* blocos */
+.grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.card{background:var(--panel);border:1px solid var(--fina);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card.destaque{border-color:var(--borda)}
+.num{font-size:30px;font-weight:900;font-stretch:115%;line-height:1}
+.muted{color:var(--muted)}
+.peq{font-size:13px}
+.mono{font-family:var(--mono);font-size:12px}
+.linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.entre{justify-content:space-between}
+.pill{font-family:var(--mono);font-size:11.5px;border-radius:999px;padding:3px 9px;border:1.5px solid currentColor;white-space:nowrap}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .info{color:var(--cyan)} .onca{color:var(--onca)}
+.aviso{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--panel));padding:12px 14px;border-radius:10px}
+.aviso.info{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 7%,var(--panel));color:var(--fg)}
+
+/* interruptores */
+.chave{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--fina)}
+.chave:first-of-type{border-top:0}
+.chave .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sw{position:relative;width:50px;height:28px;flex:0 0 auto}
+.sw input{opacity:0;width:100%;height:100%;margin:0;cursor:pointer;position:absolute;inset:0;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:999px;background:#2a3b5c;transition:background .2s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.sw input:checked+span{background:var(--ok)}
+.sw input:checked+span::after{transform:translateX(22px)}
+.sw input:disabled{cursor:not-allowed}.sw input:disabled+span{opacity:.45}
+.sw input:focus-visible+span{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* botões e campos */
+.btn{border:0;border-radius:10px;padding:9px 14px;font-weight:800;cursor:pointer;background:var(--card);color:var(--fg);border:1px solid var(--borda)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sim{background:var(--ok);color:#04220f;border-color:transparent}
+.btn.nao{background:none;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 60%,transparent)}
+.btn.prim{background:var(--onca);color:#1b1300;border-color:transparent}
+label.campo{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+input[type=text],input[type=email],input[type=password],input[type=url],input[type=datetime-local],select,textarea{
+  background:var(--dark);border:1px solid var(--borda);border-radius:10px;padding:10px 12px;width:100%;min-width:0;color:var(--fg);font-size:16px}
+textarea{min-height:110px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visible,.menu button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* conteúdos */
+.dia{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin:6px 0 -4px}
+.peca{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}
+@media (max-width:560px){.peca{grid-template-columns:1fr}}
+.midia{display:flex;gap:6px;overflow-x:auto;border-radius:12px}
+.midia img,.midia video{width:120px;aspect-ratio:4/5;object-fit:cover;border-radius:10px;background:var(--dark);flex:0 0 auto}
+@media (max-width:560px){.midia img,.midia video{width:46%}}
+.legenda{white-space:pre-wrap;font-size:13.5px;color:var(--muted);max-height:4.4em;overflow:hidden}
+.legenda.aberta{max-height:none;color:var(--fg)}
+.acoes{display:flex;gap:8px;flex-wrap:wrap}
+
+/* leads e atividade */
+.filtros{display:flex;gap:8px;flex-wrap:wrap}
+.filtros input{flex:1 1 220px}.filtros select{flex:0 1 200px}
+.lead{display:flex;flex-direction:column;gap:6px}
+.lead .msg{background:var(--dark);border-radius:10px;padding:10px;font-size:13px;white-space:pre-wrap}
+.tempo{display:flex;flex-direction:column}
+.tempo .it{display:grid;grid-template-columns:88px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--fina);font-size:13.5px}
+.tempo .it:first-child{border-top:0}
+
+/* níveis */
+.niveis{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.nivel{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1.5px solid var(--fina);border-radius:12px;cursor:pointer}
+.nivel:has(input:checked){border-color:var(--onca);background:color-mix(in srgb,var(--onca) 8%,transparent)}
+.nivel input{margin-top:3px;accent-color:var(--onca)}
+
+/* login */
+.login{min-height:100dvh;display:grid;place-items:center;padding:24px 0}
+.login .card{width:min(100%,400px);gap:14px;padding:24px}
+.login .marca svg{width:56px;height:56px}
+
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:12px 16px;z-index:20;max-width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.toast.erro{border-color:var(--bad)}
+.vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<template id="mascote">
+<svg viewBox="104 130 112 120" aria-hidden="true">
+  <circle cx="122" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/><circle cx="198" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
+  <ellipse cx="160" cy="204" rx="48" ry="42" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
+  <ellipse cx="160" cy="226" rx="26" ry="18" fill="var(--cream)" stroke="var(--onca-out)" stroke-width="3.5"/>
+  <path d="M151 214 h18 l-9 9z" fill="var(--onca-out)"/><path d="M148 229 q12 10 24 0" fill="none" stroke="var(--onca-out)" stroke-width="3" stroke-linecap="round"/>
+  <rect x="124" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/><rect x="163" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/>
+  <path d="M112 186 C110 136 210 136 208 186 Z" fill="var(--gorro)" stroke="var(--onca-out)" stroke-width="4"/>
+  <rect x="106" y="174" width="108" height="18" rx="9" fill="#1c3c9e" stroke="var(--onca-out)" stroke-width="4"/>
+</svg>
+</template>
+
+<!-- LOGIN -->
+<main id="telaLogin" class="login oculto">
+  <form class="card" id="formLogin" autocomplete="on">
+    <div class="marca"><span data-mascote></span><div><div class="eyebrow">NEXO System</div><h1>Painel dos agentes</h1></div></div>
+    <p class="muted peq" style="margin:0">Entre com o mesmo e-mail e senha do NEXO SPORT.</p>
+    <label class="campo">E-mail<input type="email" id="email" autocomplete="username" required></label>
+    <label class="campo">Senha<input type="password" id="senha" autocomplete="current-password" required></label>
+    <button class="btn prim" type="submit" id="btnEntrar">Entrar</button>
+    <p class="bad peq oculto" id="erroLogin" role="alert" style="margin:0"></p>
+  </form>
+</main>
+
+<!-- APP -->
+<div id="telaApp" class="wrap oculto">
+  <header class="topo">
+    <div class="marca"><span data-mascote></span><div><div class="eyebrow" id="nomeEmpresa">NEXO System</div><h1 id="nomeAgente">Painel</h1></div></div>
+    <div class="seletor">
+      <select id="selAgente" aria-label="Escolher agente"></select>
+      <button class="sair" id="btnSair" type="button">Sair</button>
+    </div>
+    <nav class="menu" aria-label="Seções">
+      <button data-aba="inicio" aria-current="page">Início</button>
+      <button data-aba="aprovar">Aprovar <b id="nAprovar"></b></button>
+      <button data-aba="leads">Leads</button>
+      <button data-aba="agente">Agente</button>
+      <button data-aba="funcoes">Funções</button>
+      <button data-aba="integracoes">Integrações</button>
+      <button data-aba="atividade">Atividade</button>
+      <button data-aba="ajuda">Ajuda</button>
+    </nav>
+  </header>
+
+  <section data-sec="inicio" aria-label="Início"></section>
+  <section data-sec="aprovar" class="oculto" aria-label="Aprovar"></section>
+  <section data-sec="leads" class="oculto" aria-label="Leads"></section>
+  <section data-sec="agente" class="oculto" aria-label="Agente"></section>
+  <section data-sec="funcoes" class="oculto" aria-label="Funções"></section>
+  <section data-sec="integracoes" class="oculto" aria-label="Integrações"></section>
+  <section data-sec="atividade" class="oculto" aria-label="Atividade"></section>
+  <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
+</div>
+
+<div id="toast" class="toast oculto" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+"use strict";
+// Chave pública (publishable) do projeto: feita para ficar no navegador. Quem protege os dados são as
+// funções nexo_* no banco, que conferem o login e o papel de quem chama. Nenhum segredo neste arquivo.
+const SUPABASE_URL = "https://rtjcvvjmmljizkjnztlb.supabase.co";
+const SUPABASE_KEY = "sb_publishable_wInsjqMkI_MVpK8zJFbfeg_A-SPDB6y";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const FUSO = "America/Sao_Paulo";
+const st = { ctx: null, agente: null, resumo: null, conteudos: [], leads: [], aba: "inicio" };
+
+document.querySelectorAll("[data-mascote]").forEach(el => el.replaceWith($("#mascote").content.cloneNode(true)));
+
+// ---------------------------------------------------------------- utilidades
+function esc(v) { return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function quando(iso, comHora = true) {
+  if (!iso) return "sem data";
+  const d = new Date(iso);
+  return d.toLocaleString("pt-BR", { timeZone: FUSO, weekday: "short", day: "2-digit", month: "2-digit", ...(comHora ? { hour: "2-digit", minute: "2-digit" } : {}) });
+}
+function diaChave(iso) { return iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "long", day: "2-digit", month: "long" }) : "Sem data"; }
+function paraInput(iso) {
+  if (!iso) return "";
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: FUSO, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso)).map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+function deInput(v) { return v ? new Date(`${v}:00-03:00`).toISOString() : null; } // horário de Brasília (sem horário de verão)
+const ERROS = {
+  sem_permissao: "Seu papel nesta empresa não permite essa ação.",
+  sem_login: "Sua sessão acabou. Entre de novo.",
+  horario_passou: "O horário já passou. Escolha uma data futura antes de aprovar.",
+  peca_sem_midia: "Essa peça ainda não tem arte ou vídeo. Não dá para aprovar.",
+  so_aprova_peca_em_revisao: "Só dá para aprovar peças que estão esperando revisão.",
+  ja_publicado: "Essa peça já foi publicada.",
+  nivel_insuficiente: "Essa função pede um nível de autonomia maior. Mude o nível na aba Agente primeiro.",
+  sensivel_exige_aprovacao: "Publicar, mandar mensagem e anúncio só saem sem aprovação no nível 4 (Autônomo).",
+  nao_reagenda_neste_status: "Essa peça não pode mais mudar de data.",
+  nome_vazio: "O nome não pode ficar vazio.", texto_vazio: "Escreva as instruções antes de salvar."
+};
+function msgErro(e) {
+  const m = (e && (e.message || e.error_description)) || String(e);
+  for (const k in ERROS) if (m.includes(k)) return ERROS[k];
+  if (/Invalid login/i.test(m)) return "E-mail ou senha errados.";
+  if (/Failed to fetch|NetworkError/i.test(m)) return "Sem internet ou servidor fora do ar. Tente de novo.";
+  return "Não deu certo: " + m;
+}
+let toastT;
+function aviso(txt, erro = false) {
+  const t = $("#toast"); t.textContent = txt; t.className = "toast" + (erro ? " erro" : ""); clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.add("oculto"), erro ? 6000 : 3200);
+}
+async function rpc(fn, args) {
+  const { data, error } = await sb.rpc(fn, args);
+  if (error) { if (/sem_login|JWT/i.test(error.message)) { await sb.auth.signOut(); mostrarLogin(); } throw error; }
+  return data;
+}
+const PAPEL = { plataforma: "Administrador da plataforma", dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor" };
+const podeMudar = () => ["plataforma", "dono", "admin"].includes(st.resumo?.papel);
+const podeEditar = () => ["plataforma", "dono", "admin", "editor"].includes(st.resumo?.papel);
+
+// ---------------------------------------------------------------- login
+function mostrarLogin() { $("#telaApp").classList.add("oculto"); $("#telaLogin").classList.remove("oculto"); }
+$("#formLogin").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const b = $("#btnEntrar"); b.disabled = true; b.textContent = "Entrando…"; $("#erroLogin").classList.add("oculto");
+  const { error } = await sb.auth.signInWithPassword({ email: $("#email").value.trim(), password: $("#senha").value });
+  b.disabled = false; b.textContent = "Entrar";
+  if (error) { $("#erroLogin").textContent = msgErro(error); $("#erroLogin").classList.remove("oculto"); return; }
+  $("#senha").value = "";
+  iniciar();
+});
+$("#btnSair").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
+
+// ---------------------------------------------------------------- abas
+$$(".menu button").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+function abrirAba(aba) {
+  st.aba = aba;
+  $$(".menu button").forEach(b => b.dataset.aba === aba ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  $$("[data-sec]").forEach(s => s.classList.toggle("oculto", s.dataset.sec !== aba));
+  try { localStorage.setItem("nexo.aba", aba); } catch {}
+  desenhar();
+}
+
+// ---------------------------------------------------------------- carga
+async function iniciar() {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return mostrarLogin();
+  try { st.ctx = await rpc("nexo_contexto"); } catch (e) { aviso(msgErro(e), true); return mostrarLogin(); }
+  const agentes = st.ctx.empresas.flatMap(e => e.agentes.map(a => ({ ...a, empresa: e.nome })));
+  if (!agentes.length) {
+    $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto");
+    $("[data-sec=inicio]").innerHTML = `<div class="vazio">Seu login (${esc(st.ctx.email)}) ainda não tem acesso a nenhuma empresa. Peça ao administrador para incluir você.</div>`;
+    return;
+  }
+  let salvo = null; try { salvo = localStorage.getItem("nexo.agente"); } catch {}
+  $("#selAgente").innerHTML = agentes.map(a => `<option value="${a.id}">${esc(a.empresa)} · ${esc(a.nome)}</option>`).join("");
+  st.agente = agentes.find(a => a.id === salvo)?.id || agentes[0].id;
+  $("#selAgente").value = st.agente;
+  $("#selAgente").onchange = () => { st.agente = $("#selAgente").value; try { localStorage.setItem("nexo.agente", st.agente); } catch {} carregar(); };
+  $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto");
+  let aba = "inicio"; try { aba = localStorage.getItem("nexo.aba") || "inicio"; } catch {}
+  await carregar();
+  abrirAba($(`.menu button[data-aba="${aba}"]`) ? aba : "inicio");
+}
+async function carregar() {
+  try {
+    const [r, c, l] = await Promise.all([rpc("nexo_resumo", { p_agente: st.agente }), rpc("nexo_conteudos", { p_agente: st.agente }), rpc("nexo_leads", { p_agente: st.agente })]);
+    st.resumo = r; st.conteudos = c || []; st.leads = l || [];
+    const ident = r.identidade || {};
+    $("#nomeEmpresa").textContent = r.empresa?.nome || "NEXO System";
+    $("#nomeAgente").textContent = ident.nome_exibicao || r.agente?.nome || "Agente";
+    const n = st.conteudos.filter(x => x.status === "revisar").length;
+    $("#nAprovar").textContent = n ? n : "";
+    desenhar();
+  } catch (e) { aviso(msgErro(e), true); }
+}
+function desenhar() {
+  if (!st.resumo) return;
+  ({ inicio, aprovar, leads, agente, funcoes, integracoes, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+}
+
+// ---------------------------------------------------------------- INÍCIO
+const CHAVES = [
+  ["pausado", "Pausar tudo", "Para o agente na hora. Nada roda até você retomar."],
+  ["publicar", "Publicar no Instagram", "Publica só as peças que você aprovou, no horário marcado."],
+  ["responder", "Responder comentários", "Responde pelo FAQ aprovado e manda o link no direct de quem comentou."],
+  ["pesquisar", "Pesquisar clientes", "Procura times e contatos públicos para o CRM."]
+];
+function inicio(el) {
+  const r = st.resumo, c = r.controle || {}, cont = r.conteudos || {}, ld = r.leads || {};
+  const prontos = cont.pronto || 0, revisar = cont.revisar || 0;
+  const totalLeads = Object.values(ld).reduce((a, b) => a + b, 0);
+  const estado = c.pausado ? `<span class="pill bad">pausado</span>` : `<span class="pill ok">ativo</span>`;
+  const alerta = (!c.publicar && prontos) ? `<div class="aviso">${prontos} peça(s) aprovada(s) esperando: <b>Publicar</b> está desligado. Ligue quando quiser que elas saiam.</div>` : "";
+  el.innerHTML = `
+    ${alerta}
+    <div class="grade">
+      <div class="card destaque">
+        <div class="linha entre"><h2>Estado</h2>${estado}</div>
+        <div class="muted peq">Última atividade: ${quando(r.ultima_execucao)} · erros em 24 h: <b class="${r.erros_24h ? "bad" : "ok"}">${r.erros_24h || 0}</b></div>
+        <div class="muted peq">Seu papel: ${esc(PAPEL[r.papel] || r.papel)} · nível do agente: <b>${r.agente?.nivel_autonomia}</b></div>
+      </div>
+      <div class="card"><span class="muted peq">Esperando sua aprovação</span><span class="num onca">${revisar}</span><button class="btn" data-ir="aprovar">Ver peças</button></div>
+      <div class="card"><span class="muted peq">Aprovadas na fila</span><span class="num ok">${prontos}</span><span class="muted peq">Publicadas: ${cont.publicado || 0}</span></div>
+      <div class="card"><span class="muted peq">Leads no CRM</span><span class="num">${totalLeads}</span><span class="muted peq">Para abordar: ${(ld.abordar || 0) + (ld.qualificado || 0)}</span></div>
+      ${r.conta ? `<div class="card"><span class="muted peq">Seguidores (${quando(r.conta.dia, false)})</span><span class="num">${r.conta.seguidores ?? "–"}</span><span class="muted peq">Alcance: ${r.conta.alcance ?? "–"} · visitas: ${r.conta.visitas_perfil ?? "–"}</span></div>` : ""}
+    </div>
+    <div class="card">
+      <h2>Interruptores</h2>
+      <p class="muted peq" style="margin:0">Valem na próxima rodada do agente (até 1 hora). Tudo fica registrado em Atividade.</p>
+      ${CHAVES.map(([k, t, d]) => `
+        <div class="chave"><div class="txt"><b>${t}</b><span class="muted peq">${d}</span></div>
+          <label class="sw"><input type="checkbox" data-chave="${k}" ${c[k] ? "checked" : ""} ${podeMudar() ? "" : "disabled"} aria-label="${t}"><span></span></label></div>`).join("")}
+      <div class="muted mono">Última mudança: ${esc(c.atualizado_por || "–")} · ${quando(c.atualizado_em)}</div>
+    </div>`;
+  $$("[data-ir]", el).forEach(b => b.onclick = () => abrirAba(b.dataset.ir));
+  $$("[data-chave]", el).forEach(inp => inp.onchange = async () => {
+    const k = inp.dataset.chave, v = inp.checked;
+    if (k === "publicar" && v && !confirm("Ligar a publicação?\n\nO agente vai publicar só as peças que você aprovou, no horário marcado de cada uma.")) { inp.checked = false; return; }
+    inp.disabled = true;
+    try { await rpc("nexo_mudar_controle", { p_agente: st.agente, p_campo: k, p_valor: v }); aviso("Salvo."); await carregar(); }
+    catch (e) { inp.checked = !v; inp.disabled = false; aviso(msgErro(e), true); }
+  });
+}
+
+// ---------------------------------------------------------------- APROVAR
+const ST_PECA = { revisar: ["esperando você", "warn"], pronto: ["aprovada", "ok"], publicando: ["publicando", "info"], publicado: ["publicada", "info"], erro: ["erro", "bad"], rascunho: ["rascunho", "muted"] };
+function midiaHtml(m) {
+  return (m || []).slice(0, 10).map(x => x.tipo === "video"
+    ? `<video src="${esc(x.url)}" preload="metadata" controls playsinline muted></video>`
+    : `<a href="${esc(x.url)}" target="_blank" rel="noopener" aria-label="Abrir a arte em tamanho real"><img src="${esc(x.mini || x.url)}" alt="" loading="lazy"></a>`).join("");
+}
+function aprovar(el) {
+  const lista = st.conteudos;
+  const pub = st.resumo.controle?.publicar;
+  if (!lista.length) { el.innerHTML = `<div class="vazio">Nenhuma peça na fila.</div>`; return; }
+  let html = pub ? "" : `<div class="aviso info">Publicar está <b>desligado</b>. Aprovar deixa a peça pronta; ela só vai ao ar quando você ligar Publicar no Início.</div>`;
+  let diaAtual = "";
+  for (const c of lista) {
+    const d = diaChave(c.agendado_para);
+    if (d !== diaAtual) { html += `<div class="dia">${esc(d)}</div>`; diaAtual = d; }
+    const [rot, cls] = ST_PECA[c.status] || [c.status, "muted"];
+    const editavel = ["revisar", "erro", "rascunho", "pronto"].includes(c.status);
+    html += `
+      <article class="card peca" data-id="${c.id}">
+        <div class="midia">${midiaHtml(c.midias) || `<div class="vazio peq" style="width:120px">sem mídia</div>`}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <div class="linha entre"><h3>${esc(c.pauta)}</h3><span class="pill ${cls}">${rot}</span></div>
+          <div class="linha muted peq"><span class="mono">${esc(c.formato)}</span><span>· ${quando(c.agendado_para)}</span><span>· ${c.origem === "ricardo" ? "feita com você" : "feita pelo agente"}</span></div>
+          ${c.motivo ? `<div class="peq warn">${esc(c.motivo)}</div>` : ""}
+          ${c.legenda ? `<div class="legenda" data-leg>${esc(c.legenda)}</div><button class="btn peq" type="button" data-abrir style="align-self:flex-start;padding:4px 10px">Ver legenda inteira</button>` : ""}
+          ${c.permalink ? `<a href="${esc(c.permalink)}" target="_blank" rel="noopener">Ver no Instagram</a>` : ""}
+          ${editavel ? `
+          <div class="linha"><label class="campo" style="flex:1 1 220px">Data e hora (Brasília)<input type="datetime-local" data-quando value="${paraInput(c.agendado_para)}" ${podeEditar() ? "" : "disabled"}></label></div>
+          <div class="acoes">
+            ${c.status !== "pronto" ? `<button class="btn sim" data-dec="aprovado" ${podeMudar() ? "" : "disabled"}>Aprovar</button>` : `<button class="btn" data-reag ${podeEditar() ? "" : "disabled"}>Salvar nova data</button>`}
+            <button class="btn" data-dec="ajustar" ${podeEditar() ? "" : "disabled"}>Pedir ajuste</button>
+            <button class="btn nao" data-dec="recusado" ${podeMudar() ? "" : "disabled"}>Recusar</button>
+          </div>` : ""}
+        </div>
+      </article>`;
+  }
+  el.innerHTML = html;
+  $$("[data-abrir]", el).forEach(b => b.onclick = () => { const l = b.previousElementSibling; l.classList.toggle("aberta"); b.textContent = l.classList.contains("aberta") ? "Fechar legenda" : "Ver legenda inteira"; });
+  $$("article[data-id]", el).forEach(art => {
+    const id = art.dataset.id, q = $("[data-quando]", art);
+    $$("[data-dec]", art).forEach(b => b.onclick = async () => {
+      const dec = b.dataset.dec; let obs = null;
+      if (dec === "ajustar") { obs = prompt("O que precisa mudar?"); if (obs === null) return; }
+      if (dec === "recusado") { if (!confirm("Recusar e tirar esta peça da fila?")) return; obs = prompt("Motivo (opcional):") || ""; }
+      b.disabled = true;
+      try { await rpc("nexo_decidir_conteudo", { p_conteudo: id, p_decisao: dec, p_obs: obs, p_quando: deInput(q?.value) }); aviso(dec === "aprovado" ? "Aprovada." : "Registrado."); await carregar(); }
+      catch (e) { b.disabled = false; aviso(msgErro(e), true); }
+    });
+    const rg = $("[data-reag]", art);
+    if (rg) rg.onclick = async () => {
+      rg.disabled = true;
+      try { await rpc("nexo_reagendar", { p_conteudo: id, p_quando: deInput(q.value) }); aviso("Data salva."); await carregar(); }
+      catch (e) { rg.disabled = false; aviso(msgErro(e), true); }
+    };
+  });
+}
+
+// ---------------------------------------------------------------- LEADS
+const ST_LEAD = { novo: "Novo", qualificado: "Qualificado", abordar: "Abordar", abordado: "Abordado", conversando: "Conversando", teste: "Em teste", cliente: "Cliente", perdido: "Perdido", nao_contatar: "Não contatar" };
+let filtroLead = { q: "", s: "" };
+function leads(el) {
+  el.innerHTML = `
+    <div class="card">
+      <div class="filtros">
+        <input type="text" id="lq" placeholder="Buscar por nome, cidade ou modalidade" value="${esc(filtroLead.q)}" aria-label="Buscar lead">
+        <select id="ls" aria-label="Filtrar por status"><option value="">Todos os status</option>${Object.entries(ST_LEAD).map(([k, v]) => `<option value="${k}" ${filtroLead.s === k ? "selected" : ""}>${v}</option>`).join("")}</select>
+      </div>
+      <div class="muted peq">A abordagem é sempre sua: o agente prepara a mensagem, você envia.</div>
+    </div>
+    <div class="grade" id="listaLeads"></div>`;
+  const pintar = () => {
+    const q = filtroLead.q.toLowerCase();
+    const it = st.leads.filter(l => (!filtroLead.s || l.status === filtroLead.s) && (!q || [l.nome, l.cidade, l.modalidade, l.tipo].join(" ").toLowerCase().includes(q)));
+    $("#listaLeads").innerHTML = it.length ? it.slice(0, 120).map(l => `
+      <div class="card lead" data-id="${l.id}">
+        <div class="linha entre"><h3>${esc(l.nome)}</h3><span class="pill onca">${l.nota ?? "–"}</span></div>
+        <div class="muted peq">${esc([l.tipo, l.modalidade, [l.cidade, l.uf].filter(Boolean).join("/")].filter(Boolean).join(" · "))}</div>
+        <div class="linha peq">
+          ${l.instagram ? `<a href="https://instagram.com/${esc(String(l.instagram).replace(/^@/, ""))}" target="_blank" rel="noopener">Instagram</a>` : ""}
+          ${l.whatsapp ? `<a href="https://wa.me/${esc(String(l.whatsapp).replace(/\D/g, ""))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+          ${l.fonte_url ? `<a href="${esc(l.fonte_url)}" target="_blank" rel="noopener">Fonte</a>` : ""}
+        </div>
+        ${l.mensagem_sugerida ? `<div class="msg">${esc(l.mensagem_sugerida)}</div><button class="btn peq" data-copiar style="align-self:flex-start">Copiar mensagem</button>` : ""}
+        <label class="campo">Status<select data-st ${podeEditar() ? "" : "disabled"}>${Object.entries(ST_LEAD).map(([k, v]) => `<option value="${k}" ${l.status === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+      </div>`).join("") : `<div class="vazio">Nenhum lead com esse filtro.</div>`;
+    $$("[data-copiar]", $("#listaLeads")).forEach(b => b.onclick = async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.textContent); aviso("Mensagem copiada."); } catch { aviso("Não deu para copiar.", true); }
+    });
+    $$("[data-st]", $("#listaLeads")).forEach(s => s.onchange = async () => {
+      const id = s.closest("[data-id]").dataset.id;
+      try { await rpc("nexo_mudar_lead", { p_lead: id, p_status: s.value, p_nota: null }); const l = st.leads.find(x => x.id === id); if (l) l.status = s.value; aviso("Status salvo."); }
+      catch (e) { aviso(msgErro(e), true); }
+    });
+  };
+  $("#lq").oninput = e => { filtroLead.q = e.target.value; pintar(); };
+  $("#ls").onchange = e => { filtroLead.s = e.target.value; pintar(); };
+  pintar();
+}
+
+// ---------------------------------------------------------------- AGENTE
+const NIVEIS = [
+  [1, "Análise", "Só consulta e sugere. Não faz nada sozinho."],
+  [2, "Assistido", "Prepara peças e ações e pede sua aprovação."],
+  [3, "Operacional", "Executa o que você aprovou e as rotinas autorizadas."],
+  [4, "Autônomo", "Roda as rotinas autorizadas dentro dos limites que você definiu."]
+];
+function agente(el) {
+  const r = st.resumo, a = r.agente || {}, i = r.identidade || {}, ins = r.instrucao;
+  const dis = podeMudar() ? "" : "disabled", disE = podeEditar() ? "" : "disabled";
+  el.innerHTML = `
+    <div class="aviso info">Nesta etapa o painel já guarda tudo. O agente passa a usar a identidade e as instruções daqui na Etapa 2; até lá ele segue com os arquivos atuais.</div>
+    <div class="card">
+      <h2>Agente</h2>
+      <label class="campo">Nome do agente<input type="text" id="agNome" value="${esc(a.nome)}" maxlength="60" ${dis}></label>
+      <div class="muted peq">Empresa: <b>${esc(r.empresa?.nome)}</b> · sistema integrado: <b>${esc(a.sistema_integrado || "–")}</b></div>
+      <h3 style="margin-top:6px">Nível de autonomia</h3>
+      <div class="niveis">${NIVEIS.map(([n, t, d]) => `<label class="nivel"><input type="radio" name="nivel" value="${n}" ${a.nivel_autonomia === n ? "checked" : ""} ${dis}><span><b>${n}. ${t}</b><br><span class="muted peq">${d}</span></span></label>`).join("")}</div>
+      <p class="muted peq" style="margin:0">Publicar, mandar mensagem e anúncio sempre pedem sua aprovação, a não ser no nível 4 com a função liberada por você.</p>
+      <button class="btn prim" id="salvarAg" style="align-self:flex-start" ${dis}>Salvar agente</button>
+    </div>
+    <div class="card">
+      <h2>Identidade</h2>
+      <div class="grade">
+        <label class="campo">Nome que aparece<input type="text" id="idNome" value="${esc(i.nome_exibicao)}" maxlength="80" ${disE}></label>
+        <label class="campo">Link do logotipo<input type="url" id="idLogo" value="${esc(i.logo_url)}" placeholder="https://…" ${disE}></label>
+        <label class="campo">Cor principal<input type="text" id="idCor1" value="${esc(i.cor_primaria)}" placeholder="#F2B632" pattern="#[0-9A-Fa-f]{6}" ${disE}></label>
+        <label class="campo">Cor secundária<input type="text" id="idCor2" value="${esc(i.cor_secundaria)}" placeholder="#2B8CEB" pattern="#[0-9A-Fa-f]{6}" ${disE}></label>
+      </div>
+      <label class="campo">Personalidade<textarea id="idPers" maxlength="4000" placeholder="Ex.: boleiro, bem-humorado, direto. Nunca arrogante." ${disE}>${esc(i.personalidade)}</textarea></label>
+      <label class="campo">Linguagem<textarea id="idLing" maxlength="4000" placeholder="Ex.: português do Brasil, frases curtas, gírias de várzea com moderação." ${disE}>${esc(i.linguagem)}</textarea></label>
+      <label class="campo">Assinatura<input type="text" id="idAss" value="${esc(i.assinatura)}" maxlength="200" ${disE}></label>
+      <button class="btn prim" id="salvarId" style="align-self:flex-start" ${disE}>Salvar identidade</button>
+    </div>
+    <div class="card">
+      <div class="linha entre"><h2>Instruções específicas</h2><span class="muted mono">${ins ? `versão ${ins.versao} · ${quando(ins.criado_em)}` : "nenhuma ainda"}</span></div>
+      <p class="muted peq" style="margin:0">O que este agente precisa saber da empresa: produto, público, o que pode e o que não pode prometer. As regras de segurança da plataforma valem sempre e não aparecem aqui.</p>
+      <textarea id="insTxt" style="min-height:220px" maxlength="20000" ${disE}>${esc(ins?.texto)}</textarea>
+      <button class="btn prim" id="salvarIns" style="align-self:flex-start" ${disE}>Salvar nova versão</button>
+    </div>`;
+  $("#salvarAg").onclick = async () => {
+    const nivel = Number($("input[name=nivel]:checked", el)?.value || a.nivel_autonomia);
+    try { await rpc("nexo_salvar_agente", { p_agente: st.agente, p_nome: $("#agNome").value, p_nivel: nivel }); aviso("Agente salvo."); await carregar(); } catch (e) { aviso(msgErro(e), true); }
+  };
+  $("#salvarId").onclick = async () => {
+    for (const id of ["idCor1", "idCor2"]) { const v = $("#" + id).value.trim(); if (v && !/^#[0-9A-Fa-f]{6}$/.test(v)) return aviso("Cor no formato #RRGGBB, ex.: #F2B632.", true); }
+    const dados = { nome_exibicao: $("#idNome").value, logo_url: $("#idLogo").value, cor_primaria: $("#idCor1").value, cor_secundaria: $("#idCor2").value, personalidade: $("#idPers").value, linguagem: $("#idLing").value, assinatura: $("#idAss").value };
+    try { await rpc("nexo_salvar_identidade", { p_agente: st.agente, p_dados: dados }); aviso("Identidade salva."); await carregar(); } catch (e) { aviso(msgErro(e), true); }
+  };
+  $("#salvarIns").onclick = async () => {
+    try { const r2 = await rpc("nexo_salvar_instrucoes", { p_agente: st.agente, p_texto: $("#insTxt").value }); aviso(`Versão ${r2.versao} salva.`); await carregar(); } catch (e) { aviso(msgErro(e), true); }
+  };
+}
+
+// ---------------------------------------------------------------- FUNÇÕES
+function funcoes(el) {
+  const r = st.resumo, nivel = r.agente?.nivel_autonomia || 1, dis = podeMudar() ? "" : "disabled";
+  el.innerHTML = `
+    <div class="card">
+      <h2>O que este agente pode fazer</h2>
+      <p class="muted peq" style="margin:0">Nível atual: <b>${nivel}. ${NIVEIS[nivel - 1][1]}</b>. Funções acima do nível ficam travadas até você subir o nível na aba Agente. "Publicar", "Responder" e "Pesquisar" também mudam nos interruptores do Início.</p>
+      ${r.funcoes.map(f => {
+        const acima = f.nivel_minimo > nivel;
+        return `<div class="chave" data-acao="${f.acao}">
+          <div class="txt"><b>${esc(f.nome)} ${f.sensivel ? `<span class="pill warn">sensível</span>` : ""} <span class="pill info">nível ${f.nivel_minimo}+</span></b>
+            <span class="muted peq">${esc(f.descricao || "")}</span>
+            <label class="peq muted linha"><input type="checkbox" data-aprov ${f.exige_aprovacao ? "checked" : ""} ${dis}> pede minha aprovação antes</label>
+            ${acima && f.ligada ? `<span class="warn peq">Ligada antes do nível atual. Continua valendo; para religar depois de desligar, suba o nível.</span>` : ""}</div>
+          <label class="sw"><input type="checkbox" data-lig ${f.ligada ? "checked" : ""} ${dis || (acima && !f.ligada ? "disabled" : "")} aria-label="${esc(f.nome)}"><span></span></label>
+        </div>`; }).join("")}
+    </div>`;
+  $$("[data-acao]", el).forEach(row => {
+    const salvar = async () => {
+      const lig = $("[data-lig]", row), ap = $("[data-aprov]", row);
+      try { await rpc("nexo_salvar_funcao", { p_agente: st.agente, p_acao: row.dataset.acao, p_ligada: lig.checked, p_exige_aprovacao: ap.checked }); aviso("Salvo."); await carregar(); }
+      catch (e) { aviso(msgErro(e), true); await carregar(); }
+    };
+    $("[data-lig]", row).onchange = salvar; $("[data-aprov]", row).onchange = salvar;
+  });
+}
+
+// ---------------------------------------------------------------- INTEGRAÇÕES
+const NOME_INT = { instagram: "Instagram", facebook_pagina: "Página do Facebook", meta_business: "Meta Business", whatsapp_business: "WhatsApp Business", google: "Google", telegram: "Telegram", crm: "CRM", api_externa: "API externa", sistema: "Sistema" };
+const ST_INT = { conectado: ["conectado", "ok"], pendente: ["pendente", "warn"], erro: ["erro", "bad"], desconectado: ["desconectado", "muted"], revogado: ["revogado", "bad"] };
+function integracoes(el) {
+  const it = st.resumo.integracoes || [];
+  const tem = new Set(it.map(x => x.tipo));
+  const faltam = ["whatsapp_business", "google", "crm"].filter(t => !tem.has(t));
+  el.innerHTML = `
+    <div class="aviso info">A conexão guiada (passo a passo do Instagram, testes reais e cofre de chaves) chega na Etapa 4. Hoje as chaves da Onça ficam no cofre do GitHub, fora do painel.</div>
+    <div class="grade">
+      ${it.map(x => { const [rot, cls] = ST_INT[x.status] || [x.status, "muted"]; return `
+        <div class="card">
+          <div class="linha entre"><h3>${esc(NOME_INT[x.tipo] || x.tipo)}</h3><span class="pill ${cls}">${rot}</span></div>
+          <div class="peq">Conta: <b>${esc(x.conta || "–")}</b></div>
+          ${x.funcionalidades?.length ? `<div class="linha">${x.funcionalidades.map(f => `<span class="pill info">${esc(f.replace(/_/g, " "))}</span>`).join("")}</div>` : ""}
+          <div class="muted peq">Chave guardada em: ${x.segredo === "github_secrets" ? "cofre do GitHub" : x.segredo === "cofre" ? "cofre do NEXO" : "–"}</div>
+          <div class="muted peq">Último teste: ${x.ultimo_teste_em ? quando(x.ultimo_teste_em) + (x.ultimo_teste_ok ? " · ok" : " · falhou") : "ainda não testado pelo painel"}</div>
+          ${x.ultimo_erro ? `<div class="bad peq">${esc(x.ultimo_erro)}</div>` : ""}
+          <div class="acoes"><button class="btn" disabled>Testar</button><button class="btn" disabled>Reconectar</button><button class="btn nao" disabled>Desconectar</button></div>
+        </div>`; }).join("")}
+      ${faltam.map(t => `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div><button class="btn" disabled>Conectar (em breve)</button></div>`).join("")}
+    </div>`;
+}
+
+// ---------------------------------------------------------------- ATIVIDADE
+async function atividade(el) {
+  el.innerHTML = `<div class="card"><h2>Atividade</h2><div class="muted peq">Carregando…</div></div>`;
+  try {
+    const it = await rpc("nexo_atividades", { p_agente: st.agente });
+    el.innerHTML = `<div class="card"><h2>Atividade</h2><p class="muted peq" style="margin:0">O que o agente fez e o que mudou no painel, mais recente primeiro.</p><div class="tempo">
+      ${(it || []).map(x => `<div class="it"><span class="mono muted">${quando(x.em)}</span><span><span class="pill ${x.origem === "painel" ? "onca" : x.nivel === "erro" ? "bad" : x.nivel === "aviso" ? "warn" : "info"}">${esc(x.origem === "painel" ? "painel" : x.quem)}</span> <b>${esc(x.acao.replace(/_/g, " "))}</b> <span class="muted">${esc((x.texto || "").slice(0, 220))}</span></span></div>`).join("") || `<div class="vazio">Nada ainda.</div>`}
+    </div></div>`;
+  } catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; }
+}
+
+// ---------------------------------------------------------------- AJUDA
+function ajuda(el) {
+  el.innerHTML = `
+    <div class="card"><h2>Como usar</h2>
+      <ol class="peq" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+        <li><b>Aprovar:</b> veja a peça, ajuste a data se quiser e toque em Aprovar. Ela só vai ao ar se <b>Publicar</b> estiver ligado no Início.</li>
+        <li><b>Pausar tudo</b> no Início para o agente na próxima rodada (até 1 hora).</li>
+        <li><b>Leads:</b> copie a mensagem pronta, mande pelo seu Instagram ou WhatsApp e mude o status para "Abordado".</li>
+        <li><b>Agente</b> e <b>Funções:</b> nome, identidade, instruções, nível de autonomia e o que o agente pode fazer.</li>
+        <li><b>Atividade:</b> tudo o que o agente fez e quem mudou o quê no painel.</li>
+      </ol>
+    </div>
+    <div class="card"><h3>Em breve</h3><p class="muted peq" style="margin:0">Central de Ajuda com manual e vídeos curtos (Etapa 7) e conexão guiada do Instagram (Etapa 4).</p></div>
+    <div class="muted mono">Logado como ${esc(st.ctx?.email)} · ${esc(PAPEL[st.resumo?.papel] || "")}</div>`;
+}
+
+// ---------------------------------------------------------------- início
+sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") mostrarLogin(); });
+iniciar();
+</script>
+</body>
+</html>
