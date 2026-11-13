@@ -458,7 +458,7 @@ function agente(el) {
   const r = st.resumo, a = r.agente || {}, i = r.identidade || {}, ins = r.instrucao;
   const dis = podeMudar() ? "" : "disabled", disE = podeEditar() ? "" : "disabled";
   el.innerHTML = `
-    <div class="aviso info">Nesta etapa o painel já guarda tudo. O agente passa a usar a identidade e as instruções daqui na Etapa 2; até lá ele segue com os arquivos atuais.</div>
+    <div class="aviso info">O agente lê daqui o nome, a identidade e as instruções a cada rodada do cérebro (3 vezes por dia). As instruções valem desde que não quebrem as regras fixas: só fatos aprovados, marcas separadas e nada publicado sem a sua aprovação.</div>
     <div class="card">
       <h2>Agente</h2>
       <label class="campo">Nome do agente<input type="text" id="agNome" value="${esc(a.nome)}" maxlength="60" ${dis}></label>
@@ -508,6 +508,7 @@ function funcoes(el) {
     <div class="card">
       <h2>O que este agente pode fazer</h2>
       <p class="muted peq" style="margin:0">Nível atual: <b>${nivel}. ${NIVEIS[nivel - 1][1]}</b>. Funções acima do nível ficam travadas até você subir o nível na aba Agente. "Publicar", "Responder" e "Pesquisar" também mudam nos interruptores do Início.</p>
+      <div class="aviso info">Preparar peças e pesquisar clientes já seguem estas chaves. Para publicar e responder, a trava está em teste: o agente só anota na Atividade o que ela desligaria, até você mandar valer.</div>
       ${r.funcoes.map(f => {
         const acima = f.nivel_minimo > nivel;
         return `<div class="chave" data-acao="${f.acao}">
