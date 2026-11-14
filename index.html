@@ -77,6 +77,7 @@ h3{margin:0;font-size:16px;font-weight:800}
 .btn{border:0;border-radius:10px;padding:9px 14px;font-weight:800;cursor:pointer;background:var(--card);color:var(--fg);border:1px solid var(--borda)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn.sim{background:var(--ok);color:#04220f;border-color:transparent}
+.btn.onca{background:var(--onca);color:#1a1200;border-color:transparent}
 .btn.nao{background:none;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 60%,transparent)}
 .btn.prim{background:var(--onca);color:#1b1300;border-color:transparent}
 label.campo{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
@@ -162,6 +163,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
       <button data-aba="leads">Leads</button>
       <button data-aba="agente">Agente</button>
       <button data-aba="funcoes">Funções</button>
+      <button data-aba="conhecimento">Conhecimento</button>
       <button data-aba="integracoes">Integrações</button>
       <button data-aba="atividade">Atividade</button>
       <button data-aba="ajuda">Ajuda</button>
@@ -173,6 +175,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   <section data-sec="leads" class="oculto" aria-label="Leads"></section>
   <section data-sec="agente" class="oculto" aria-label="Agente"></section>
   <section data-sec="funcoes" class="oculto" aria-label="Funções"></section>
+  <section data-sec="conhecimento" class="oculto" aria-label="Conhecimento"></section>
   <section data-sec="integracoes" class="oculto" aria-label="Integrações"></section>
   <section data-sec="atividade" class="oculto" aria-label="Atividade"></section>
   <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
@@ -220,7 +223,10 @@ const ERROS = {
   nivel_insuficiente: "Essa função pede um nível de autonomia maior. Mude o nível na aba Agente primeiro.",
   sensivel_exige_aprovacao: "Publicar, mandar mensagem e anúncio só saem sem aprovação no nível 4 (Autônomo).",
   nao_reagenda_neste_status: "Essa peça não pode mais mudar de data.",
-  nome_vazio: "O nome não pode ficar vazio.", texto_vazio: "Escreva as instruções antes de salvar."
+  nome_vazio: "O nome não pode ficar vazio.", texto_vazio: "Escreva as instruções antes de salvar.",
+  nao_posta_neste_status: "Essa peça já foi publicada, está publicando ou foi recusada.",
+  versao_nao_encontrada: "Essa versão não existe mais.",
+  conteudo_invalido: "O conteúdo não está no formato esperado. Confira e tente de novo."
 };
 function msgErro(e) {
   const m = (e && (e.message || e.error_description)) || String(e);
@@ -301,7 +307,7 @@ async function carregar() {
 }
 function desenhar() {
   if (!st.resumo) return;
-  ({ inicio, aprovar, leads, agente, funcoes, integracoes, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+  ({ inicio, aprovar, leads, agente, funcoes, conhecimento, integracoes, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
 }
 
 // ---------------------------------------------------------------- INÍCIO
@@ -379,6 +385,7 @@ function aprovar(el) {
           <div class="linha"><label class="campo" style="flex:1 1 220px">Data e hora (Brasília)<input type="datetime-local" data-quando value="${paraInput(c.agendado_para)}" ${podeEditar() ? "" : "disabled"}></label></div>
           <div class="acoes">
             ${c.status !== "pronto" ? `<button class="btn sim" data-dec="aprovado" ${podeMudar() ? "" : "disabled"}>Aprovar</button>` : `<button class="btn" data-reag ${podeEditar() ? "" : "disabled"}>Salvar nova data</button>`}
+            ${c.midias?.length ? `<button class="btn onca" data-postar ${podeMudar() ? "" : "disabled"}>Postar agora</button>` : ""}
             <button class="btn" data-dec="ajustar" ${podeEditar() ? "" : "disabled"}>Pedir ajuste</button>
             <button class="btn nao" data-dec="recusado" ${podeMudar() ? "" : "disabled"}>Recusar</button>
           </div>` : ""}
@@ -397,6 +404,23 @@ function aprovar(el) {
       try { await rpc("nexo_decidir_conteudo", { p_conteudo: id, p_decisao: dec, p_obs: obs, p_quando: deInput(q?.value) }); aviso(dec === "aprovado" ? "Aprovada." : "Registrado."); await carregar(); }
       catch (e) { b.disabled = false; aviso(msgErro(e), true); }
     });
+    const pa = $("[data-postar]", art);
+    if (pa) pa.onclick = async () => {
+      const c = st.conteudos.find(x => x.id === id) || {};
+      const ctl = st.resumo.controle || {};
+      const extra = !ctl.publicar ? "\n\nAtenção: Publicar está DESLIGADO no Início. A peça fica aprovada para agora, mas só sai quando você ligar."
+                  : ctl.pausado ? "\n\nAtenção: o agente está PAUSADO. A peça só sai quando ele voltar." : "";
+      if (!confirm(`Postar agora "${c.pauta || "esta peça"}"?\n\n${c.status === "pronto" ? "" : "Isso também APROVA a peça. "}Ela vai ao ar na próxima rodada do agente (em até 1 hora), depois de passar de novo no checador de fatos. Depois de publicada, só dá para apagar no Instagram.${extra}`)) return;
+      pa.disabled = true;
+      try {
+        const r = await rpc("nexo_postar_agora", { p_conteudo: id });
+        aviso(!r.publicar ? "Aprovada para agora. Ligue Publicar no Início para ela sair." :
+              r.pausado ? "Aprovada para agora. O agente está pausado." :
+              r.modo !== "automatico" ? "Aprovada para agora. O agente está em modo ensaio: ele só registra, não publica." :
+              "Combinado: sai na próxima rodada do agente (em até 1 hora).");
+        await carregar();
+      } catch (e) { pa.disabled = false; aviso(msgErro(e), true); }
+    };
     const rg = $("[data-reag]", art);
     if (rg) rg.onclick = async () => {
       rg.disabled = true;
@@ -527,6 +551,118 @@ function funcoes(el) {
       catch (e) { aviso(msgErro(e), true); await carregar(); }
     };
     $("[data-lig]", row).onchange = salvar; $("[data-aprov]", row).onchange = salvar;
+  });
+}
+
+// ---------------------------------------------------------------- CONHECIMENTO (FAQ, fatos, voz)
+const NOME_CON = { faq: "FAQ (respostas automáticas)", fatos: "Fatos aprovados", voz: "Voz da marca" };
+let conhec = null, faqEdit = null;
+function situacaoCon(x) {
+  const a = x?.ativa;
+  if (!a) return `<span class="pill info">em uso: arquivo</span> <span class="muted peq">${x?.base ? "atualizado " + quando(x.base.atualizado_em) : "o agente ainda não mandou a base"}</span>`;
+  const conf = a.aceito === true ? `<span class="pill ok">aceita pela Onça</span>` :
+               a.aceito === false ? `<span class="pill bad">recusada: a Onça segue com o arquivo</span>` :
+               `<span class="pill warn">esperando a conferência (próxima rodada)</span>`;
+  return `<span class="pill onca">em uso: versão ${a.versao} do painel</span> ${conf}
+    <div class="muted peq">salva ${quando(a.criado_em)} por ${esc((a.criado_por || "").replace("painel: ", ""))}</div>
+    ${a.motivo ? `<div class="bad peq">Motivo: ${esc(a.motivo)}</div>` : ""}`;
+}
+function historicoCon(tipo, x) {
+  const h = x?.historico || [];
+  if (!h.length) return "";
+  return `<details class="peq"><summary>Versões anteriores (${h.length})</summary><div class="tempo">${h.map(v => `
+    <div class="it"><span class="mono muted">v${v.versao} · ${quando(v.criado_em)}</span><span>${v.ativa ? `<span class="pill onca">ativa</span>` : ""}
+      ${v.aceito === true ? `<span class="pill ok">aceita</span>` : v.aceito === false ? `<span class="pill bad">recusada</span>` : ""}
+      ${!v.ativa && podeMudar() ? `<button class="btn peq" data-reativar="${tipo}:${v.versao}" style="padding:2px 8px">Reativar</button>` : ""}</span></div>`).join("")}</div></details>`;
+}
+function fonteCon(x) { return x?.ativa?.conteudo || x?.base?.conteudo || null; }
+async function conhecimento(el) {
+  el.innerHTML = `<div class="card"><h2>Conhecimento</h2><div class="muted peq">Carregando…</div></div>`;
+  try { conhec = await rpc("nexo_conhecimento", { p_agente: st.agente }) || {}; }
+  catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; return; }
+  const dis = podeMudar() ? "" : "disabled";
+  const faq = fonteCon(conhec.faq), fatos = fonteCon(conhec.fatos), voz = fonteCon(conhec.voz);
+  faqEdit = faq ? JSON.parse(JSON.stringify(faq)) : null;
+  el.innerHTML = `
+    <div class="aviso info">É daqui que a Onça tira as respostas automáticas (FAQ), os fatos que pode citar e o jeito de falar (voz). Cada vez que você salva, vira uma versão nova. Antes de usar, a Onça confere o formato e passa todas as respostas no checador de fatos. Se recusar, ela continua com o arquivo e o motivo aparece aqui. <b>Nunca escreva preço, número ou promessa que não esteja nos fatos aprovados.</b></div>
+
+    <div class="card" data-tipo="faq">
+      <div class="linha entre"><h2>${NOME_CON.faq}</h2><div>${situacaoCon(conhec.faq)}</div></div>
+      ${faqEdit ? `
+      <p class="muted peq" style="margin:0">Cada pergunta tem palavras que disparam a resposta (uma por linha, sem acento, como as que já existem). Use {site} onde entra o link oficial.</p>
+      <div id="faqItens"></div>
+      <button class="btn" id="faqMais" style="align-self:flex-start" ${dis}>+ Pergunta</button>
+      <details class="peq"><summary>Avançado: o FAQ inteiro em JSON (palavra-chave, seguir, críticas…)</summary>
+        <textarea id="faqJson" rows="14" class="mono" style="width:100%" ${dis}></textarea>
+        <button class="btn peq" id="faqJsonUsar" ${dis}>Usar este JSON no editor</button></details>
+      <div class="acoes"><button class="btn sim" data-salvar="faq" ${dis}>Salvar nova versão</button>
+        ${conhec.faq?.ativa ? `<button class="btn" data-voltar="faq" ${dis}>Voltar ao arquivo</button>` : ""}</div>` :
+      `<div class="muted peq">O agente ainda não mandou o FAQ do arquivo. Ele manda no próximo retrato do dia.</div>`}
+      ${historicoCon("faq", conhec.faq)}
+    </div>
+
+    <div class="card" data-tipo="voz">
+      <div class="linha entre"><h2>${NOME_CON.voz}</h2><div>${situacaoCon(conhec.voz)}</div></div>
+      <p class="muted peq" style="margin:0">Como a marca fala: tom, exemplos, o que nunca dizer. O cérebro lê antes de escrever qualquer peça.</p>
+      <textarea id="vozTexto" rows="16" style="width:100%" ${dis}>${esc(voz?.texto || "")}</textarea>
+      <div class="acoes"><button class="btn sim" data-salvar="voz" ${dis}>Salvar nova versão</button>
+        ${conhec.voz?.ativa ? `<button class="btn" data-voltar="voz" ${dis}>Voltar ao arquivo</button>` : ""}</div>
+      ${historicoCon("voz", conhec.voz)}
+    </div>
+
+    <div class="card" data-tipo="fatos">
+      <div class="linha entre"><h2>${NOME_CON.fatos}</h2><div>${situacaoCon(conhec.fatos)}</div></div>
+      <p class="muted peq" style="margin:0">Preços, planos, contato, links e o que o checador permite. É a trava contra informação inventada: mude com cuidado. Formato JSON.</p>
+      <textarea id="fatosJson" rows="16" class="mono" style="width:100%" ${dis}>${esc(fatos ? JSON.stringify(fatos, null, 1) : "")}</textarea>
+      <div class="acoes"><button class="btn sim" data-salvar="fatos" ${dis}>Salvar nova versão</button>
+        ${conhec.fatos?.ativa ? `<button class="btn" data-voltar="fatos" ${dis}>Voltar ao arquivo</button>` : ""}</div>
+      ${historicoCon("fatos", conhec.fatos)}
+    </div>`;
+  if (faqEdit) { pintarFaq(); $("#faqMais").onclick = () => { lerFaq(); faqEdit.itens.push({ id: "nova_" + (faqEdit.itens.length + 1), gatilhos: [], resposta: "" }); pintarFaq(); };
+    $("#faqJsonUsar").onclick = () => { try { faqEdit = JSON.parse($("#faqJson").value); pintarFaq(); aviso("JSON carregado no editor. Confira e salve."); } catch (e) { aviso("JSON com erro: " + e.message, true); } }; }
+  $$("[data-salvar]", el).forEach(b => b.onclick = async () => {
+    const tipo = b.dataset.salvar; let conteudo;
+    try {
+      if (tipo === "voz") conteudo = { texto: $("#vozTexto").value };
+      if (tipo === "fatos") conteudo = JSON.parse($("#fatosJson").value);
+      if (tipo === "faq") { lerFaq(); conteudo = faqEdit; const vazio = conteudo.itens.find(i => !i.gatilhos.length || !i.resposta.trim()); if (vazio) { aviso(`A pergunta "${vazio.id}" precisa de palavras e de resposta.`, true); return; } }
+    } catch (e) { aviso("JSON com erro: " + e.message, true); return; }
+    if (!confirm(`Salvar uma versão nova de ${NOME_CON[tipo]}? A Onça confere e passa a usar na próxima rodada.`)) return;
+    b.disabled = true;
+    try { const r = await rpc("nexo_salvar_conhecimento", { p_agente: st.agente, p_tipo: tipo, p_conteudo: conteudo }); aviso(`Versão ${r.versao} salva. A Onça confere na próxima rodada.`); await conhecimento(el); }
+    catch (e) { b.disabled = false; aviso(msgErro(e) + " " + ((e.message || "").split("conteudo_invalido:")[1] || ""), true); }
+  });
+  $$("[data-voltar]", el).forEach(b => b.onclick = async () => {
+    const tipo = b.dataset.voltar;
+    if (!confirm(`Voltar ${NOME_CON[tipo]} ao arquivo? As versões do painel ficam guardadas.`)) return;
+    try { await rpc("nexo_voltar_conhecimento", { p_agente: st.agente, p_tipo: tipo, p_versao: null }); aviso("Feito: a Onça volta ao arquivo na próxima rodada."); await conhecimento(el); }
+    catch (e) { aviso(msgErro(e), true); }
+  });
+  $$("[data-reativar]", el).forEach(b => b.onclick = async () => {
+    const [tipo, v] = b.dataset.reativar.split(":");
+    if (!confirm(`Reativar a versão ${v} de ${NOME_CON[tipo]}?`)) return;
+    try { await rpc("nexo_voltar_conhecimento", { p_agente: st.agente, p_tipo: tipo, p_versao: Number(v) }); aviso(`Versão ${v} reativada.`); await conhecimento(el); }
+    catch (e) { aviso(msgErro(e), true); }
+  });
+}
+function pintarFaq() {
+  const dis = podeMudar() ? "" : "disabled";
+  $("#faqItens").innerHTML = faqEdit.itens.map((it, i) => `
+    <div class="card" data-item="${i}" style="padding:10px">
+      <div class="linha entre"><label class="campo" style="flex:1">Nome curto<input type="text" data-id value="${esc(it.id)}" maxlength="40" ${dis}></label>
+        <button class="btn nao peq" data-tirar="${i}" ${dis} style="padding:4px 10px">Tirar</button></div>
+      <label class="campo">Palavras que disparam (uma por linha)<textarea data-gat rows="3" ${dis}>${esc((it.gatilhos || []).join("\n"))}</textarea></label>
+      <label class="campo">Resposta<textarea data-resp rows="3" ${dis}>${esc(it.resposta || "")}</textarea></label>
+    </div>`).join("");
+  $("#faqJson").value = JSON.stringify(faqEdit, null, 1);
+  $$("[data-tirar]").forEach(b => b.onclick = () => { if (!confirm("Tirar esta pergunta?")) return; lerFaq(); faqEdit.itens.splice(Number(b.dataset.tirar), 1); pintarFaq(); });
+}
+function lerFaq() {
+  $$("#faqItens [data-item]").forEach(c => {
+    const it = faqEdit.itens[Number(c.dataset.item)];
+    it.id = $("[data-id]", c).value.trim() || it.id;
+    it.gatilhos = $("[data-gat]", c).value.split("\n").map(x => x.trim()).filter(Boolean);
+    it.resposta = $("[data-resp]", c).value.trim();
   });
 }
 
