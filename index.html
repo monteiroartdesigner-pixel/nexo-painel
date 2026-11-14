@@ -54,6 +54,7 @@ h3{margin:0;font-size:16px;font-weight:800}
 .mono{font-family:var(--mono);font-size:12px}
 .linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .entre{justify-content:space-between}
+.passos{list-style:none;padding:0;margin:4px 0;display:flex;flex-direction:column;gap:8px}.passos li{display:flex;gap:8px;align-items:flex-start}.grade .card.largo{grid-column:1/-1}
 .pill{font-family:var(--mono);font-size:11.5px;border-radius:999px;padding:3px 9px;border:1.5px solid currentColor;white-space:nowrap}
 .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .info{color:var(--cyan)} .onca{color:var(--onca)}
 .aviso{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--panel));padding:12px 14px;border-radius:10px}
@@ -532,22 +533,47 @@ function funcoes(el) {
 // ---------------------------------------------------------------- INTEGRAÇÕES
 const NOME_INT = { instagram: "Instagram", facebook_pagina: "Página do Facebook", meta_business: "Meta Business", whatsapp_business: "WhatsApp Business", google: "Google", telegram: "Telegram", crm: "CRM", api_externa: "API externa", sistema: "Sistema" };
 const ST_INT = { conectado: ["conectado", "ok"], pendente: ["pendente", "warn"], erro: ["erro", "bad"], desconectado: ["desconectado", "muted"], revogado: ["revogado", "bad"] };
-function integracoes(el) {
-  const it = st.resumo.integracoes || [];
+// Os 8 passos da conexão do Instagram, na ordem do agente (agente/conexao.py). Nunca pede senha aqui.
+const PASSOS_IG = [
+  ["conta_profissional", "Conta profissional no Instagram", "No app do Instagram: Configurações › Tipo de conta e ferramentas › Mudar para conta profissional (Empresa ou Criador de conteúdo)."],
+  ["pagina_facebook", "Página do Facebook ligada", "Na Página do Facebook: Configurações › Contas vinculadas › Instagram › Conectar conta. A Página e o Instagram precisam ser da mesma empresa."],
+  ["app_meta", "Autorização do app NEXO Agente", "Você autoriza o app na própria Meta (nunca digite senha neste painel). Se o token vencer, gere um novo e guarde no cofre."],
+  ["permissoes", "Permissões que o fluxo usa", "Ao autorizar, marque todas as permissões que a Meta mostrar: perfil, publicação, comentários, mensagens e a Página."],
+  ["publicar", "Publicar no feed e nos stories", "Depende da permissão de publicação. O agente só publica o que você aprovou e com a chave Publicar ligada."],
+  ["comentarios", "Ler e responder comentários", "Depende da permissão de comentários. As respostas saem do FAQ aprovado, dentro do limite por hora."],
+  ["mensagens", "Mensagens (direct)", "Depende da permissão de mensagens e da conta conectada às mensagens da Página. Direct comum para quem não tem papel no app só depois do Acesso Avançado da Meta (Etapa 5)."],
+  ["teste_real", "Teste real", "O agente pergunta à Meta qual é a conta e confere se é a certa. Roda 3 vezes por dia, junto com o retrato do cérebro."]
+];
+function passosHtml(x) {
+  const ps = new Map(((x.checagem || {}).passos || []).map(p => [p.chave, p]));
+  if (!ps.size) return `<div class="muted peq">O agente ainda não testou esta conexão passo a passo.</div>`;
+  return `<ol class="passos">${PASSOS_IG.map(([k, t, como]) => {
+    const p = ps.get(k) || { ok: null, detalhe: "não testado" };
+    const [ic, cls] = p.ok === true ? ["✔", "ok"] : p.ok === false ? ["✘", "bad"] : ["·", "muted"];
+    return `<li><span class="pill ${cls}" aria-label="${p.ok === true ? "ok" : p.ok === false ? "falhou" : "sem teste"}">${ic}</span>
+      <span><b>${t}</b><br><span class="peq ${p.ok === false ? "bad" : "muted"}">${esc(p.detalhe || "")}</span>
+      ${p.ok === true ? "" : `<br><span class="peq">${como}</span>`}</span></li>`; }).join("")}</ol>
+    ${p_okTodos(ps) ? "" : `<details class="peq"><summary>Como fazer cada passo</summary><ol>${PASSOS_IG.map(([, t, como]) => `<li><b>${t}:</b> ${como}</li>`).join("")}</ol></details>`}`;
+}
+function p_okTodos(ps) { return PASSOS_IG.every(([k]) => (ps.get(k) || {}).ok === true); }
+async function integracoes(el) {
+  let it = st.resumo.integracoes || [];
+  try { it = await rpc("nexo_integracoes", { p_agente: st.agente }) || it; } catch (e) { /* mostra o resumo */ }
   const tem = new Set(it.map(x => x.tipo));
   const faltam = ["whatsapp_business", "google", "crm"].filter(t => !tem.has(t));
   el.innerHTML = `
-    <div class="aviso info">A conexão guiada (passo a passo do Instagram, testes reais e cofre de chaves) chega na Etapa 4. Hoje as chaves da Onça ficam no cofre do GitHub, fora do painel.</div>
+    <div class="aviso info">O agente testa as conexões de verdade 3 vezes por dia (só leitura na Meta) e grava aqui o resultado de cada passo. As chaves da Onça ficam no cofre do GitHub, nunca neste painel. O botão "Entrar com Facebook" e o cofre do NEXO chegam na próxima parte da Etapa 4.</div>
     <div class="grade">
       ${it.map(x => { const [rot, cls] = ST_INT[x.status] || [x.status, "muted"]; return `
-        <div class="card">
+        <div class="card ${x.tipo === "instagram" ? "largo" : ""}">
           <div class="linha entre"><h3>${esc(NOME_INT[x.tipo] || x.tipo)}</h3><span class="pill ${cls}">${rot}</span></div>
           <div class="peq">Conta: <b>${esc(x.conta || "–")}</b></div>
           ${x.funcionalidades?.length ? `<div class="linha">${x.funcionalidades.map(f => `<span class="pill info">${esc(f.replace(/_/g, " "))}</span>`).join("")}</div>` : ""}
           <div class="muted peq">Chave guardada em: ${x.segredo === "github_secrets" ? "cofre do GitHub" : x.segredo === "cofre" ? "cofre do NEXO" : "–"}</div>
-          <div class="muted peq">Último teste: ${x.ultimo_teste_em ? quando(x.ultimo_teste_em) + (x.ultimo_teste_ok ? " · ok" : " · falhou") : "ainda não testado pelo painel"}</div>
+          <div class="muted peq">Último teste real: ${x.ultimo_teste_em ? quando(x.ultimo_teste_em) + (x.ultimo_teste_ok ? " · ok" : " · falhou") : "ainda não testado"}${x.permissoes?.length ? ` · ${x.permissoes.length} permissões` : ""}</div>
           ${x.ultimo_erro ? `<div class="bad peq">${esc(x.ultimo_erro)}</div>` : ""}
-          <div class="acoes"><button class="btn" disabled>Testar</button><button class="btn" disabled>Reconectar</button><button class="btn nao" disabled>Desconectar</button></div>
+          ${x.tipo === "instagram" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x)}` : ""}
+          ${x.tipo === "telegram" ? `<div class="muted peq">O Telegram é testado quando o agente manda um aviso.</div>` : ""}
         </div>`; }).join("")}
       ${faltam.map(t => `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div><button class="btn" disabled>Conectar (em breve)</button></div>`).join("")}
     </div>`;
