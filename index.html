@@ -290,6 +290,14 @@ async function iniciar() {
   $("#selAgente").onchange = () => { st.agente = $("#selAgente").value; try { localStorage.setItem("nexo.agente", st.agente); } catch {} carregar(); };
   $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto");
   let aba = "inicio"; try { aba = localStorage.getItem("nexo.aba") || "inicio"; } catch {}
+  // Volta do "Entrar com Facebook": mostra o resultado e limpa o endereço.
+  const volta = new URLSearchParams(location.search);
+  if (volta.get("conexao")) {
+    aba = "integracoes";
+    setTimeout(() => aviso(volta.get("conexao") === "ok" ? "Instagram conectado pelo login oficial da Meta. A chave foi para o cofre."
+                                                         : "A conexão não terminou: " + (volta.get("motivo") || "tente de novo."), volta.get("conexao") !== "ok"), 400);
+    history.replaceState(null, "", location.pathname);
+  }
   await carregar();
   abrirAba($(`.menu button[data-aba="${aba}"]`) ? aba : "inicio");
 }
@@ -698,7 +706,7 @@ async function integracoes(el) {
   const tem = new Set(it.map(x => x.tipo));
   const faltam = ["whatsapp_business", "google", "crm"].filter(t => !tem.has(t));
   el.innerHTML = `
-    <div class="aviso info">O agente testa as conexões de verdade 3 vezes por dia (só leitura na Meta) e grava aqui o resultado de cada passo. As chaves da Onça ficam no cofre do GitHub, nunca neste painel. O botão "Entrar com Facebook" e o cofre do NEXO chegam na próxima parte da Etapa 4.</div>
+    <div class="aviso info">O agente testa as conexões de verdade 3 vezes por dia (só leitura na Meta) e grava aqui o resultado de cada passo. As chaves da Onça ficam no cofre do GitHub, nunca neste painel. Para conectar ou renovar, use "Entrar com Facebook": a chave vai para o cofre do NEXO.</div>
     <div class="grade">
       ${it.map(x => { const [rot, cls] = ST_INT[x.status] || [x.status, "muted"]; return `
         <div class="card ${x.tipo === "instagram" ? "largo" : ""}">
@@ -708,11 +716,21 @@ async function integracoes(el) {
           <div class="muted peq">Chave guardada em: ${x.segredo === "github_secrets" ? "cofre do GitHub" : x.segredo === "cofre" ? "cofre do NEXO" : "–"}</div>
           <div class="muted peq">Último teste real: ${x.ultimo_teste_em ? quando(x.ultimo_teste_em) + (x.ultimo_teste_ok ? " · ok" : " · falhou") : "ainda não testado"}${x.permissoes?.length ? ` · ${x.permissoes.length} permissões` : ""}</div>
           ${x.ultimo_erro ? `<div class="bad peq">${esc(x.ultimo_erro)}</div>` : ""}
-          ${x.tipo === "instagram" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x)}` : ""}
+          ${x.tipo === "instagram" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x)}
+            <div class="acoes"><button class="btn onca" data-conectar ${podeMudar() ? "" : "disabled"}>Entrar com Facebook</button></div>
+            <div class="muted peq">Abre a tela oficial da Meta. Você autoriza lá; este painel nunca vê sua senha. A chave vai para o cofre do NEXO. A Onça continua usando a chave do GitHub até a Etapa 6.</div>` : ""}
           ${x.tipo === "telegram" ? `<div class="muted peq">O Telegram é testado quando o agente manda um aviso.</div>` : ""}
         </div>`; }).join("")}
       ${faltam.map(t => `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div><button class="btn" disabled>Conectar (em breve)</button></div>`).join("")}
     </div>`;
+  const bc = $("[data-conectar]", el);
+  if (bc) bc.onclick = async () => {
+    if (!confirm("Abrir a tela oficial da Meta para conectar o Instagram? Marque todas as permissões que ela mostrar.")) return;
+    bc.disabled = true;
+    try { const r = await rpc("nexo_iniciar_conexao", { p_agente: st.agente, p_tipo: "instagram" });
+          location.href = `${SUPABASE_URL}/functions/v1/nexo-meta-oauth?acao=iniciar&state=${r.state}`; }
+    catch (e) { bc.disabled = false; aviso(msgErro(e), true); }
+  };
 }
 
 // ---------------------------------------------------------------- ATIVIDADE
