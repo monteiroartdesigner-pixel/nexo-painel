@@ -226,7 +226,8 @@ const ERROS = {
   nome_vazio: "O nome não pode ficar vazio.", texto_vazio: "Escreva as instruções antes de salvar.",
   nao_posta_neste_status: "Essa peça já foi publicada, está publicando ou foi recusada.",
   versao_nao_encontrada: "Essa versão não existe mais.",
-  conteudo_invalido: "O conteúdo não está no formato esperado. Confira e tente de novo."
+  conteudo_invalido: "O conteúdo não está no formato esperado. Confira e tente de novo.",
+  tipo_nao_suportado: "O banco ainda não aceita essa conexão. Falta aplicar a migração do Google."
 };
 function msgErro(e) {
   const m = (e && (e.message || e.error_description)) || String(e);
@@ -294,7 +295,8 @@ async function iniciar() {
   const volta = new URLSearchParams(location.search);
   if (volta.get("conexao")) {
     aba = "integracoes";
-    setTimeout(() => aviso(volta.get("conexao") === "ok" ? "Instagram conectado pelo login oficial da Meta. A chave foi para o cofre."
+    const nomeServ = volta.get("servico") === "google" ? "Google conectado pelo login oficial do Google" : "Instagram conectado pelo login oficial da Meta";
+    setTimeout(() => aviso(volta.get("conexao") === "ok" ? nomeServ + ". A chave foi para o cofre."
                                                          : "A conexão não terminou: " + (volta.get("motivo") || "tente de novo."), volta.get("conexao") !== "ok"), 400);
     history.replaceState(null, "", location.pathname);
   }
@@ -688,18 +690,26 @@ const PASSOS_IG = [
   ["mensagens", "Mensagens (direct)", "Depende da permissão de mensagens e da conta conectada às mensagens da Página. Direct comum para quem não tem papel no app só depois do Acesso Avançado da Meta (Etapa 5)."],
   ["teste_real", "Teste real", "O agente pergunta à Meta qual é a conta e confere se é a certa. Roda 3 vezes por dia, junto com o retrato do cérebro."]
 ];
-function passosHtml(x) {
+const PASSOS_GOOGLE = [
+  ["autorizacao", "Autorização no Google", "Você autoriza na tela oficial do Google, marcando todas as caixas. Este painel nunca vê sua senha."],
+  ["conta", "Conta Google", "A conta que vai cuidar do canal, do Perfil da Empresa, das planilhas e da agenda."],
+  ["youtube", "YouTube (Shorts)", "Precisa de um canal nesta conta. Vídeos enviados pela API ficam privados até a auditoria do Google."],
+  ["perfil_empresa", "Perfil da Empresa (Google Meu Negócio)", "O Google libera esta API por pedido de acesso, em alguns dias. Até lá fica como 'aguardando'."],
+  ["planilhas", "Planilhas", "Para copiar leads e calendário para o Google Sheets."],
+  ["agenda", "Agenda", "Para pôr as publicações aprovadas e os retornos de leads no Google Agenda."]
+];
+function passosHtml(x, lista = PASSOS_IG) {
+  const PASSOS_IG_ = lista;
   const ps = new Map(((x.checagem || {}).passos || []).map(p => [p.chave, p]));
   if (!ps.size) return `<div class="muted peq">O agente ainda não testou esta conexão passo a passo.</div>`;
-  return `<ol class="passos">${PASSOS_IG.map(([k, t, como]) => {
+  return `<ol class="passos">${PASSOS_IG_.map(([k, t, como]) => {
     const p = ps.get(k) || { ok: null, detalhe: "não testado" };
     const [ic, cls] = p.ok === true ? ["✔", "ok"] : p.ok === false ? ["✘", "bad"] : ["·", "muted"];
     return `<li><span class="pill ${cls}" aria-label="${p.ok === true ? "ok" : p.ok === false ? "falhou" : "sem teste"}">${ic}</span>
       <span><b>${t}</b><br><span class="peq ${p.ok === false ? "bad" : "muted"}">${esc(p.detalhe || "")}</span>
       ${p.ok === true ? "" : `<br><span class="peq">${como}</span>`}</span></li>`; }).join("")}</ol>
-    ${p_okTodos(ps) ? "" : `<details class="peq"><summary>Como fazer cada passo</summary><ol>${PASSOS_IG.map(([, t, como]) => `<li><b>${t}:</b> ${como}</li>`).join("")}</ol></details>`}`;
+    ${PASSOS_IG_.every(([k]) => (ps.get(k) || {}).ok === true) ? "" : `<details class="peq"><summary>Como fazer cada passo</summary><ol>${PASSOS_IG_.map(([, t, como]) => `<li><b>${t}:</b> ${como}</li>`).join("")}</ol></details>`}`;
 }
-function p_okTodos(ps) { return PASSOS_IG.every(([k]) => (ps.get(k) || {}).ok === true); }
 async function integracoes(el) {
   let it = st.resumo.integracoes || [];
   try { it = await rpc("nexo_integracoes", { p_agente: st.agente }) || it; } catch (e) { /* mostra o resumo */ }
@@ -719,10 +729,24 @@ async function integracoes(el) {
           ${x.tipo === "instagram" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x)}
             <div class="acoes"><button class="btn onca" data-conectar ${podeMudar() ? "" : "disabled"}>Entrar com Facebook</button></div>
             <div class="muted peq">Abre a tela oficial da Meta. Você autoriza lá; este painel nunca vê sua senha. A chave vai para o cofre do NEXO. A Onça continua usando a chave do GitHub até a Etapa 6.</div>` : ""}
+          ${x.tipo === "google" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x, PASSOS_GOOGLE)}
+            <div class="acoes"><button class="btn onca" data-google ${podeMudar() ? "" : "disabled"}>Entrar com Google</button></div>` : ""}
           ${x.tipo === "telegram" ? `<div class="muted peq">O Telegram é testado quando o agente manda um aviso.</div>` : ""}
         </div>`; }).join("")}
-      ${faltam.map(t => `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div><button class="btn" disabled>Conectar (em breve)</button></div>`).join("")}
+      ${faltam.map(t => t === "google"
+        ? `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div>
+            <div class="muted peq">YouTube (Shorts), Perfil da Empresa, Planilhas e Agenda. Abre a tela oficial do Google; a chave vai para o cofre.</div>
+            <button class="btn onca" data-google ${podeMudar() ? "" : "disabled"}>Entrar com Google</button></div>`
+        : `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div><button class="btn" disabled>Conectar (em breve)</button></div>`).join("")}
     </div>`;
+  const bg = $("[data-google]", el);
+  if (bg) bg.onclick = async () => {
+    if (!confirm("Abrir a tela oficial do Google para conectar YouTube, Perfil da Empresa, Planilhas e Agenda? Marque todas as caixas.")) return;
+    bg.disabled = true;
+    try { const r = await rpc("nexo_iniciar_conexao", { p_agente: st.agente, p_tipo: "google" });
+          location.href = `${SUPABASE_URL}/functions/v1/nexo-google-oauth?acao=iniciar&state=${r.state}`; }
+    catch (e) { bg.disabled = false; aviso(msgErro(e), true); }
+  };
   const bc = $("[data-conectar]", el);
   if (bc) bc.onclick = async () => {
     if (!confirm("Abrir a tela oficial da Meta para conectar o Instagram? Marque todas as permissões que ela mostrar.")) return;
