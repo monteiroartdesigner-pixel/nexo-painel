@@ -768,6 +768,8 @@ async function integracoes(el) {
 const ST_CAMP = { ativa: ["ativa", "ok"], pausada: ["pausada", "warn"], encerrada: ["encerrada", "muted"] };
 const FONTES_P = [["busca_web", "Busca na web"], ["instagram_publico", "Instagram público (sem login)"], ["site_da_empresa", "Site da própria empresa"], ["plataformas_de_projetos", "Plataformas de projetos"]];
 const PAISES_P = [["BR", "Brasil"], ["US", "Estados Unidos"]];
+const DIAS_P = [[1, "Seg"], [2, "Ter"], [3, "Qua"], [4, "Qui"], [5, "Sex"], [6, "Sáb"], [7, "Dom"]];
+const TURNOS_P = [["manha", "Manhã (06:10)"], ["tarde", "Tarde (12:10)"], ["noite", "Noite (18:10)"]];
 let campanhas = [], campEdit = null, campVer = null, empresasP = [], filtroEmp = "", indic = null, indicCamp = "";
 const podeProspect = () => ["plataforma", "dono", "admin"].includes(st.prospect?.papel);
 const linhas = v => (v || "").split("\n").map(x => x.trim()).filter(Boolean);
@@ -837,6 +839,9 @@ function pintarProspect(el) {
         <div class="peq"><b>Palavras:</b> ${resumoLista(c.palavras_chave, "nenhuma")}</div>
         <div class="peq"><b>Preço:</b> ${c.moeda && c.preco_min_centavos != null ? `${dinheiro(c.preco_min_centavos, c.moeda)} a ${dinheiro(c.preco_max_centavos, c.moeda)}` : `<span class="muted">sem faixa (o robô não sugere preço)</span>`}${c.canal_abordagem ? ` · canal: ${esc(c.canal_abordagem)}` : ""}</div>
         <div class="muted peq">${c.empresas} empresas · ${c.prioritarias} prioritárias · limite ${c.limite_pesquisas_dia} buscas/dia · ${c.ultima_pesquisa ? "última pesquisa " + quando(c.ultima_pesquisa) : "ainda sem pesquisa"}</div>
+        ${c.modo === "automatico" && c.dias_semana ? `<div class="peq"><b>Agenda:</b> ${DIAS_P.filter(([d]) => c.dias_semana.includes(d)).map(x => x[1]).join(", ")} · ${TURNOS_P.filter(([t]) => (c.turnos || []).includes(t)).map(x => x[1]).join(", ")}</div>` : ""}
+        ${c.buscas_7d != null ? `<div class="muted peq">Últimos 7 dias: ${c.buscas_7d} buscas, ${c.novas_7d} empresas novas · custo estimado em 30 dias: ${dinheiro(c.custo_30d_centavos || 0, "BRL")}</div>` : ""}
+        ${c.modo === "automatico" && c.status === "ativa" && c.rodadas_sem_novas >= 3 ? `<div class="peq warn">Parada por economia: ${c.rodadas_sem_novas} rodadas seguidas sem empresa nova. Edite os filtros (ou peça uma pesquisa) para voltar.</div>` : ""}
         <div class="acoes">
           <button class="btn" data-ver>Ver empresas (${c.empresas})</button>
           ${c.status === "ativa" && !c.pesquisa_pedida_em ? `<button class="btn onca" data-pedir ${dis}>Pedir pesquisa</button>` : ""}
@@ -974,6 +979,14 @@ function formCampanha(c) {
         <label class="campo" style="flex:1 1 160px">Idioma das mensagens<select id="cIdioma"><option value="pt" ${c.idioma === "pt" ? "selected" : ""}>Português</option><option value="en" ${c.idioma === "en" ? "selected" : ""}>Inglês</option></select></label>
         <label class="campo" style="flex:1 1 160px">Limite de buscas por dia<input type="number" id="cLimite" min="0" max="200" value="${c.limite_pesquisas_dia}"></label>
       </div>
+      <div id="cAgenda" ${c.modo === "automatico" ? "" : "hidden"}>
+        <h3>Agenda do modo automático</h3>
+        <div class="linha">${DIAS_P.map(([d, n]) => `<label class="linha peq"><input type="checkbox" data-dia value="${d}" ${(c.dias_semana || [1, 2, 3, 4, 5]).includes(d) ? "checked" : ""}> ${n}</label>`).join("")}</div>
+        <div class="linha">${TURNOS_P.map(([t, n]) => `<label class="linha peq"><input type="checkbox" data-turno value="${t}" ${(c.turnos || ["manha"]).includes(t) ? "checked" : ""}> ${n}</label>`).join("")}</div>
+        <div class="muted peq">Para economizar: se a campanha passar 3 rodadas seguidas sem achar empresa nova, ela para sozinha até você editar os filtros.</div>
+      </div>
+      <label class="campo" style="max-width:260px">Custo estimado por busca (R$)<input type="number" id="cCusto" min="0" step="0.01" value="${((c.custo_por_busca_centavos || 0) / 100).toFixed(2)}"></label>
+      <div class="muted peq">Hoje a pesquisa usa a rotina do Claude, que já está no seu plano: custo extra R$ 0,00. Mude só se passar a usar uma API paga.</div>
       <h3>País</h3>
       <div class="linha">${PAISES_P.map(([k, n]) => `<label class="linha peq"><input type="checkbox" data-pais value="${k}" ${(c.paises || []).includes(k) ? "checked" : ""}> ${n}</label>`).join("")}</div>
       <p class="muted peq" style="margin:0">Nas listas abaixo, escreva um item por linha.</p>
@@ -1000,6 +1013,7 @@ function formCampanha(c) {
 }
 function ligarForm(el) {
   $("#cCancelar").onclick = () => { campEdit = null; pintarProspect(el); };
+  $("#cModo").onchange = ev => { $("#cAgenda").hidden = ev.target.value !== "automatico"; };
   $("#cSalvar").onclick = async () => {
     const dados = { nome: $("#cNome").value.trim(), servico: $("#cServico").value.trim(), modo: $("#cModo").value, idioma: $("#cIdioma").value,
       limite_pesquisas_dia: Number($("#cLimite").value || 0), paises: $$("[data-pais]:checked", el).map(x => x.value),
@@ -1007,6 +1021,8 @@ function ligarForm(el) {
       palavras_chave: linhas($("#cChaves").value), palavras_negativas: linhas($("#cNegativas").value),
       fontes: $$("[data-fonte]:checked", el).map(x => x.value), cliente_ideal: $("#cIdeal").value.trim(), problemas: $("#cProblemas").value.trim(),
       oferta: $("#cOferta").value.trim(), canal_abordagem: $("#cCanal").value, moeda: $("#cMoeda").value,
+      dias_semana: $$("[data-dia]:checked", el).map(x => Number(x.value)), turnos: $$("[data-turno]:checked", el).map(x => x.value),
+      custo_por_busca_centavos: Math.round(Number($("#cCusto").value || 0) * 100),
       preco_min_centavos: $("#cPrecoMin").value === "" ? "" : Math.round(Number($("#cPrecoMin").value) * 100),
       preco_max_centavos: $("#cPrecoMax").value === "" ? "" : Math.round(Number($("#cPrecoMax").value) * 100) };
     if ((dados.preco_min_centavos !== "" || dados.preco_max_centavos !== "") && !dados.moeda) { aviso("Escolha a moeda do preço.", true); return; }
@@ -1014,6 +1030,7 @@ function ligarForm(el) {
     if (!dados.nome || !dados.servico) { aviso("Preencha o nome e o serviço.", true); return; }
     if (!dados.paises.length) { aviso("Marque pelo menos um país.", true); return; }
     if (!dados.fontes.length) { aviso("Marque pelo menos uma fonte de pesquisa.", true); return; }
+    if (dados.modo === "automatico" && (!dados.dias_semana.length || !dados.turnos.length)) { aviso("No modo automático, marque ao menos um dia e um horário.", true); return; }
     $("#cSalvar").disabled = true;
     try { await rpc("nexo_prospect_salvar_campanha", { p_agente: st.prospect.id, p_id: campEdit.id || null, p_dados: dados }); aviso("Campanha salva."); await prospect(el); }
     catch (e) { $("#cSalvar").disabled = false; aviso(msgErro(e) + " " + ((e.message || "").split("campanha_invalida:")[1] || ""), true); }
