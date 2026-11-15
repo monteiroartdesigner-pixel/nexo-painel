@@ -824,6 +824,7 @@ function pintarProspect(el) {
   if (campEdit) { el.innerHTML = formCampanha(campEdit); ligarForm(el); return; }
   if (campVer) { pintarEmpresas(el); return; }
   el.innerHTML = `
+    <div class="card linha entre" style="border-color:#2B4FA8"><div><h2>Novo: NEXO Prospect completo</h2><div class="muted peq">CRM com kanban, ficha de cada lead, tarefas e follow-ups, num aplicativo próprio com a marca da NEXO Inteligência.</div></div><a class="btn sim" href="prospect/">Abrir NEXO Prospect</a></div>
     <div class="aviso info">Mensagens e propostas são só sugestões: <b>nada é enviado sozinho</b>. Você revisa, copia e manda pelo seu canal. Respeite as regras de cada canal e não mande a mesma mensagem em massa.</div>
     <div class="aviso info">Central de prospecção da <b>NEXO Inteligência e Automação</b>, separada do NEXO VÁRZEA. Cada campanha tem os seus filtros. O robô pesquisa as campanhas <b>ativas</b>: as automáticas em toda rodada (3 vezes por dia) e as manuais quando você clica em "Pedir pesquisa". Cada empresa vem com a fonte e a evidência do que foi visto. Nada é enviado a ninguém: a abordagem é sempre manual.</div>
     ${indicadoresHtml()}
