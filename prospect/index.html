@@ -6,10 +6,11 @@
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#07090E">
 <title>NEXO Prospect</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%231B3A8A'/%3E%3Cpath d='M7 17V7l10 10V7' stroke='%23CFE0FF' stroke-width='2.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" href="../assets/nexo-marca.webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="../assets/plataforma.css">
 <style>
 /* ============================================================ design system: tokens */
 :root{
@@ -183,11 +184,23 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 .steps{display:flex;gap:6px;margin-bottom:6px}
 .steps i{flex:1;height:4px;border-radius:99px;background:var(--surface-3)} .steps i.on{background:var(--primary)}
 
+/* plataforma e ursinha */
+.app{--destaque-fundo:#152548;--destaque-borda:rgba(122,162,255,.5)}
+.topm{display:none}
+.ursa{--onca:#f2b632;--onca-out:#13234d;--cream:#fff4dc;--gorro:#2a56d6;display:inline-block;flex:0 0 auto;line-height:0}
+.ursa svg{width:100%;height:100%}
+.ursa-fala{display:flex;align-items:center;gap:14px;text-align:left}
+.ursa-fala .balao{background:var(--surface-2);border:1px solid var(--border);border-radius:14px 14px 14px 4px;padding:10px 14px;color:var(--text-2);font-size:13.5px;max-width:460px}
+@media (prefers-reduced-motion:no-preference){.ursa.oi svg{animation:oi 2.4s ease-in-out 1}}
+@keyframes oi{0%,100%{transform:rotate(0)}20%{transform:rotate(-6deg)}40%{transform:rotate(5deg)}60%{transform:rotate(-3deg)}}
+
 /* celular */
 .bottom{display:none}
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
   .side{display:none}
+  .topm{display:flex;flex-direction:column;gap:10px;padding:max(12px,env(safe-area-inset-top,0px)) 16px 10px;border-bottom:1px solid var(--border);background:var(--surface)}
+  .topm .l1{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .main{padding:16px 16px calc(84px + env(safe-area-inset-bottom,0px))}
   .bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
   .bottom a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);padding:6px 0;border-radius:8px;position:relative}
@@ -212,8 +225,8 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <!-- login -->
 <section id="telaLogin" class="login oculto">
   <form class="card" id="formLogin">
-    <div class="brand"><div class="brand-mark" data-logo></div><div class="brand-txt"><b>NEXO</b><span>PROSPECT</span></div></div>
-    <div><h1 style="font-size:22px">Entrar</h1><p class="muted" style="margin:6px 0 0">Use o mesmo e-mail e senha do NEXO System.</p></div>
+    <img class="plat-logo-grande" src="../assets/nexo-logo.webp" alt="NEXO">
+    <div class="ursa-fala"><span class="ursa oi" data-ursa style="width:52px;height:56px"></span><div class="balao">Oi! Aqui é o <b>NEXO Prospect</b>. Entre com o mesmo e-mail e senha do NEXO System.</div></div>
     <label class="field"><span>E-mail</span><input class="input" type="email" id="lEmail" autocomplete="username" required></label>
     <label class="field"><span>Senha</span><input class="input" type="password" id="lSenha" autocomplete="current-password" required></label>
     <button class="btn pri" type="submit" id="lEntrar" style="height:40px">Entrar</button>
@@ -223,13 +236,18 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 
 <!-- app -->
 <div id="telaApp" class="app oculto">
+  <header class="topm">
+    <div class="l1"><a class="plat-marca" href="../"><img src="../assets/nexo-marca.webp" alt=""><span class="txt"><b>NEXO</b><span>Plataforma</span></span></a>
+      <button class="btn ghost sm" data-sair>Sair</button></div>
+    <nav class="areas" aria-label="Áreas da plataforma"><a class="sys" href="../"><i></i>System</a><a class="pro" href="./" aria-current="page"><i></i>Prospect</a></nav>
+  </header>
   <aside class="side">
-    <div class="brand"><div class="brand-mark" data-logo></div><div class="brand-txt"><b>NEXO</b><span>PROSPECT</span></div></div>
-    <nav class="nav" id="nav" aria-label="Módulos"></nav>
+    <a class="plat-marca" href="../"><img src="../assets/nexo-marca.webp" alt=""><span class="txt"><b>NEXO</b><span>Plataforma</span></span></a>
+    <nav class="areas" aria-label="Áreas da plataforma"><a class="sys" href="../" title="NEXO System: agentes, conteúdo e integrações"><i></i>System</a><a class="pro" href="./" aria-current="page" title="NEXO Prospect: prospecção e CRM"><i></i>Prospect</a></nav>
+    <nav class="nav" id="nav" aria-label="Módulos do NEXO Prospect"></nav>
     <div class="side-f">
-      <a href="../" class="row" style="color:var(--muted)"><span data-ic="back"></span>Painel NEXO System</a>
       <span id="quem" class="peq"></span>
-      <button class="btn ghost sm" id="sair" style="justify-content:flex-start">Sair</button>
+      <button class="btn ghost sm" id="sair" data-sair style="justify-content:flex-start">Sair</button>
     </div>
   </aside>
   <main class="main" id="main" tabindex="-1"></main>
@@ -270,7 +288,19 @@ const ICONS = {
   table: "M3 5h18v14H3zM3 10h18M3 15h18M9 5v14", target: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12zM12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"
 };
 const ic = (n, cls = "ic") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n] || ""}"/></svg>`;
-const LOGO = `<svg viewBox="0 0 24 24" fill="none" stroke="#CFE0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5l14 14V5"/></svg>`;
+// A ursinha, mascote do NEXO Prospect (o mesmo desenho que já existia no painel). Aparece no login, nos
+// estados vazios e na ajuda; nunca no meio dos dados.
+const URSA_SVG = `<svg viewBox="104 130 112 120" aria-hidden="true">
+  <circle cx="122" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/><circle cx="198" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
+  <ellipse cx="160" cy="204" rx="48" ry="42" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
+  <ellipse cx="160" cy="226" rx="26" ry="18" fill="var(--cream)" stroke="var(--onca-out)" stroke-width="3.5"/>
+  <path d="M151 214 h18 l-9 9z" fill="var(--onca-out)"/><path d="M148 229 q12 10 24 0" fill="none" stroke="var(--onca-out)" stroke-width="3" stroke-linecap="round"/>
+  <rect x="124" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/><rect x="163" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/>
+  <path d="M112 186 C110 136 210 136 208 186 Z" fill="var(--gorro)" stroke="var(--onca-out)" stroke-width="4"/>
+  <rect x="106" y="174" width="108" height="18" rx="9" fill="#1c3c9e" stroke="var(--onca-out)" stroke-width="4"/></svg>`;
+const ursa = (tam = 56, cls = "") => `<span class="ursa ${cls}" style="width:${tam}px;height:${Math.round(tam * 1.07)}px">${URSA_SVG}</span>`;
+const fala = (texto, tam = 56) => `<div class="ursa-fala">${ursa(tam)}<div class="balao">${texto}</div></div>`;
+const LOGO =`<svg viewBox="0 0 24 24" fill="none" stroke="#CFE0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5l14 14V5"/></svg>`;
 
 const ST = { novo: ["Novo", ""], qualificado: ["Qualificado", "pri"], abordar: ["Abordar", "info"], abordado: ["Abordado", "info"],
   respondeu: ["Respondeu", "warn"], proposta: ["Proposta", "warn"], cliente: ["Cliente", "ok"], perdido: ["Perdido", "bad"], nao_contatar: ["Não contatar", "bad"] };
@@ -385,9 +415,9 @@ function vInicio(el) {
   const nome = (S.email || "").split("@")[0];
   const vazio = !S.empresas.length;
   el.innerHTML = `
-    <div class="page-h"><div><h1>Olá${nome ? ", " + esc(nome) : ""}</h1><p>${new Date().toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long" })} · ${ativas.length} campanha(s) ativa(s)</p></div>
+    <div class="page-h"><div class="row" style="gap:14px;flex-wrap:nowrap">${ursa(48, "oi")}<div><h1>Olá${nome ? ", " + esc(nome) : ""}</h1><p>${new Date().toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long" })} · ${ativas.length} campanha(s) ativa(s)</p></div></div>
       <div class="row"><a class="btn" href="#/campanhas">${ic("camp")}Campanhas</a><a class="btn pri" href="#/crm">${ic("crm")}Abrir CRM</a></div></div>
-    ${vazio ? `<div class="card"><div class="empty"><div class="ill">${ic("target")}</div><h2>Comece em 3 passos</h2>
+    ${vazio ? `<div class="card"><div class="empty">${ursa(72)}<h2>Comece em 3 passos</h2>
       <ol><li>Abra <b>Campanhas</b> e revise os filtros da campanha que você quer usar.</li><li>Clique em <b>Ativar</b> e depois em <b>Pedir pesquisa</b>.</li><li>Na rodada seguinte (06:10, 12:10 ou 18:10) as empresas aparecem aqui e no CRM, com a evidência e a mensagem pronta.</li></ol>
       <a class="btn pri" href="#/campanhas">Ir para Campanhas</a></div></div>` : ""}
     <div class="grid g-2">
@@ -459,7 +489,7 @@ function vCrm(el) {
 function corpoCrm() {
   const el = $("#crmCorpo"), l = filtrados();
   $("#fnum").textContent = `${l.length} de ${S.empresas.length}`;
-  if (!S.empresas.length) { el.innerHTML = `<div class="card"><div class="empty"><div class="ill">${ic("crm")}</div><h2>O CRM está vazio</h2><p class="muted" style="margin:0;max-width:440px">As empresas entram aqui quando o robô pesquisa uma campanha ativa. Ative uma campanha e peça uma pesquisa.</p><a class="btn pri" href="#/campanhas">Ir para Campanhas</a></div></div>`; return; }
+  if (!S.empresas.length) { el.innerHTML = `<div class="card"><div class="empty">${ursa(64)}<h2>O CRM está vazio</h2><p class="muted" style="margin:0;max-width:440px">As empresas entram aqui quando o robô pesquisa uma campanha ativa. Ative uma campanha e peça uma pesquisa.</p><a class="btn pri" href="#/campanhas">Ir para Campanhas</a></div></div>`; return; }
   if (!l.length) { el.innerHTML = `<div class="card"><div class="empty"><h2>Nada com esses filtros</h2><button class="btn" id="limpar">Limpar filtros</button></div></div>`; $("#limpar").onclick = () => { Object.assign(S.crm, { q: "", camp: "", prio: "", pais: "", contato: false }); vCrm($("#main")); }; return; }
   S.crm.vista === "kanban" ? kanban(el, l) : tabela(el, l);
 }
@@ -638,7 +668,7 @@ function vTarefas(el) {
       <div class="grow" data-emp="${t.empresa}" style="cursor:pointer"><div style="font-weight:600;${t.feita ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(t.titulo)}</div><div class="peq muted">${esc(t.empresa_nome)}</div></div>
       <span class="badge ${!t.feita && t.vence_em < h ? "bad" : !t.feita && t.vence_em === h ? "warn" : ""}">${t.feita ? "feita" : t.vence_em < h ? "atrasada · " + dataBR(t.vence_em) : t.vence_em === h ? "hoje" : dataBR(t.vence_em)}</span>
       ${!t.feita && t.whatsapp ? `<a class="btn sm icon ghost" href="https://wa.me/${esc(t.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp">${ic("wa")}</a>` : ""}</div>`).join("")
-      || `<div class="empty"><div class="ill">${ic("task")}</div><div>${tarefaFiltro === "hoje" ? "Tudo em dia por hoje." : tarefaFiltro === "proximas" ? "Nenhuma tarefa futura." : "Nenhuma tarefa concluída nos últimos 30 dias."}</div></div>`}</div>`}`;
+      || `<div class="empty">${ursa(56)}<div>${tarefaFiltro === "hoje" ? "Tudo em dia por hoje." : tarefaFiltro === "proximas" ? "Nenhuma tarefa futura." : "Nenhuma tarefa concluída nos últimos 30 dias."}</div></div>`}</div>`}`;
   $$("[data-f]", el).forEach(b => b.onclick = () => { tarefaFiltro = b.dataset.f; vTarefas(el); });
   $$("[data-emp]", el).forEach(x => x.onclick = () => abrirFicha(x.dataset.emp));
   $$("[data-t]", el).forEach(b => b.onclick = async () => { try { await rpc("nexo_prospect_concluir_tarefa", { p_tarefa: b.dataset.t, p_feita: b.getAttribute("aria-checked") !== "true" }); await carregarTudo(); vTarefas(el); toast("Tarefa atualizada."); } catch (e) { toast(msgErro(e), true); } });
@@ -749,6 +779,7 @@ function assistente(c0) {
 /* ============================================================ AJUDA */
 function vAjuda(el) {
   el.innerHTML = `<div class="page-h"><div><h1>Ajuda</h1><p>Como o NEXO Prospect trabalha e o que ele nunca faz.</p></div></div>
+    ${fala("Eu procuro as empresas e preparo a mensagem. <b>Quem decide e envia é você</b>: nada sai daqui sozinho.", 60)}
     <div class="grid g-2">
       <div class="card stack"><h2>Como funciona</h2>
         <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px" class="t2">
@@ -778,9 +809,10 @@ $("#formLogin").onsubmit = async ev => {
   if (error) { $("#lErro").textContent = msgErro(error); return; }
   iniciar();
 };
-$("#sair").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$$("[data-sair]").forEach(b => b.onclick = async () => { await sb.auth.signOut(); location.reload(); });
 async function iniciar() {
   $$("[data-logo]").forEach(x => x.innerHTML = LOGO); $$("[data-ic]").forEach(x => x.outerHTML = ic(x.dataset.ic));
+  $$("[data-ursa]").forEach(x => x.innerHTML = URSA_SVG);
   if (!MOCK) { const { data } = await sb.auth.getSession(); if (!data.session) { mostrarLogin(); return; } }
   const ctx = await rpc("nexo_contexto");
   S.email = ctx.email || "";
@@ -795,6 +827,7 @@ async function iniciar() {
   pintarNav(); render();
 }
 window.__prospect = { mock(fn) { MOCK = fn; return iniciar(); }, estado: S };
+$$("[data-ursa]").forEach(x => x.innerHTML = URSA_SVG);
 if (sb) iniciar(); else { $("#telaLogin").classList.remove("oculto"); $("#lErro").textContent = "Não deu para carregar o sistema de login. Verifique a internet."; }
 </script>
 </body>

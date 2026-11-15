@@ -7,42 +7,63 @@
 <meta name="theme-color" content="#050B15">
 <title>NEXO System · Painel</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..900&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="assets/plataforma.css">
+<link rel="icon" href="assets/nexo-marca.webp">
 <style>
 :root{
   --bg:#050B15; --panel:#0c1a33; --card:#112447; --line:#2B8CEB; --cyan:#3CC4E6;
   --fg:#eaf1fa; --muted:#9db1cf; --dark:#0a1630;
   --ok:#4cc27a; --warn:#f2c94c; --bad:#ff5a4e; --onca:#f2b632; --onca-out:#13234d; --cream:#fff4dc; --gorro:#2a56d6;
-  --f:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --f:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --ft:"Syne","Inter",sans-serif; --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
   --borda:color-mix(in srgb,var(--line) 40%,transparent); --fina:color-mix(in srgb,var(--line) 18%,transparent);
   color-scheme:dark;
 }
 *{box-sizing:border-box}
 html,body{background:var(--bg);margin:0}
-body{color:var(--fg);font-family:var(--f);font-size:15px;line-height:1.45;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:48px}
+body{color:var(--fg);font-family:var(--f);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
 a{color:var(--cyan)}
 button,input,select,textarea{font:inherit;color:inherit}
-.wrap{max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
 .oculto{display:none!important}
 
-/* topo */
-.topo{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap;padding-block:max(14px,env(safe-area-inset-top,0px)) 12px;border-bottom:1px solid var(--fina);position:sticky;top:0;z-index:5;background:var(--bg)}
+/* estrutura: menu lateral (computador) e menu no topo (celular) */
+.app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100dvh;--destaque-fundo:#13233F;--destaque-borda:rgba(43,140,235,.55)}
+.lado{position:sticky;top:0;height:100dvh;overflow-y:auto;border-right:1px solid var(--fina);background:#060E1C;padding:18px 12px;display:flex;flex-direction:column;gap:14px}
+.lado .rot{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);opacity:.75;padding:0 4px}
+.lado select{background:var(--panel);border:1px solid var(--borda);border-radius:10px;padding:8px 10px;width:100%;font-size:13.5px}
+.menu{display:flex;flex-direction:column;gap:2px}
+.menu .grupo{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);opacity:.7;padding:12px 12px 4px}
+.menu button{display:flex;align-items:center;gap:10px;text-align:left;background:none;border:0;font-size:14px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;white-space:nowrap;cursor:pointer;transition:background .16s,color .16s}
+.menu button svg{width:17px;height:17px;flex:0 0 auto}
+.menu button:hover{background:var(--panel);color:var(--fg)}
+.menu button[aria-current="page"]{background:color-mix(in srgb,var(--onca) 14%,transparent);color:var(--onca)}
+.menu button b{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--onca);color:#1a1200;border-radius:999px;padding:1px 7px}
+.menu button b:empty{display:none}
+.lado-pe{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid var(--fina)}
+.sair{background:none;border:1px solid var(--borda);border-radius:10px;padding:8px 12px;color:var(--muted);cursor:pointer;text-align:left}
+.sair:hover{color:var(--fg)}
+.conteudo{min-width:0;width:100%;max-width:1280px;padding:22px 28px 60px;display:flex;flex-direction:column;gap:18px}
+.cab{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--fina)}
 .marca{display:flex;align-items:center;gap:10px;min-width:0}
 .marca svg{width:40px;height:40px;flex:0 0 auto}
-.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cyan)}
-h1{margin:0;font-size:clamp(19px,2vw,24px);font-weight:900;font-stretch:118%;line-height:1.05}
-h2{margin:0 0 4px;font-size:19px;font-weight:900;font-stretch:112%}
-h3{margin:0;font-size:16px;font-weight:800}
-.seletor{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-left:auto}
-.seletor select{background:var(--panel);border:1px solid var(--borda);border-radius:10px;padding:7px 10px;max-width:260px}
-.sair{background:none;border:1px solid var(--borda);border-radius:999px;padding:6px 12px;color:var(--muted);cursor:pointer}
-.menu{display:flex;gap:4px;overflow-x:auto;flex-basis:100%;scrollbar-width:none;padding-bottom:2px}
-.menu::-webkit-scrollbar{display:none}
-.menu button{background:none;border:0;font-size:14px;font-weight:700;color:var(--muted);padding:8px 13px;border-radius:999px;white-space:nowrap;cursor:pointer}
-.menu button[aria-current="page"]{color:var(--bg);background:var(--onca)}
-.menu button b{font-family:var(--mono);margin-left:5px;color:var(--onca)}
-.menu button[aria-current="page"] b{color:var(--bg)}
+.eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+h1{margin:0;font-family:var(--ft);font-size:clamp(20px,2.2vw,26px);font-weight:800;line-height:1.1;letter-spacing:-.01em}
+h2{margin:0 0 4px;font-family:var(--ft);font-size:18px;font-weight:700}
+h3{margin:0;font-size:15.5px;font-weight:700}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .lado{position:static;height:auto;border-right:0;border-bottom:1px solid var(--fina);padding:max(12px,env(safe-area-inset-top,0px)) 16px 10px;gap:10px}
+  .lado .topo-m{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .lado .rot{display:none}
+  .menu{flex-direction:row;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px;position:sticky;top:0}
+  .menu::-webkit-scrollbar{display:none}
+  .menu .grupo{display:none}
+  .menu button{padding:8px 12px;border-radius:999px}
+  .lado-pe{display:none}
+  .conteudo{padding:16px 16px 48px}
+}
+@media (min-width:901px){ .sair-m{display:none} }
 
 /* blocos */
 .grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
@@ -114,7 +135,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .nivel input{margin-top:3px;accent-color:var(--onca)}
 
 /* login */
-.login{min-height:100dvh;display:grid;place-items:center;padding:24px 0}
+.login{min-height:100dvh;display:grid;place-items:center;padding:24px 16px}
+.login h1{text-align:center}
 .login .card{width:min(100%,400px);gap:14px;padding:24px}
 .login .marca svg{width:56px;height:56px}
 
@@ -141,8 +163,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <!-- LOGIN -->
 <main id="telaLogin" class="login oculto">
   <form class="card" id="formLogin" autocomplete="on">
-    <div class="marca"><span data-mascote></span><div><div class="eyebrow">NEXO System</div><h1>Painel dos agentes</h1></div></div>
-    <p class="muted peq" style="margin:0">Entre com o mesmo e-mail e senha do NEXO SPORT.</p>
+    <img class="plat-logo-grande" src="assets/nexo-logo.webp" alt="NEXO">
+    <div style="text-align:center"><div class="eyebrow">Plataforma NEXO · System</div><h1>Entrar</h1></div>
+    <p class="muted peq" style="margin:0;text-align:center">Um login só para o NEXO System e o NEXO Prospect. Use o mesmo e-mail e senha do NEXO SPORT.</p>
     <label class="campo">E-mail<input type="email" id="email" autocomplete="username" required></label>
     <label class="campo">Senha<input type="password" id="senha" autocomplete="current-password" required></label>
     <button class="btn prim" type="submit" id="btnEntrar">Entrar</button>
@@ -151,25 +174,39 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 </main>
 
 <!-- APP -->
-<div id="telaApp" class="wrap oculto">
-  <header class="topo">
-    <div class="marca"><span data-mascote></span><div><div class="eyebrow" id="nomeEmpresa">NEXO System</div><h1 id="nomeAgente">Painel</h1></div></div>
-    <div class="seletor">
-      <select id="selAgente" aria-label="Escolher agente"></select>
-      <button class="sair" id="btnSair" type="button">Sair</button>
+<div id="telaApp" class="app oculto">
+  <aside class="lado" aria-label="Navegação da plataforma">
+    <div class="topo-m">
+      <a class="plat-marca" href="./"><img src="assets/nexo-marca.webp" alt=""><span class="txt"><b>NEXO</b><span>Plataforma</span></span></a>
+      <button class="sair sair-m" type="button" data-sair>Sair</button>
     </div>
-    <nav class="menu" aria-label="Seções">
+    <nav class="areas" aria-label="Áreas da plataforma">
+      <a class="sys" href="./" aria-current="page" title="NEXO System: agentes, conteúdo e integrações"><i></i>System</a>
+      <a class="pro" href="prospect/" title="NEXO Prospect: prospecção e CRM"><i></i>Prospect</a>
+    </nav>
+    <div class="rot">Agente</div>
+    <select id="selAgente" aria-label="Escolher agente"></select>
+    <nav class="menu" aria-label="Seções do NEXO System">
+      <span class="grupo">Operação</span>
       <button data-aba="inicio" aria-current="page">Início</button>
       <button data-aba="aprovar">Aprovar <b id="nAprovar"></b></button>
       <button data-aba="leads">Leads</button>
+      <button data-aba="atividade">Atividade</button>
+      <span class="grupo">Configuração</span>
       <button data-aba="agente">Agente</button>
       <button data-aba="funcoes">Funções</button>
       <button data-aba="conhecimento">Conhecimento</button>
       <button data-aba="integracoes">Integrações</button>
-      <button data-aba="prospect">Prospect</button>
-      <button data-aba="atividade">Atividade</button>
+      <span class="grupo">Suporte</span>
       <button data-aba="ajuda">Ajuda</button>
     </nav>
+    <div class="lado-pe">
+      <button class="sair" id="btnSair" type="button" data-sair>Sair</button>
+    </div>
+  </aside>
+  <main class="conteudo">
+  <header class="cab">
+    <div><div class="eyebrow" id="nomeEmpresa">NEXO System</div><h1 id="nomeAgente">Painel</h1></div>
   </header>
 
   <section data-sec="inicio" aria-label="Início"></section>
@@ -182,6 +219,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   <section data-sec="prospect" class="oculto" aria-label="Prospect"></section>
   <section data-sec="atividade" class="oculto" aria-label="Atividade"></section>
   <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
+  </main>
 </div>
 
 <div id="toast" class="toast oculto" role="status" aria-live="polite"></div>
@@ -266,7 +304,16 @@ $("#formLogin").addEventListener("submit", async ev => {
   $("#senha").value = "";
   iniciar();
 });
-$("#btnSair").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
+$$("[data-sair]").forEach(b => b.addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); }));
+// Ícones do menu (um traço só, o mesmo estilo do NEXO Prospect).
+const ICONES_MENU = { inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", aprovar: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
+  leads: "M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+  atividade: "M22 12h-4l-3 9L9 3l-3 9H2", agente: "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2",
+  funcoes: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
+  conhecimento: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5",
+  integracoes: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  ajuda: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5M12 17.5h.01" };
+$$(".menu button").forEach(b => { const d = ICONES_MENU[b.dataset.aba]; if (d) b.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`); });
 
 // ---------------------------------------------------------------- abas
 $$(".menu button").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.aba)));

@@ -1,0 +1,24 @@
+/* Plataforma NEXO: peças comuns ao NEXO System e ao NEXO Prospect (marca, troca de área e tipografia).
+   Cada área mantém a sua cor de destaque em --destaque. */
+:root{ --plat-f:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --plat-ft:"Syne","Inter",sans-serif;
+  --plat-prata:#C9CFD8; --plat-borda:rgba(201,207,216,.14); --plat-fundo:#0A0D14; }
+
+.plat-marca{display:flex;align-items:center;gap:10px;min-width:0;text-decoration:none;color:inherit}
+.plat-marca img{width:38px;height:38px;border-radius:10px;object-fit:cover;flex:0 0 auto;
+  box-shadow:0 0 0 1px var(--plat-borda),0 6px 16px rgba(0,0,0,.45)}
+.plat-marca .txt{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+.plat-marca b{font-family:var(--plat-ft);font-weight:800;font-size:16px;letter-spacing:.22em;color:#F1F3F6}
+.plat-marca span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--plat-prata);opacity:.75;white-space:nowrap}
+
+/* troca de área: as duas áreas da mesma plataforma */
+.areas{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:3px;border-radius:11px;background:var(--plat-fundo);border:1px solid var(--plat-borda)}
+.areas a{display:flex;align-items:center;justify-content:center;gap:7px;height:32px;padding:0 8px;border-radius:8px;
+  font:600 12.5px/1 var(--plat-f);color:#9AA3B2;text-decoration:none;white-space:nowrap;transition:background .16s,color .16s}
+.areas a:hover{color:#F1F3F6;background:rgba(255,255,255,.04)}
+.areas a[aria-current="page"]{color:#fff;background:var(--destaque-fundo,#1B2A4A);box-shadow:inset 0 0 0 1px var(--destaque-borda,rgba(59,130,246,.45))}
+.areas i{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.areas .sys i{background:#2B8CEB} .areas .pro i{background:#7AA2FF}
+
+.plat-logo-grande{width:min(240px,70%);aspect-ratio:560/489;object-fit:cover;border-radius:18px;display:block;margin:0 auto 4px;
+  box-shadow:0 0 0 1px var(--plat-borda),0 18px 40px rgba(0,0,0,.55)}
+@media (prefers-reduced-motion:reduce){.areas a{transition:none}}
