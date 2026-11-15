@@ -783,6 +783,7 @@ function pintarProspect(el) {
   if (campEdit) { el.innerHTML = formCampanha(campEdit); ligarForm(el); return; }
   if (campVer) { pintarEmpresas(el); return; }
   el.innerHTML = `
+    <div class="aviso info">Mensagens e propostas são só sugestões: <b>nada é enviado sozinho</b>. Você revisa, copia e manda pelo seu canal. Respeite as regras de cada canal e não mande a mesma mensagem em massa.</div>
     <div class="aviso info">Central de prospecção da <b>NEXO Inteligência e Automação</b>, separada do NEXO VÁRZEA. Cada campanha tem os seus filtros. O robô pesquisa as campanhas <b>ativas</b>: as automáticas em toda rodada (3 vezes por dia) e as manuais quando você clica em "Pedir pesquisa". Cada empresa vem com a fonte e a evidência do que foi visto. Nada é enviado a ninguém: a abordagem é sempre manual.</div>
     <div class="acoes"><button class="btn sim" id="campNova" ${dis}>+ Nova campanha</button></div>
     <div class="grade">${campanhas.map(c => { const [rot, cls] = ST_CAMP[c.status] || [c.status, "muted"]; return `
@@ -794,6 +795,7 @@ function pintarProspect(el) {
         <div class="peq"><b>Onde:</b> ${resumoLista([...(c.estados || []), ...(c.cidades || [])], "país inteiro")}</div>
         <div class="peq"><b>Nichos:</b> ${resumoLista(c.nichos, "nenhum")}</div>
         <div class="peq"><b>Palavras:</b> ${resumoLista(c.palavras_chave, "nenhuma")}</div>
+        <div class="peq"><b>Preço:</b> ${c.moeda && c.preco_min_centavos != null ? `${dinheiro(c.preco_min_centavos, c.moeda)} a ${dinheiro(c.preco_max_centavos, c.moeda)}` : `<span class="muted">sem faixa (o robô não sugere preço)</span>`}${c.canal_abordagem ? ` · canal: ${esc(c.canal_abordagem)}` : ""}</div>
         <div class="muted peq">${c.empresas} empresas · ${c.prioritarias} prioritárias · limite ${c.limite_pesquisas_dia} buscas/dia · ${c.ultima_pesquisa ? "última pesquisa " + quando(c.ultima_pesquisa) : "ainda sem pesquisa"}</div>
         <div class="acoes">
           <button class="btn" data-ver>Ver empresas (${c.empresas})</button>
@@ -827,6 +829,22 @@ function pintarProspect(el) {
     });
   });
 }
+function dinheiro(cent, moeda) {
+  if (cent == null || !moeda) return "";
+  return (cent / 100).toLocaleString(moeda === "USD" ? "en-US" : "pt-BR", { style: "currency", currency: moeda, maximumFractionDigits: 0 });
+}
+function propostaTexto(e, k) {
+  const en = k.idioma === "en";
+  const lugar = [e.cidade, e.estado].filter(Boolean).join(", ");
+  const preco = k.preco_sugerido_centavos ? dinheiro(k.preco_sugerido_centavos, k.moeda) : (en ? "to be agreed" : "a combinar");
+  return en
+    ? `Proposal · ${k.servico_recomendado || k.servico}\nFor: ${e.nome}${lugar ? ` (${lugar})` : ""}\n\nWhat I noticed: ${k.oportunidade}\nWhat I propose: ${k.servico_recomendado || k.servico}\n${k.oferta ? `What you get: ${k.oferta}\n` : ""}Investment: ${preco}\n\nRicardo Monteiro · NEXO Intelligence & Automation`
+    : `Proposta · ${k.servico_recomendado || k.servico}\nPara: ${e.nome}${lugar ? ` (${lugar})` : ""}\n\nO que eu vi: ${k.oportunidade}\nO que proponho: ${k.servico_recomendado || k.servico}\n${k.oferta ? `O que você recebe: ${k.oferta}\n` : ""}Investimento: ${preco}\n\nRicardo Monteiro · NEXO Inteligência e Automação`;
+}
+async function copiar(texto, rotulo) {
+  try { await navigator.clipboard.writeText(texto); aviso(`${rotulo} copiada. Revise antes de mandar.`); }
+  catch { aviso("Não deu para copiar. Selecione o texto e copie à mão.", true); }
+}
 const ST_EMP = { novo: "Novo", qualificado: "Qualificado", abordar: "Abordar", abordado: "Abordado", respondeu: "Respondeu", proposta: "Proposta enviada", cliente: "Cliente", perdido: "Perdido", nao_contatar: "Não contatar" };
 const PRIO = { alta: ["prioridade alta", "ok"], media: ["prioridade média", "warn"], baixa: ["prioridade baixa", "muted"] };
 function pintarEmpresas(el) {
@@ -847,6 +865,14 @@ function pintarEmpresas(el) {
         ${k.oportunidade ? `<div class="peq"><b>Oportunidade:</b> ${esc(k.oportunidade)}</div>` : `<div class="peq muted">Sem oportunidade comprovada (faltou evidência).</div>`}
         ${k.servico_recomendado ? `<div class="peq"><b>Serviço recomendado:</b> ${esc(k.servico_recomendado)}</div>` : ""}
         ${k.justificativa ? `<div class="peq"><b>Por quê:</b> ${esc(k.justificativa)}</div>` : ""}
+        ${k.mensagem_pt || k.mensagem_en ? `<div class="msgs">${[["pt", "Mensagem em português"], ["en", "Mensagem em inglês"]].filter(([l]) => k["mensagem_" + l]).map(([l, rot]) => `
+          <div class="peq"><b>${rot}:</b></div><div class="legenda aberta" style="white-space:pre-wrap">${esc(k["mensagem_" + l])}</div>
+          <div class="acoes"><button class="btn peq" data-copiar="${l}">Copiar</button>
+            ${l === "pt" && e.whatsapp ? `<a class="btn peq" href="https://wa.me/${esc(e.whatsapp)}?text=${encodeURIComponent(k.mensagem_pt)}" target="_blank" rel="noopener">Abrir no WhatsApp</a>` : ""}
+            ${e.email ? `<a class="btn peq" href="mailto:${esc(e.email)}?body=${encodeURIComponent(k["mensagem_" + l])}">Abrir no e-mail</a>` : ""}</div>`).join("")}</div>`
+          : (k.oportunidade ? `<div class="peq muted">Sem mensagem ainda (sai na próxima pesquisa desta campanha).</div>` : "")}
+        ${k.preco_sugerido_centavos ? `<div class="peq"><b>Preço sugerido:</b> ${dinheiro(k.preco_sugerido_centavos, k.moeda)}</div>` : ""}
+        ${k.oportunidade ? `<div class="acoes"><button class="btn peq onca" data-proposta>Copiar proposta</button></div>` : ""}
         ${(k.evidencias || []).length ? `<div class="peq"><b>Evidências:</b> ${k.evidencias.map(v => `<a href="${esc(v.onde)}" target="_blank" rel="noopener">${esc(v.o_que)}</a>`).join(" · ")}</div>` : ""}
         <div class="linha peq">
           ${e.site ? `<a href="${esc(e.site)}" target="_blank" rel="noopener">Site</a>` : ""}
@@ -860,6 +886,12 @@ function pintarEmpresas(el) {
       </div>`; }).join("") || `<div class="vazio">${empresasP.length ? "Nenhuma empresa com esse status." : "Nenhuma empresa ainda. Ative a campanha e peça uma pesquisa."}</div>`}`;
   $("#empVoltar").onclick = () => prospect(el);
   $("#empFiltro").onchange = ev => { filtroEmp = ev.target.value; pintarEmpresas(el); };
+  $$("[data-emp]", el).forEach(card => {
+    const e = empresasP.find(x => x.id === card.dataset.emp), k = (e.campanhas || []).find(x => x.id === c.id) || {};
+    $$("[data-copiar]", card).forEach(b => b.onclick = () => copiar(k["mensagem_" + b.dataset.copiar], "Mensagem"));
+    const bp = $("[data-proposta]", card);
+    if (bp) bp.onclick = () => copiar(propostaTexto(e, k), "Proposta");
+  });
   $$("[data-emp]", el).forEach(card => $("[data-status]", card).onchange = async ev => {
     const e = empresasP.find(x => x.id === card.dataset.emp);
     try { await rpc("nexo_prospect_mudar_empresa", { p_empresa: e.id, p_status: ev.target.value, p_nota: null }); e.status = ev.target.value; aviso("Status salvo."); }
@@ -887,6 +919,14 @@ function formCampanha(c) {
       ${area("cChaves", "Palavras-chave", c.palavras_chave, "sem site&#10;link na bio")}
       ${area("cNegativas", "Palavras-chave negativas (descartar)", c.palavras_negativas, "franquia nacional")}
       <label class="campo">Perfil de cliente ideal<textarea id="cIdeal" rows="3">${esc(c.cliente_ideal || "")}</textarea></label>
+      <label class="campo">Oferta e benefício (o que você entrega e por que vale a pena; a mensagem usa isto)<textarea id="cOferta" rows="3" placeholder="Site rápido, no Google, com botão de WhatsApp. Entrega em 15 dias.">${esc(c.oferta || "")}</textarea></label>
+      <div class="linha">
+        <label class="campo" style="flex:1 1 160px">Canal de abordagem<select id="cCanal">${[["", "Escolher"], ["instagram", "Instagram (direct)"], ["whatsapp", "WhatsApp"], ["email", "E-mail"], ["linkedin", "LinkedIn"]].map(([k, n]) => `<option value="${k}" ${(c.canal_abordagem || "") === k ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+        <label class="campo" style="flex:1 1 120px">Moeda<select id="cMoeda"><option value="">Sem preço</option><option value="BRL" ${c.moeda === "BRL" ? "selected" : ""}>R$ (real)</option><option value="USD" ${c.moeda === "USD" ? "selected" : ""}>US$ (dólar)</option></select></label>
+        <label class="campo" style="flex:1 1 120px">Preço mínimo<input type="number" id="cPrecoMin" min="0" step="1" value="${c.preco_min_centavos != null ? c.preco_min_centavos / 100 : ""}"></label>
+        <label class="campo" style="flex:1 1 120px">Preço máximo<input type="number" id="cPrecoMax" min="0" step="1" value="${c.preco_max_centavos != null ? c.preco_max_centavos / 100 : ""}"></label>
+      </div>
+      <div class="muted peq">Sem moeda e faixa, o robô não sugere preço. Com faixa, ele escolhe um valor dentro dela pelo tamanho do que a empresa precisa.</div>
       <label class="campo">Problemas que o serviço resolve<textarea id="cProblemas" rows="3">${esc(c.problemas || "")}</textarea></label>
       <h3>Fontes de pesquisa autorizadas</h3>
       <div class="linha">${FONTES_P.map(([k, n]) => `<label class="linha peq"><input type="checkbox" data-fonte value="${k}" ${(c.fontes || []).includes(k) ? "checked" : ""}> ${n}</label>`).join("")}</div>
@@ -901,7 +941,12 @@ function ligarForm(el) {
       limite_pesquisas_dia: Number($("#cLimite").value || 0), paises: $$("[data-pais]:checked", el).map(x => x.value),
       estados: linhas($("#cEstados").value), cidades: linhas($("#cCidades").value), nichos: linhas($("#cNichos").value),
       palavras_chave: linhas($("#cChaves").value), palavras_negativas: linhas($("#cNegativas").value),
-      fontes: $$("[data-fonte]:checked", el).map(x => x.value), cliente_ideal: $("#cIdeal").value.trim(), problemas: $("#cProblemas").value.trim() };
+      fontes: $$("[data-fonte]:checked", el).map(x => x.value), cliente_ideal: $("#cIdeal").value.trim(), problemas: $("#cProblemas").value.trim(),
+      oferta: $("#cOferta").value.trim(), canal_abordagem: $("#cCanal").value, moeda: $("#cMoeda").value,
+      preco_min_centavos: $("#cPrecoMin").value === "" ? "" : Math.round(Number($("#cPrecoMin").value) * 100),
+      preco_max_centavos: $("#cPrecoMax").value === "" ? "" : Math.round(Number($("#cPrecoMax").value) * 100) };
+    if ((dados.preco_min_centavos !== "" || dados.preco_max_centavos !== "") && !dados.moeda) { aviso("Escolha a moeda do preço.", true); return; }
+    if (dados.preco_min_centavos !== "" && dados.preco_max_centavos !== "" && dados.preco_min_centavos > dados.preco_max_centavos) { aviso("O preço mínimo está maior que o máximo.", true); return; }
     if (!dados.nome || !dados.servico) { aviso("Preencha o nome e o serviço.", true); return; }
     if (!dados.paises.length) { aviso("Marque pelo menos um país.", true); return; }
     if (!dados.fontes.length) { aviso("Marque pelo menos uma fonte de pesquisa.", true); return; }
