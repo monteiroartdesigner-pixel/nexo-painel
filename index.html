@@ -230,7 +230,8 @@ const ERROS = {
   versao_nao_encontrada: "Essa versão não existe mais.",
   conteudo_invalido: "O conteúdo não está no formato esperado. Confira e tente de novo.",
   tipo_nao_suportado: "O banco ainda não aceita essa conexão. Falta aplicar a migração do Google.",
-  campanha_invalida: "Confira os campos da campanha.", campanha_nao_encontrada: "Essa campanha não existe mais."
+  campanha_invalida: "Confira os campos da campanha.", campanha_nao_encontrada: "Essa campanha não existe mais.",
+  campanha_pausada: "Ative a campanha antes de pedir a pesquisa.", empresa_nao_encontrada: "Essa empresa não existe mais.", status_invalido: "Status inválido."
 };
 function msgErro(e) {
   const m = (e && (e.message || e.error_description)) || String(e);
@@ -766,7 +767,7 @@ async function integracoes(el) {
 const ST_CAMP = { ativa: ["ativa", "ok"], pausada: ["pausada", "warn"], encerrada: ["encerrada", "muted"] };
 const FONTES_P = [["busca_web", "Busca na web"], ["instagram_publico", "Instagram público (sem login)"], ["site_da_empresa", "Site da própria empresa"], ["plataformas_de_projetos", "Plataformas de projetos"]];
 const PAISES_P = [["BR", "Brasil"], ["US", "Estados Unidos"]];
-let campanhas = [], campEdit = null;
+let campanhas = [], campEdit = null, campVer = null, empresasP = [], filtroEmp = "";
 const podeProspect = () => ["plataforma", "dono", "admin"].includes(st.prospect?.papel);
 const linhas = v => (v || "").split("\n").map(x => x.trim()).filter(Boolean);
 async function prospect(el) {
@@ -774,25 +775,29 @@ async function prospect(el) {
   el.innerHTML = `<div class="card"><h2>NEXO Prospect</h2><div class="muted peq">Carregando…</div></div>`;
   try { campanhas = await rpc("nexo_prospect_campanhas", { p_agente: st.prospect.id }) || []; }
   catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; return; }
-  campEdit = null; pintarProspect(el);
+  campEdit = null; campVer = null; pintarProspect(el);
 }
 function resumoLista(v, vazio) { return v?.length ? esc(v.slice(0, 6).join(", ")) + (v.length > 6 ? ` +${v.length - 6}` : "") : `<span class="muted">${vazio}</span>`; }
 function pintarProspect(el) {
   const dis = podeProspect() ? "" : "disabled";
   if (campEdit) { el.innerHTML = formCampanha(campEdit); ligarForm(el); return; }
+  if (campVer) { pintarEmpresas(el); return; }
   el.innerHTML = `
-    <div class="aviso info">Central de prospecção da <b>NEXO Inteligência e Automação</b>, separada do NEXO VÁRZEA. Cada campanha tem os seus filtros. Nesta etapa você cria e ajusta as campanhas; a pesquisa por campanha chega na Etapa 3. Nada é enviado a ninguém: a abordagem é sempre manual.</div>
+    <div class="aviso info">Central de prospecção da <b>NEXO Inteligência e Automação</b>, separada do NEXO VÁRZEA. Cada campanha tem os seus filtros. O robô pesquisa as campanhas <b>ativas</b>: as automáticas em toda rodada (3 vezes por dia) e as manuais quando você clica em "Pedir pesquisa". Cada empresa vem com a fonte e a evidência do que foi visto. Nada é enviado a ninguém: a abordagem é sempre manual.</div>
     <div class="acoes"><button class="btn sim" id="campNova" ${dis}>+ Nova campanha</button></div>
     <div class="grade">${campanhas.map(c => { const [rot, cls] = ST_CAMP[c.status] || [c.status, "muted"]; return `
       <div class="card" data-camp="${c.id}">
-        <div class="linha entre"><h3>${esc(c.nome)}</h3><span class="pill ${cls}">${rot}</span></div>
+        <div class="linha entre" style="flex-wrap:nowrap;align-items:flex-start"><h3>${esc(c.nome)}</h3><span class="pill ${cls}">${rot}</span></div>
         <div class="peq">${esc(c.servico)}</div>
+        ${c.pesquisa_pedida_em ? `<div class="peq onca">Pesquisa pedida ${quando(c.pesquisa_pedida_em)}: sai na próxima rodada do robô.</div>` : ""}
         <div class="linha"><span class="pill info">${c.modo === "automatico" ? "automático" : "manual"}</span><span class="pill info">${c.idioma === "en" ? "inglês" : "português"}</span><span class="pill info">${(c.paises || []).join(" + ") || "sem país"}</span></div>
         <div class="peq"><b>Onde:</b> ${resumoLista([...(c.estados || []), ...(c.cidades || [])], "país inteiro")}</div>
         <div class="peq"><b>Nichos:</b> ${resumoLista(c.nichos, "nenhum")}</div>
         <div class="peq"><b>Palavras:</b> ${resumoLista(c.palavras_chave, "nenhuma")}</div>
         <div class="muted peq">${c.empresas} empresas · ${c.prioritarias} prioritárias · limite ${c.limite_pesquisas_dia} buscas/dia · ${c.ultima_pesquisa ? "última pesquisa " + quando(c.ultima_pesquisa) : "ainda sem pesquisa"}</div>
         <div class="acoes">
+          <button class="btn" data-ver>Ver empresas (${c.empresas})</button>
+          ${c.status === "ativa" && !c.pesquisa_pedida_em ? `<button class="btn onca" data-pedir ${dis}>Pedir pesquisa</button>` : ""}
           <button class="btn" data-editar ${dis}>Editar filtros</button>
           ${c.status === "ativa" ? `<button class="btn" data-st="pausada" ${dis}>Pausar</button>` : c.status === "pausada" ? `<button class="btn sim" data-st="ativa" ${dis}>Ativar</button>` : `<button class="btn" data-st="pausada" ${dis}>Reabrir</button>`}
           ${c.status !== "encerrada" ? `<button class="btn nao" data-st="encerrada" ${dis}>Encerrar</button>` : ""}
@@ -802,6 +807,17 @@ function pintarProspect(el) {
   $$("[data-camp]", el).forEach(card => {
     const c = campanhas.find(x => x.id === card.dataset.camp);
     $("[data-editar]", card).onclick = () => { campEdit = JSON.parse(JSON.stringify(c)); pintarProspect(el); };
+    $("[data-ver]", card).onclick = async () => {
+      try { empresasP = await rpc("nexo_prospect_empresas", { p_agente: st.prospect.id, p_campanha: c.id }) || []; campVer = c; filtroEmp = ""; pintarProspect(el); }
+      catch (e) { aviso(msgErro(e), true); }
+    };
+    const bp = $("[data-pedir]", card);
+    if (bp) bp.onclick = async () => {
+      if (!confirm(`Pedir pesquisa da campanha "${c.nome}"? O robô pesquisa na próxima rodada (06:10, 12:10 ou 18:10), até ${c.limite_pesquisas_dia} buscas.`)) return;
+      bp.disabled = true;
+      try { await rpc("nexo_prospect_pedir_pesquisa", { p_campanha: c.id }); aviso("Pedido registrado: sai na próxima rodada do robô."); await prospect(el); }
+      catch (e) { bp.disabled = false; aviso(msgErro(e), true); }
+    };
     $$("[data-st]", card).forEach(b => b.onclick = async () => {
       const novo = b.dataset.st;
       if (novo === "encerrada" && !confirm(`Encerrar a campanha "${c.nome}"? As empresas encontradas ficam guardadas.`)) return;
@@ -809,6 +825,45 @@ function pintarProspect(el) {
       try { await rpc("nexo_prospect_status_campanha", { p_campanha: c.id, p_status: novo }); aviso(novo === "ativa" ? "Campanha ativa." : novo === "pausada" ? "Campanha pausada." : "Campanha encerrada."); await prospect(el); }
       catch (e) { b.disabled = false; aviso(msgErro(e), true); }
     });
+  });
+}
+const ST_EMP = { novo: "Novo", qualificado: "Qualificado", abordar: "Abordar", abordado: "Abordado", respondeu: "Respondeu", proposta: "Proposta enviada", cliente: "Cliente", perdido: "Perdido", nao_contatar: "Não contatar" };
+const PRIO = { alta: ["prioridade alta", "ok"], media: ["prioridade média", "warn"], baixa: ["prioridade baixa", "muted"] };
+function pintarEmpresas(el) {
+  const c = campVer, pode = ["plataforma", "dono", "admin", "editor"].includes(st.prospect?.papel);
+  const lista = empresasP.filter(e => !filtroEmp || e.status === filtroEmp);
+  el.innerHTML = `
+    <div class="acoes"><button class="btn" id="empVoltar">← Campanhas</button></div>
+    <div class="card">
+      <div class="linha entre"><h2>${esc(c.nome)} · ${empresasP.length} empresa(s)</h2>
+        <select id="empFiltro" aria-label="Filtrar por status"><option value="">Todos os status</option>${Object.entries(ST_EMP).map(([k, v]) => `<option value="${k}" ${filtroEmp === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+      <p class="muted peq" style="margin:0">Ordenadas pela pontuação. A nota vem do código: contato disponível, evidências, oportunidade e atividade recente.</p>
+    </div>
+    ${lista.map(e => { const k = (e.campanhas || []).find(x => x.id === c.id) || {}; const [pr, pc] = PRIO[k.prioridade] || ["sem prioridade", "muted"]; return `
+      <div class="card" data-emp="${e.id}">
+        <div class="linha entre" style="flex-wrap:nowrap;align-items:flex-start"><h3>${esc(e.nome)}</h3><span class="pill ${pc}">${pr} · ${e.pontuacao ?? "–"}</span></div>
+        <div class="muted peq">${esc([e.segmento, e.cidade, e.estado, e.pais].filter(Boolean).join(" · "))} · visto ${String(e.pesquisado_em || "").slice(0, 10).split("-").reverse().join("/")}</div>
+        ${e.presenca_digital ? `<div class="peq"><b>Presença digital:</b> ${esc(e.presenca_digital)}</div>` : ""}
+        ${k.oportunidade ? `<div class="peq"><b>Oportunidade:</b> ${esc(k.oportunidade)}</div>` : `<div class="peq muted">Sem oportunidade comprovada (faltou evidência).</div>`}
+        ${k.servico_recomendado ? `<div class="peq"><b>Serviço recomendado:</b> ${esc(k.servico_recomendado)}</div>` : ""}
+        ${k.justificativa ? `<div class="peq"><b>Por quê:</b> ${esc(k.justificativa)}</div>` : ""}
+        ${(k.evidencias || []).length ? `<div class="peq"><b>Evidências:</b> ${k.evidencias.map(v => `<a href="${esc(v.onde)}" target="_blank" rel="noopener">${esc(v.o_que)}</a>`).join(" · ")}</div>` : ""}
+        <div class="linha peq">
+          ${e.site ? `<a href="${esc(e.site)}" target="_blank" rel="noopener">Site</a>` : ""}
+          ${e.instagram ? `<a href="https://www.instagram.com/${esc(e.instagram)}/" target="_blank" rel="noopener">@${esc(e.instagram)}</a>` : ""}
+          ${e.whatsapp ? `<a href="https://wa.me/${esc(e.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+          ${e.email ? `<a href="mailto:${esc(e.email)}">${esc(e.email)}</a>` : ""}
+          ${e.fonte_url ? `<a href="${esc(e.fonte_url)}" target="_blank" rel="noopener">Fonte</a>` : ""}
+        </div>
+        ${(e.campanhas || []).length > 1 ? `<div class="muted peq">Também em: ${e.campanhas.filter(x => x.id !== c.id).map(x => esc(x.nome)).join(", ")}</div>` : ""}
+        <label class="campo" style="max-width:260px">Status comercial<select data-status ${pode ? "" : "disabled"}>${Object.entries(ST_EMP).map(([s2, v]) => `<option value="${s2}" ${e.status === s2 ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+      </div>`; }).join("") || `<div class="vazio">${empresasP.length ? "Nenhuma empresa com esse status." : "Nenhuma empresa ainda. Ative a campanha e peça uma pesquisa."}</div>`}`;
+  $("#empVoltar").onclick = () => prospect(el);
+  $("#empFiltro").onchange = ev => { filtroEmp = ev.target.value; pintarEmpresas(el); };
+  $$("[data-emp]", el).forEach(card => $("[data-status]", card).onchange = async ev => {
+    const e = empresasP.find(x => x.id === card.dataset.emp);
+    try { await rpc("nexo_prospect_mudar_empresa", { p_empresa: e.id, p_status: ev.target.value, p_nota: null }); e.status = ev.target.value; aviso("Status salvo."); }
+    catch (err) { ev.target.value = e.status; aviso(msgErro(err), true); }
   });
 }
 function formCampanha(c) {
