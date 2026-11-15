@@ -165,6 +165,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
       <button data-aba="funcoes">Funções</button>
       <button data-aba="conhecimento">Conhecimento</button>
       <button data-aba="integracoes">Integrações</button>
+      <button data-aba="prospect">Prospect</button>
       <button data-aba="atividade">Atividade</button>
       <button data-aba="ajuda">Ajuda</button>
     </nav>
@@ -177,6 +178,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   <section data-sec="funcoes" class="oculto" aria-label="Funções"></section>
   <section data-sec="conhecimento" class="oculto" aria-label="Conhecimento"></section>
   <section data-sec="integracoes" class="oculto" aria-label="Integrações"></section>
+  <section data-sec="prospect" class="oculto" aria-label="Prospect"></section>
   <section data-sec="atividade" class="oculto" aria-label="Atividade"></section>
   <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
 </div>
@@ -227,7 +229,8 @@ const ERROS = {
   nao_posta_neste_status: "Essa peça já foi publicada, está publicando ou foi recusada.",
   versao_nao_encontrada: "Essa versão não existe mais.",
   conteudo_invalido: "O conteúdo não está no formato esperado. Confira e tente de novo.",
-  tipo_nao_suportado: "O banco ainda não aceita essa conexão. Falta aplicar a migração do Google."
+  tipo_nao_suportado: "O banco ainda não aceita essa conexão. Falta aplicar a migração do Google.",
+  campanha_invalida: "Confira os campos da campanha.", campanha_nao_encontrada: "Essa campanha não existe mais."
 };
 function msgErro(e) {
   const m = (e && (e.message || e.error_description)) || String(e);
@@ -278,7 +281,9 @@ async function iniciar() {
   const { data } = await sb.auth.getSession();
   if (!data.session) return mostrarLogin();
   try { st.ctx = await rpc("nexo_contexto"); } catch (e) { aviso(msgErro(e), true); return mostrarLogin(); }
-  const agentes = st.ctx.empresas.flatMap(e => e.agentes.map(a => ({ ...a, empresa: e.nome })));
+  const todosAgentes = st.ctx.empresas.flatMap(e => e.agentes.map(a => ({ ...a, empresa: e.nome, papel: e.papel })));
+  st.prospect = todosAgentes.find(a => a.slug === "prospect") || null;
+  const agentes = todosAgentes.filter(a => a.slug !== "prospect");
   if (!agentes.length) {
     $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto");
     $("[data-sec=inicio]").innerHTML = `<div class="vazio">Seu login (${esc(st.ctx.email)}) ainda não tem acesso a nenhuma empresa. Peça ao administrador para incluir você.</div>`;
@@ -317,7 +322,7 @@ async function carregar() {
 }
 function desenhar() {
   if (!st.resumo) return;
-  ({ inicio, aprovar, leads, agente, funcoes, conhecimento, integracoes, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+  ({ inicio, aprovar, leads, agente, funcoes, conhecimento, integracoes, prospect, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
 }
 
 // ---------------------------------------------------------------- INÍCIO
@@ -754,6 +759,100 @@ async function integracoes(el) {
     try { const r = await rpc("nexo_iniciar_conexao", { p_agente: st.agente, p_tipo: "instagram" });
           location.href = `${SUPABASE_URL}/functions/v1/nexo-meta-oauth?acao=iniciar&state=${r.state}`; }
     catch (e) { bc.disabled = false; aviso(msgErro(e), true); }
+  };
+}
+
+// ---------------------------------------------------------------- PROSPECT (campanhas e filtros)
+const ST_CAMP = { ativa: ["ativa", "ok"], pausada: ["pausada", "warn"], encerrada: ["encerrada", "muted"] };
+const FONTES_P = [["busca_web", "Busca na web"], ["instagram_publico", "Instagram público (sem login)"], ["site_da_empresa", "Site da própria empresa"], ["plataformas_de_projetos", "Plataformas de projetos"]];
+const PAISES_P = [["BR", "Brasil"], ["US", "Estados Unidos"]];
+let campanhas = [], campEdit = null;
+const podeProspect = () => ["plataforma", "dono", "admin"].includes(st.prospect?.papel);
+const linhas = v => (v || "").split("\n").map(x => x.trim()).filter(Boolean);
+async function prospect(el) {
+  if (!st.prospect) { el.innerHTML = `<div class="vazio">O NEXO Prospect ainda não foi criado no banco. Falta aplicar a migração da Etapa 2.</div>`; return; }
+  el.innerHTML = `<div class="card"><h2>NEXO Prospect</h2><div class="muted peq">Carregando…</div></div>`;
+  try { campanhas = await rpc("nexo_prospect_campanhas", { p_agente: st.prospect.id }) || []; }
+  catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; return; }
+  campEdit = null; pintarProspect(el);
+}
+function resumoLista(v, vazio) { return v?.length ? esc(v.slice(0, 6).join(", ")) + (v.length > 6 ? ` +${v.length - 6}` : "") : `<span class="muted">${vazio}</span>`; }
+function pintarProspect(el) {
+  const dis = podeProspect() ? "" : "disabled";
+  if (campEdit) { el.innerHTML = formCampanha(campEdit); ligarForm(el); return; }
+  el.innerHTML = `
+    <div class="aviso info">Central de prospecção da <b>NEXO Inteligência e Automação</b>, separada do NEXO VÁRZEA. Cada campanha tem os seus filtros. Nesta etapa você cria e ajusta as campanhas; a pesquisa por campanha chega na Etapa 3. Nada é enviado a ninguém: a abordagem é sempre manual.</div>
+    <div class="acoes"><button class="btn sim" id="campNova" ${dis}>+ Nova campanha</button></div>
+    <div class="grade">${campanhas.map(c => { const [rot, cls] = ST_CAMP[c.status] || [c.status, "muted"]; return `
+      <div class="card" data-camp="${c.id}">
+        <div class="linha entre"><h3>${esc(c.nome)}</h3><span class="pill ${cls}">${rot}</span></div>
+        <div class="peq">${esc(c.servico)}</div>
+        <div class="linha"><span class="pill info">${c.modo === "automatico" ? "automático" : "manual"}</span><span class="pill info">${c.idioma === "en" ? "inglês" : "português"}</span><span class="pill info">${(c.paises || []).join(" + ") || "sem país"}</span></div>
+        <div class="peq"><b>Onde:</b> ${resumoLista([...(c.estados || []), ...(c.cidades || [])], "país inteiro")}</div>
+        <div class="peq"><b>Nichos:</b> ${resumoLista(c.nichos, "nenhum")}</div>
+        <div class="peq"><b>Palavras:</b> ${resumoLista(c.palavras_chave, "nenhuma")}</div>
+        <div class="muted peq">${c.empresas} empresas · ${c.prioritarias} prioritárias · limite ${c.limite_pesquisas_dia} buscas/dia · ${c.ultima_pesquisa ? "última pesquisa " + quando(c.ultima_pesquisa) : "ainda sem pesquisa"}</div>
+        <div class="acoes">
+          <button class="btn" data-editar ${dis}>Editar filtros</button>
+          ${c.status === "ativa" ? `<button class="btn" data-st="pausada" ${dis}>Pausar</button>` : c.status === "pausada" ? `<button class="btn sim" data-st="ativa" ${dis}>Ativar</button>` : `<button class="btn" data-st="pausada" ${dis}>Reabrir</button>`}
+          ${c.status !== "encerrada" ? `<button class="btn nao" data-st="encerrada" ${dis}>Encerrar</button>` : ""}
+        </div>
+      </div>`; }).join("") || `<div class="vazio">Nenhuma campanha ainda.</div>`}</div>`;
+  $("#campNova").onclick = () => { campEdit = { nome: "", servico: "", modo: "manual", idioma: "pt", paises: ["BR"], estados: [], cidades: [], nichos: [], palavras_chave: [], palavras_negativas: [], fontes: FONTES_P.slice(0, 3).map(f => f[0]), cliente_ideal: "", problemas: "", limite_pesquisas_dia: 10 }; pintarProspect(el); };
+  $$("[data-camp]", el).forEach(card => {
+    const c = campanhas.find(x => x.id === card.dataset.camp);
+    $("[data-editar]", card).onclick = () => { campEdit = JSON.parse(JSON.stringify(c)); pintarProspect(el); };
+    $$("[data-st]", card).forEach(b => b.onclick = async () => {
+      const novo = b.dataset.st;
+      if (novo === "encerrada" && !confirm(`Encerrar a campanha "${c.nome}"? As empresas encontradas ficam guardadas.`)) return;
+      b.disabled = true;
+      try { await rpc("nexo_prospect_status_campanha", { p_campanha: c.id, p_status: novo }); aviso(novo === "ativa" ? "Campanha ativa." : novo === "pausada" ? "Campanha pausada." : "Campanha encerrada."); await prospect(el); }
+      catch (e) { b.disabled = false; aviso(msgErro(e), true); }
+    });
+  });
+}
+function formCampanha(c) {
+  const area = (id, rot, v, dica) => `<label class="campo">${rot}<textarea id="${id}" rows="3" placeholder="${dica}">${esc((v || []).join("\n"))}</textarea></label>`;
+  return `
+    <div class="card">
+      <h2>${c.id ? "Editar campanha" : "Nova campanha"}</h2>
+      <label class="campo">Nome da campanha<input type="text" id="cNome" maxlength="80" value="${esc(c.nome)}"></label>
+      <label class="campo">Serviço oferecido<input type="text" id="cServico" maxlength="160" value="${esc(c.servico)}"></label>
+      <div class="linha">
+        <label class="campo" style="flex:1 1 160px">Modo<select id="cModo"><option value="manual" ${c.modo === "manual" ? "selected" : ""}>Manual (eu inicio)</option><option value="automatico" ${c.modo === "automatico" ? "selected" : ""}>Automático (na agenda)</option></select></label>
+        <label class="campo" style="flex:1 1 160px">Idioma das mensagens<select id="cIdioma"><option value="pt" ${c.idioma === "pt" ? "selected" : ""}>Português</option><option value="en" ${c.idioma === "en" ? "selected" : ""}>Inglês</option></select></label>
+        <label class="campo" style="flex:1 1 160px">Limite de buscas por dia<input type="number" id="cLimite" min="0" max="200" value="${c.limite_pesquisas_dia}"></label>
+      </div>
+      <h3>País</h3>
+      <div class="linha">${PAISES_P.map(([k, n]) => `<label class="linha peq"><input type="checkbox" data-pais value="${k}" ${(c.paises || []).includes(k) ? "checked" : ""}> ${n}</label>`).join("")}</div>
+      <p class="muted peq" style="margin:0">Nas listas abaixo, escreva um item por linha.</p>
+      ${area("cEstados", "Estados (vazio = país inteiro)", c.estados, "PR&#10;SP&#10;Florida")}
+      ${area("cCidades", "Cidades (vazio = estado inteiro)", c.cidades, "Curitiba&#10;Miami")}
+      ${area("cNichos", "Nichos de empresa", c.nichos, "clínicas&#10;restaurantes")}
+      ${area("cChaves", "Palavras-chave", c.palavras_chave, "sem site&#10;link na bio")}
+      ${area("cNegativas", "Palavras-chave negativas (descartar)", c.palavras_negativas, "franquia nacional")}
+      <label class="campo">Perfil de cliente ideal<textarea id="cIdeal" rows="3">${esc(c.cliente_ideal || "")}</textarea></label>
+      <label class="campo">Problemas que o serviço resolve<textarea id="cProblemas" rows="3">${esc(c.problemas || "")}</textarea></label>
+      <h3>Fontes de pesquisa autorizadas</h3>
+      <div class="linha">${FONTES_P.map(([k, n]) => `<label class="linha peq"><input type="checkbox" data-fonte value="${k}" ${(c.fontes || []).includes(k) ? "checked" : ""}> ${n}</label>`).join("")}</div>
+      <div class="muted peq">Só fontes públicas e sem login. Nenhum contato pessoal é guardado, só o contato comercial que a empresa publicou.</div>
+      <div class="acoes"><button class="btn sim" id="cSalvar">Salvar campanha</button><button class="btn" id="cCancelar">Cancelar</button></div>
+    </div>`;
+}
+function ligarForm(el) {
+  $("#cCancelar").onclick = () => { campEdit = null; pintarProspect(el); };
+  $("#cSalvar").onclick = async () => {
+    const dados = { nome: $("#cNome").value.trim(), servico: $("#cServico").value.trim(), modo: $("#cModo").value, idioma: $("#cIdioma").value,
+      limite_pesquisas_dia: Number($("#cLimite").value || 0), paises: $$("[data-pais]:checked", el).map(x => x.value),
+      estados: linhas($("#cEstados").value), cidades: linhas($("#cCidades").value), nichos: linhas($("#cNichos").value),
+      palavras_chave: linhas($("#cChaves").value), palavras_negativas: linhas($("#cNegativas").value),
+      fontes: $$("[data-fonte]:checked", el).map(x => x.value), cliente_ideal: $("#cIdeal").value.trim(), problemas: $("#cProblemas").value.trim() };
+    if (!dados.nome || !dados.servico) { aviso("Preencha o nome e o serviço.", true); return; }
+    if (!dados.paises.length) { aviso("Marque pelo menos um país.", true); return; }
+    if (!dados.fontes.length) { aviso("Marque pelo menos uma fonte de pesquisa.", true); return; }
+    $("#cSalvar").disabled = true;
+    try { await rpc("nexo_prospect_salvar_campanha", { p_agente: st.prospect.id, p_id: campEdit.id || null, p_dados: dados }); aviso("Campanha salva."); await prospect(el); }
+    catch (e) { $("#cSalvar").disabled = false; aviso(msgErro(e) + " " + ((e.message || "").split("campanha_invalida:")[1] || ""), true); }
   };
 }
 
