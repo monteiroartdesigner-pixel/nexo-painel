@@ -307,6 +307,8 @@ const somaMoedas = o => { const p = Object.entries(o || {}).filter(([, v]) => v)
 const iniciais = n => (String(n || "?").replace(/[^\p{L}\p{N} ]/gu, "").trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("") || "?").toUpperCase();
 const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\b(ltda|me|eireli|sa|inc|llc|clinica|studio|loja)\b/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const scoreCls = n => n >= 70 ? "a" : n >= 45 ? "m" : "b";
+// "2.000,50" -> 2000.5 · "2000.5" -> 2000.5 · "2,5" -> 2.5 · "2.000" -> 2000
+const numero = v => { let s = String(v).trim().replace(/[^\d.,-]/g, ""); if (s.includes(",")) s = s.replace(/\./g, "").replace(",", "."); else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, ""); return Number(s); };
 const linhas = v => String(v || "").split("\n").map(x => x.trim()).filter(Boolean);
 async function copiar(t, rot) { try { await navigator.clipboard.writeText(t); toast(`${rot} copiada. Revise antes de enviar.`); } catch { toast("Não deu para copiar: selecione o texto e copie.", true); } }
 
@@ -364,7 +366,7 @@ function proximoPasso(e) {
   const t = tarefaDe(e), k = campDe(e), contato = e.whatsapp || e.email || e.instagram;
   if (t) return { t: t.vence_em < hoje() ? "Tarefa atrasada" : t.vence_em === hoje() ? "Tarefa para hoje" : "Próxima tarefa", d: `${t.titulo} · ${dataBR(t.vence_em)}`, tom: t.vence_em <= hoje() ? "warn" : "" };
   if (["perdido", "nao_contatar", "cliente"].includes(e.status)) return { t: e.status === "cliente" ? "Cliente" : "Encerrado", d: e.status === "cliente" ? "Acompanhe a entrega e peça indicação." : "Nenhuma ação pendente.", tom: "" };
-  if (["novo", "qualificado", "abordar"].includes(e.status)) return contato ? { t: "Fazer a primeira abordagem", d: k.mensagem_pt || k.mensagem_en ? "A mensagem já está pronta: copie, revise e envie." : "Escreva uma mensagem curta citando o que você viu.", tom: "pri" } : { t: "Achar um contato", d: "A empresa ainda não tem contato comercial público.", tom: "" };
+  if (["novo", "qualificado", "abordar"].includes(e.status)) return contato ? { t: "Fazer a primeira abordagem", d: k.mensagem_pt || k.mensagem_en || k.oportunidade ? "Abra a ficha: a mensagem sugerida está lá para revisar e enviar." : "Escreva uma mensagem curta citando o que você viu.", tom: "pri" } : { t: "Achar um contato", d: "A empresa ainda não tem contato comercial público.", tom: "" };
   if (e.status === "abordado") return { t: "Fazer follow-up", d: "Sem resposta? Retome a conversa em 2 ou 3 dias.", tom: "pri" };
   if (e.status === "respondeu") return { t: "Enviar proposta", d: "Use a proposta pronta e ajuste o valor.", tom: "pri" };
   if (e.status === "proposta") return { t: "Negociar e fechar", d: "Confirme se a proposta chegou e tire as dúvidas.", tom: "pri" };
@@ -592,7 +594,11 @@ function abaHistorico(a, f) {
     : `<div class="muted peq">Nada registrado ainda. Use os botões acima para registrar contatos, respostas e propostas.</div>`;
 }
 async function recarregarFicha(id) {
-  await carregarTudo(); const f = await rpc("nexo_prospect_ficha", { p_empresa: id }); pintarFicha(f); if (["inicio", "crm", "tarefas"].includes(rotaAtual())) render();
+  await carregarTudo();
+  let f;
+  try { f = await rpc("nexo_prospect_ficha", { p_empresa: id }); }
+  catch { const e0 = S.empresas.find(x => x.id === id); f = { empresa: e0, campanhas: e0?.campanhas || [], historico: [], tarefas: [], _semCrm: true }; }
+  if (f.empresa) pintarFicha(f); if (["inicio", "crm", "tarefas"].includes(rotaAtual())) render();
 }
 function modalRegistro(f, tipo) {
   const e = f.empresa, k = f.campanhas?.[0] || {}, moeda = k.moeda || (e.pais === "US" ? "USD" : "BRL");
@@ -603,13 +609,13 @@ function modalRegistro(f, tipo) {
       ${tipo === "abordagem" ? `<label class="field"><span>Canal</span><select class="select" id="rCanal">${CANAIS.map(([v, n]) => `<option value="${v}" ${(k.canal_abordagem || "whatsapp") === v ? "selected" : ""}>${n}</option>`).join("")}</select></label>` : ""}
       ${["proposta", "contrato"].includes(tipo) ? `<label class="field"><span>Valor (${moeda === "USD" ? "US$" : "R$"})</span><input class="input" id="rValor" inputmode="decimal" placeholder="0" value="${k.preco_sugerido_centavos ? k.preco_sugerido_centavos / 100 : ""}" ${tipo === "contrato" ? "required" : ""}><small>${tipo === "proposta" ? "Opcional. Vazio = proposta sem valor." : "Obrigatório."}</small></label>` : ""}
       <label class="field"><span>${tipo === "nota" ? "Anotação" : "Observação (opcional)"}</span><textarea class="textarea" id="rTexto" ${tipo === "nota" ? "required" : ""}></textarea></label>
-      ${tipo === "abordagem" || tipo === "proposta" ? `<label class="row peq"><input type="checkbox" id="rFollow" checked> Criar follow-up para <input class="input" type="date" id="rFData" value="${somaDias(tipo === "proposta" ? 3 : 2)}" style="width:auto;min-height:32px;height:32px"></label>` : ""}
+      ${(tipo === "abordagem" || tipo === "proposta") && !S.faltaCrm ? `<label class="row peq"><input type="checkbox" id="rFollow" checked> Criar follow-up para <input class="input" type="date" id="rFData" value="${somaDias(tipo === "proposta" ? 3 : 2)}" style="width:auto;min-height:32px;height:32px"></label>` : ""}
     </form>
     <div class="modal-f"><button class="btn ghost" data-fechar>Cancelar</button><button class="btn pri" id="mSalvar">Salvar</button></div>`, m => {
     $("#mSalvar", m).onclick = async () => {
       const form = $("#mf", m); if (!form.reportValidity()) return;
       let valor = null; const vi = $("#rValor", m);
-      if (vi && vi.value.trim()) { const n = Number(vi.value.replace(/\./g, "").replace(",", ".")); if (!isFinite(n) || n <= 0) { toast("Valor inválido.", true); return; } valor = Math.round(n * 100); }
+      if (vi && vi.value.trim()) { const n = numero(vi.value); if (!isFinite(n) || n <= 0) { toast("Valor inválido.", true); return; } valor = Math.round(n * 100); }
       $("#mSalvar", m).disabled = true;
       try {
         await rpc("nexo_prospect_registrar", { p_empresa: e.id, p_campanha: k.id || null, p_tipo: tipo, p_canal: $("#rCanal", m)?.value || null, p_texto: $("#rTexto", m).value || null, p_valor_centavos: valor, p_moeda: valor != null ? moeda : null });
