@@ -78,6 +78,7 @@ h3{margin:0;font-size:16px;font-weight:800}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 .btn.sim{background:var(--ok);color:#04220f;border-color:transparent}
 .btn.onca{background:var(--onca);color:#1a1200;border-color:transparent}
+.kpis{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.kpi{padding:10px 12px;gap:2px}.kpi-n{font-size:26px;font-weight:800;line-height:1.1}
 .btn.nao{background:none;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 60%,transparent)}
 .btn.prim{background:var(--onca);color:#1b1300;border-color:transparent}
 label.campo{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
@@ -231,7 +232,7 @@ const ERROS = {
   conteudo_invalido: "O conteúdo não está no formato esperado. Confira e tente de novo.",
   tipo_nao_suportado: "O banco ainda não aceita essa conexão. Falta aplicar a migração do Google.",
   campanha_invalida: "Confira os campos da campanha.", campanha_nao_encontrada: "Essa campanha não existe mais.",
-  campanha_pausada: "Ative a campanha antes de pedir a pesquisa.", empresa_nao_encontrada: "Essa empresa não existe mais.", status_invalido: "Status inválido."
+  campanha_pausada: "Ative a campanha antes de pedir a pesquisa.", registro_invalido: "Confira o registro.", empresa_nao_encontrada: "Essa empresa não existe mais.", status_invalido: "Status inválido."
 };
 function msgErro(e) {
   const m = (e && (e.message || e.error_description)) || String(e);
@@ -767,7 +768,7 @@ async function integracoes(el) {
 const ST_CAMP = { ativa: ["ativa", "ok"], pausada: ["pausada", "warn"], encerrada: ["encerrada", "muted"] };
 const FONTES_P = [["busca_web", "Busca na web"], ["instagram_publico", "Instagram público (sem login)"], ["site_da_empresa", "Site da própria empresa"], ["plataformas_de_projetos", "Plataformas de projetos"]];
 const PAISES_P = [["BR", "Brasil"], ["US", "Estados Unidos"]];
-let campanhas = [], campEdit = null, campVer = null, empresasP = [], filtroEmp = "";
+let campanhas = [], campEdit = null, campVer = null, empresasP = [], filtroEmp = "", indic = null, indicCamp = "";
 const podeProspect = () => ["plataforma", "dono", "admin"].includes(st.prospect?.papel);
 const linhas = v => (v || "").split("\n").map(x => x.trim()).filter(Boolean);
 async function prospect(el) {
@@ -775,7 +776,45 @@ async function prospect(el) {
   el.innerHTML = `<div class="card"><h2>NEXO Prospect</h2><div class="muted peq">Carregando…</div></div>`;
   try { campanhas = await rpc("nexo_prospect_campanhas", { p_agente: st.prospect.id }) || []; }
   catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; return; }
+  await carregarIndicadores();
   campEdit = null; campVer = null; pintarProspect(el);
+}
+async function carregarIndicadores() {
+  try { indic = await rpc("nexo_prospect_indicadores", { p_agente: st.prospect.id, p_campanha: indicCamp || null }); }
+  catch (e) { indic = { erro: msgErro(e) }; }
+}
+function somaMoedas(obj) {
+  const partes = Object.entries(obj || {}).filter(([, v]) => v).map(([m, v]) => dinheiro(v, m));
+  return partes.length ? partes.join(" + ") : (0).toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+}
+function indicadoresHtml() {
+  if (!indic) return "";
+  if (indic.erro) return `<div class="aviso">Indicadores indisponíveis: ${esc(indic.erro)} (falta aplicar a migração da Etapa 5?)</div>`;
+  const i = indic, num = (rot, v, dica) => `<div class="card kpi"><div class="muted peq">${rot}</div><div class="kpi-n">${v}</div>${dica ? `<div class="muted peq">${dica}</div>` : ""}</div>`;
+  const taxa = (a, b) => b ? ` · ${Math.round(100 * a / b)}%` : "";
+  const nichos = (i.por_nicho || []).map(x => `<div class="linha entre peq"><span>${esc(x.nome)}</span><b>${x.n}</b></div>`).join("") || `<div class="muted peq">Nenhuma empresa ainda.</div>`;
+  const paises = Object.entries(i.por_pais || {}).map(([k, v]) => `<div class="linha entre peq"><span>${k === "US" ? "Estados Unidos" : k === "BR" ? "Brasil" : esc(k)}</span><b>${v}</b></div>`).join("") || `<div class="muted peq">Nenhuma empresa ainda.</div>`;
+  return `
+    <div class="card">
+      <div class="linha entre"><h2>Painel comercial</h2>
+        <select id="indicCamp" aria-label="Filtrar indicadores por campanha"><option value="">Todas as campanhas</option>${campanhas.map(c => `<option value="${c.id}" ${indicCamp === c.id ? "selected" : ""}>${esc(c.nome)}</option>`).join("")}</select></div>
+      <div class="grade kpis">
+        ${num("Empresas encontradas", i.empresas)}
+        ${num("Leads qualificados", i.qualificadas, "nota 45 ou mais")}
+        ${num("Leads prioritários", i.prioritarias, "prioridade alta")}
+        ${num("Com contato", i.com_contato, "WhatsApp, e-mail, Instagram ou site")}
+        ${num("Abordagens", i.abordadas)}
+        ${num("Respostas", i.responderam, taxa(i.responderam, i.abordadas).replace(" · ", "") ? "das abordadas" + taxa(i.responderam, i.abordadas) : "")}
+        ${num("Propostas enviadas", i.propostas, Object.keys(i.propostas_valor || {}).length ? somaMoedas(i.propostas_valor) : "")}
+        ${num("Contratos fechados", i.contratos)}
+        ${num("Receita gerada", somaMoedas(i.receita))}
+      </div>
+      <div class="grade">
+        <div class="card"><h3>Empresas por nicho</h3>${nichos}</div>
+        <div class="card"><h3>Empresas por país</h3>${paises}</div>
+      </div>
+      <div class="muted peq">Pesquisas feitas: ${i.pesquisas?.rodadas || 0} rodada(s), ${i.pesquisas?.buscas || 0} busca(s), ${i.pesquisas?.novas || 0} empresa(s) nova(s). Perdidas ou "não contatar": ${i.perdidas || 0}. Abordagem, resposta, proposta e contrato contam o que você registra em cada empresa.</div>
+    </div>`;
 }
 function resumoLista(v, vazio) { return v?.length ? esc(v.slice(0, 6).join(", ")) + (v.length > 6 ? ` +${v.length - 6}` : "") : `<span class="muted">${vazio}</span>`; }
 function pintarProspect(el) {
@@ -785,6 +824,7 @@ function pintarProspect(el) {
   el.innerHTML = `
     <div class="aviso info">Mensagens e propostas são só sugestões: <b>nada é enviado sozinho</b>. Você revisa, copia e manda pelo seu canal. Respeite as regras de cada canal e não mande a mesma mensagem em massa.</div>
     <div class="aviso info">Central de prospecção da <b>NEXO Inteligência e Automação</b>, separada do NEXO VÁRZEA. Cada campanha tem os seus filtros. O robô pesquisa as campanhas <b>ativas</b>: as automáticas em toda rodada (3 vezes por dia) e as manuais quando você clica em "Pedir pesquisa". Cada empresa vem com a fonte e a evidência do que foi visto. Nada é enviado a ninguém: a abordagem é sempre manual.</div>
+    ${indicadoresHtml()}
     <div class="acoes"><button class="btn sim" id="campNova" ${dis}>+ Nova campanha</button></div>
     <div class="grade">${campanhas.map(c => { const [rot, cls] = ST_CAMP[c.status] || [c.status, "muted"]; return `
       <div class="card" data-camp="${c.id}">
@@ -805,6 +845,8 @@ function pintarProspect(el) {
           ${c.status !== "encerrada" ? `<button class="btn nao" data-st="encerrada" ${dis}>Encerrar</button>` : ""}
         </div>
       </div>`; }).join("") || `<div class="vazio">Nenhuma campanha ainda.</div>`}</div>`;
+  const ic = $("#indicCamp");
+  if (ic) ic.onchange = async ev => { indicCamp = ev.target.value; await carregarIndicadores(); pintarProspect(el); };
   $("#campNova").onclick = () => { campEdit = { nome: "", servico: "", modo: "manual", idioma: "pt", paises: ["BR"], estados: [], cidades: [], nichos: [], palavras_chave: [], palavras_negativas: [], fontes: FONTES_P.slice(0, 3).map(f => f[0]), cliente_ideal: "", problemas: "", limite_pesquisas_dia: 10 }; pintarProspect(el); };
   $$("[data-camp]", el).forEach(card => {
     const c = campanhas.find(x => x.id === card.dataset.camp);
@@ -831,7 +873,7 @@ function pintarProspect(el) {
 }
 function dinheiro(cent, moeda) {
   if (cent == null || !moeda) return "";
-  return (cent / 100).toLocaleString(moeda === "USD" ? "en-US" : "pt-BR", { style: "currency", currency: moeda, maximumFractionDigits: 0 });
+  return (cent / 100).toLocaleString("pt-BR", { style: "currency", currency: moeda, maximumFractionDigits: 0 });
 }
 function propostaTexto(e, k) {
   const en = k.idioma === "en";
@@ -882,6 +924,7 @@ function pintarEmpresas(el) {
           ${e.fonte_url ? `<a href="${esc(e.fonte_url)}" target="_blank" rel="noopener">Fonte</a>` : ""}
         </div>
         ${(e.campanhas || []).length > 1 ? `<div class="muted peq">Também em: ${e.campanhas.filter(x => x.id !== c.id).map(x => esc(x.nome)).join(", ")}</div>` : ""}
+        <div class="acoes">${[["abordagem", "Registrar abordagem"], ["resposta", "Registrar resposta"], ["proposta", "Registrar proposta"], ["contrato", "Registrar contrato"]].map(([t, rot]) => `<button class="btn peq" data-reg="${t}" ${pode ? "" : "disabled"}>${rot}</button>`).join("")}</div>
         <label class="campo" style="max-width:260px">Status comercial<select data-status ${pode ? "" : "disabled"}>${Object.entries(ST_EMP).map(([s2, v]) => `<option value="${s2}" ${e.status === s2 ? "selected" : ""}>${v}</option>`).join("")}</select></label>
       </div>`; }).join("") || `<div class="vazio">${empresasP.length ? "Nenhuma empresa com esse status." : "Nenhuma empresa ainda. Ative a campanha e peça uma pesquisa."}</div>`}`;
   $("#empVoltar").onclick = () => prospect(el);
@@ -891,6 +934,27 @@ function pintarEmpresas(el) {
     $$("[data-copiar]", card).forEach(b => b.onclick = () => copiar(k["mensagem_" + b.dataset.copiar], "Mensagem"));
     const bp = $("[data-proposta]", card);
     if (bp) bp.onclick = () => copiar(propostaTexto(e, k), "Proposta");
+    $$("[data-reg]", card).forEach(b => b.onclick = async () => {
+      const tipo = b.dataset.reg;
+      let canal = null, valor = null, texto = null;
+      if (tipo === "abordagem") { canal = prompt("Por qual canal? (whatsapp, instagram, email, linkedin, telefone)", c.canal_abordagem || "whatsapp"); if (canal === null) return; }
+      if (tipo === "resposta") { texto = prompt("Resumo da resposta (opcional):", ""); if (texto === null) return; }
+      if (tipo === "proposta" || tipo === "contrato") {
+        const sug = k.preco_sugerido_centavos ? String(k.preco_sugerido_centavos / 100) : "";
+        const v = prompt(tipo === "contrato" ? "Valor do contrato fechado (só números):" : "Valor da proposta (só números; vazio = sem valor):", sug);
+        if (v === null) return;
+        const n = Number(String(v).replace(/\./g, "").replace(",", "."));
+        if (v.trim() && (!isFinite(n) || n <= 0)) { aviso("Valor inválido.", true); return; }
+        if (tipo === "contrato" && !v.trim()) { aviso("Informe o valor do contrato.", true); return; }
+        valor = v.trim() ? Math.round(n * 100) : null;
+      }
+      const moeda = k.moeda || c.moeda || (e.pais === "US" ? "USD" : "BRL");
+      b.disabled = true;
+      try {
+        const r = await rpc("nexo_prospect_registrar", { p_empresa: e.id, p_campanha: c.id, p_tipo: tipo, p_canal: canal, p_texto: texto, p_valor_centavos: valor, p_moeda: valor != null ? moeda : null });
+        e.status = r.status; aviso("Registrado."); pintarEmpresas(el);
+      } catch (err) { b.disabled = false; aviso(msgErro(err) + " " + ((err.message || "").split("registro_invalido:")[1] || ""), true); }
+    });
   });
   $$("[data-emp]", el).forEach(card => $("[data-status]", card).onchange = async ev => {
     const e = empresasP.find(x => x.id === card.dataset.emp);
