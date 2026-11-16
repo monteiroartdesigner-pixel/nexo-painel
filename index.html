@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="assets/plataforma.css">
 <link rel="stylesheet" href="assets/equipe.css">
 <link rel="stylesheet" href="assets/temas.css">
+<link rel="stylesheet" href="assets/leads.css">
 <script src="assets/aparencia.js"></script>
 <link rel="icon" href="assets/nexo-marca.webp">
 <style>
@@ -231,6 +232,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="assets/equipe.js"></script>
+<script src="assets/leads.js"></script>
 <script>
 "use strict";
 // Chave pública (publishable) do projeto: feita para ficar no navegador. Quem protege os dados são as
@@ -505,44 +507,8 @@ function aprovar(el) {
 // ---------------------------------------------------------------- LEADS
 const ST_LEAD = { novo: "Novo", qualificado: "Qualificado", abordar: "Abordar", abordado: "Abordado", conversando: "Conversando", teste: "Em teste", cliente: "Cliente", perdido: "Perdido", nao_contatar: "Não contatar" };
 let filtroLead = { q: "", s: "" };
-function leads(el) {
-  el.innerHTML = `
-    <div class="card">
-      <div class="filtros">
-        <input type="text" id="lq" placeholder="Buscar por nome, cidade ou modalidade" value="${esc(filtroLead.q)}" aria-label="Buscar lead">
-        <select id="ls" aria-label="Filtrar por status"><option value="">Todos os status</option>${Object.entries(ST_LEAD).map(([k, v]) => `<option value="${k}" ${filtroLead.s === k ? "selected" : ""}>${v}</option>`).join("")}</select>
-      </div>
-      <div class="muted peq">A abordagem é sempre sua: o agente prepara a mensagem, você envia.</div>
-    </div>
-    <div class="grade" id="listaLeads"></div>`;
-  const pintar = () => {
-    const q = filtroLead.q.toLowerCase();
-    const it = st.leads.filter(l => (!filtroLead.s || l.status === filtroLead.s) && (!q || [l.nome, l.cidade, l.modalidade, l.tipo].join(" ").toLowerCase().includes(q)));
-    $("#listaLeads").innerHTML = it.length ? it.slice(0, 120).map(l => `
-      <div class="card lead" data-id="${l.id}">
-        <div class="linha entre"><h3>${esc(l.nome)}</h3><span class="pill onca">${l.nota ?? "–"}</span></div>
-        <div class="muted peq">${esc([l.tipo, l.modalidade, [l.cidade, l.uf].filter(Boolean).join("/")].filter(Boolean).join(" · "))}</div>
-        <div class="linha peq">
-          ${l.instagram ? `<a href="https://instagram.com/${esc(String(l.instagram).replace(/^@/, ""))}" target="_blank" rel="noopener">Instagram</a>` : ""}
-          ${l.whatsapp ? `<a href="https://wa.me/${esc(String(l.whatsapp).replace(/\D/g, ""))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
-          ${l.fonte_url ? `<a href="${esc(l.fonte_url)}" target="_blank" rel="noopener">Fonte</a>` : ""}
-        </div>
-        ${l.mensagem_sugerida ? `<div class="msg">${esc(l.mensagem_sugerida)}</div><button class="btn peq" data-copiar style="align-self:flex-start">Copiar mensagem</button>` : ""}
-        <label class="campo">Status<select data-st ${podeEditar() ? "" : "disabled"}>${Object.entries(ST_LEAD).map(([k, v]) => `<option value="${k}" ${l.status === k ? "selected" : ""}>${v}</option>`).join("")}</select></label>
-      </div>`).join("") : `<div class="vazio">Nenhum lead com esse filtro.</div>`;
-    $$("[data-copiar]", $("#listaLeads")).forEach(b => b.onclick = async () => {
-      try { await navigator.clipboard.writeText(b.previousElementSibling.textContent); aviso("Mensagem copiada."); } catch { aviso("Não deu para copiar.", true); }
-    });
-    $$("[data-st]", $("#listaLeads")).forEach(s => s.onchange = async () => {
-      const id = s.closest("[data-id]").dataset.id;
-      try { await rpc("nexo_mudar_lead", { p_lead: id, p_status: s.value, p_nota: null }); const l = st.leads.find(x => x.id === id); if (l) l.status = s.value; aviso("Status salvo."); }
-      catch (e) { aviso(msgErro(e), true); }
-    });
-  };
-  $("#lq").oninput = e => { filtroLead.q = e.target.value; pintar(); };
-  $("#ls").onchange = e => { filtroLead.s = e.target.value; pintar(); };
-  pintar();
-}
+// Tela de Leads: assets/leads.js (o que fazer agora, lista compacta e ficha ao lado).
+function leads(el) { leadsTela(el); }
 
 // ---------------------------------------------------------------- AGENTE
 const NIVEIS = [

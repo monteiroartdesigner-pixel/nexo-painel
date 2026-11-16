@@ -1,0 +1,53 @@
+/* Leads: o que fazer agora, lista compacta e ficha ao lado. Usa as variáveis do painel (funciona nos dois modos de cor). */
+.ld{display:flex;flex-direction:column;gap:12px}
+.ld-passos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ld-passos div{display:flex;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--fina);border-radius:12px;padding:9px 12px;font-size:13px;color:var(--muted)}
+.ld-passos b{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--onca);color:#16224D;font-size:12.5px;flex:0 0 auto}
+.ld-abas{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--fina)}
+.ld-abas::-webkit-scrollbar{display:none}
+.ld-abas button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 12px;margin-bottom:-1px;font-weight:700;font-size:14.5px;color:var(--muted);cursor:pointer;white-space:nowrap;display:flex;gap:7px;align-items:center}
+.ld-abas button span{font-size:12px;font-weight:800;background:color-mix(in srgb,var(--line) 18%,transparent);color:var(--fg);border-radius:999px;padding:1px 8px}
+.ld-abas button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--onca)}
+.ld-abas button[aria-selected="true"] span{background:var(--onca);color:#16224D}
+.ld-explica{margin:-4px 0 0}
+.ld-busca{display:flex;gap:8px;flex-wrap:wrap}
+.ld-busca input{flex:1 1 240px} .ld-busca select{flex:0 1 220px}
+.ld-lista{display:flex;flex-direction:column;gap:8px}
+.ld-item{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto 96px auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--fina);border-radius:14px;padding:10px 12px;cursor:pointer;transition:border-color .15s,transform .15s}
+.ld-item:hover{border-color:var(--borda);transform:translateY(-1px)}
+.ld-item:focus-visible{outline:2px solid var(--onca);outline-offset:2px}
+.ld-av{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:13.5px;background:color-mix(in srgb,var(--onca) 22%,var(--card));color:var(--fg)}
+.ld-av.grande{width:52px;height:52px;font-size:16px;border-radius:14px}
+.ld-txt{display:flex;flex-direction:column;min-width:0}
+.ld-txt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}
+.ld-txt span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-txt .ld-prox{color:var(--fg)}
+.ld-contatos{display:flex;gap:4px}
+.ld-contatos i{font-style:normal;font-size:10.5px;font-weight:800;border-radius:6px;padding:3px 6px;background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.ld-contatos i.sem{background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--muted);font-weight:600}
+.ld-nota{display:inline-grid;place-items:center;min-width:36px;height:26px;padding:0 6px;border-radius:8px;font-weight:800;font-size:13px}
+.ld-nota.a{background:color-mix(in srgb,var(--ok) 20%,transparent);color:var(--ok)}
+.ld-nota.m{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.ld-nota.b{background:color-mix(in srgb,var(--muted) 16%,transparent);color:var(--muted)}
+.ld-st{font-size:12px;color:var(--muted);text-align:center}
+.ld-acao{white-space:nowrap}
+
+/* ficha */
+.ld-fundo{position:fixed;inset:0;background:rgba(3,6,12,.6);z-index:40;display:flex;justify-content:flex-end}
+[data-tema="cafe"] .ld-fundo{background:rgba(22,34,77,.35)}
+.ld-ficha{width:min(480px,100%);height:100%;overflow:auto;background:var(--panel);border-left:1px solid var(--borda);padding:18px;display:flex;flex-direction:column;gap:14px}
+.ld-bloco{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--fina);border-radius:14px;background:var(--card)}
+.ld-msg{white-space:pre-wrap;background:var(--dark);border:1px solid var(--fina);border-radius:10px;padding:10px;font-size:13.5px}
+.ld-etapas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.ld-etapa{border:2px solid var(--fina);background:var(--panel);color:var(--fg);border-radius:12px;padding:10px 6px;font-weight:700;font-size:13px;cursor:pointer}
+.ld-etapa:hover{border-color:var(--onca)}
+.ld-etapa.atual{background:var(--onca);border-color:var(--onca);color:#16224D}
+.ld-etapa:disabled{opacity:.5;cursor:not-allowed}
+
+@media (max-width:760px){
+  .ld-passos{grid-template-columns:1fr}
+  .ld-item{grid-template-columns:40px minmax(0,1fr) auto;row-gap:8px}
+  .ld-contatos,.ld-st{display:none}
+  .ld-acao{grid-column:2 / -1;justify-self:start}
+  .ld-etapas{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
