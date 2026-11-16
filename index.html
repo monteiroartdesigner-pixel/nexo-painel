@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="assets/equipe.css">
 <link rel="stylesheet" href="assets/temas.css">
 <link rel="stylesheet" href="assets/leads.css">
+<link rel="stylesheet" href="assets/ideias.css">
 <script src="assets/aparencia.js"></script>
 <link rel="icon" href="assets/nexo-marca.webp">
 <style>
@@ -194,6 +195,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
       <span class="grupo">Operação</span>
       <button data-aba="equipe" aria-current="page">Equipe</button>
       <button data-aba="inicio">Início</button>
+      <button data-aba="ideias">Ideias</button>
       <button data-aba="aprovar">Aprovar <b id="nAprovar"></b></button>
       <button data-aba="leads">Leads</button>
       <button data-aba="atividade">Atividade</button>
@@ -216,6 +218,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 
   <section data-sec="equipe" aria-label="Equipe"></section>
   <section data-sec="inicio" class="oculto" aria-label="Início"></section>
+  <section data-sec="ideias" class="oculto" aria-label="Ideias"></section>
   <section data-sec="aprovar" class="oculto" aria-label="Aprovar"></section>
   <section data-sec="leads" class="oculto" aria-label="Leads"></section>
   <section data-sec="agente" class="oculto" aria-label="Agente"></section>
@@ -233,6 +236,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="assets/equipe.js"></script>
 <script src="assets/leads.js"></script>
+<script src="assets/ideias.js"></script>
 <script>
 "use strict";
 // Chave pública (publishable) do projeto: feita para ficar no navegador. Quem protege os dados são as
@@ -315,7 +319,7 @@ $("#formLogin").addEventListener("submit", async ev => {
 $("#btnMarca").addEventListener("click", abrirAparencia);
 $$("[data-sair]").forEach(b => b.addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); }));
 // Ícones do menu (um traço só, o mesmo estilo do NEXO Prospect).
-const ICONES_MENU = { equipe: "M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21v-3a5 5 0 0 1 9-3M22 21v-3a5 5 0 0 0-9-3M12 21v-2a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v2", inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", aprovar: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
+const ICONES_MENU = { ideias: "M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z", equipe: "M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21v-3a5 5 0 0 1 9-3M22 21v-3a5 5 0 0 0-9-3M12 21v-2a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v2", inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", aprovar: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
   leads: "M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
   atividade: "M22 12h-4l-3 9L9 3l-3 9H2", agente: "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2",
   funcoes: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
@@ -381,7 +385,7 @@ async function carregar() {
 }
 function desenhar() {
   if (!st.resumo) return;
-  ({ equipe, inicio, aprovar, leads, agente, funcoes, conhecimento, integracoes, prospect, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+  ({ equipe, ideias, inicio, aprovar, leads, agente, funcoes, conhecimento, integracoes, prospect, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
 }
 
 // ---------------------------------------------------------------- INÍCIO

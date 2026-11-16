@@ -1,0 +1,22 @@
+/* Ideias: pedir à equipe e acompanhar as peças. Usa as variáveis do painel (funciona nos dois modos de cor). */
+.id{display:flex;flex-direction:column;gap:14px}
+.card.id-pedir{flex-direction:row;align-items:center;gap:16px}
+.id-time{display:flex;flex:0 0 auto}
+.id-time img{width:58px;height:58px;border-radius:50%;object-fit:cover;background:#fff;border:2.5px solid #16224D}
+.id-time img + img{margin-left:-14px}
+.id-qtd{display:inline-flex;gap:4px}
+.id-qtd button{width:36px;height:36px;border-radius:10px;border:2px solid var(--fina);background:var(--panel);color:var(--fg);font-weight:800;cursor:pointer}
+.id-qtd button[aria-pressed="true"]{background:var(--onca);border-color:var(--onca);color:#16224D}
+.id-qtd button:disabled{opacity:.5;cursor:not-allowed}
+.stack-id{display:flex;flex-direction:column;gap:10px}
+.id-pedido{gap:10px}
+.id-pecas{display:flex;flex-direction:column;gap:8px}
+.id-peca{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start;padding:10px;border-radius:12px;background:var(--card);border:1px solid var(--fina)}
+.id-peca .peq{display:flex;gap:6px;align-items:flex-start;margin-top:4px}
+.id-peca .peq img{width:20px;height:20px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#fff}
+.id-fmt{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;border-radius:7px;padding:4px 8px;white-space:nowrap;
+  background:color-mix(in srgb,var(--onca) 22%,transparent);color:var(--fg)}
+.id-fmt.carrossel{background:color-mix(in srgb,#8b5cf6 24%,transparent)}
+.id-fmt.story{background:color-mix(in srgb,#ff7a59 24%,transparent)}
+.id-fmt.reel{background:color-mix(in srgb,#2B8CEB 24%,transparent)}
+@media (max-width:760px){.card.id-pedir{flex-direction:column;align-items:flex-start}}
