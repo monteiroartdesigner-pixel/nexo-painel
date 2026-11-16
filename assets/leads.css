@@ -64,3 +64,4 @@
 /* aviso sempre na frente da ficha do lead e confirmação no próprio botão */
 .toast{z-index:100!important}
 .ld-copiado{background:var(--ok)!important;color:#04220f!important;border-color:transparent!important}
+.ld-passo{background:color-mix(in srgb,var(--onca) 14%,var(--card));border-left:3px solid var(--onca);border-radius:8px;padding:8px 10px;font-size:13.5px}

@@ -36,7 +36,9 @@ function ldLista() {
   const q = ldEstado.q.toLowerCase();
   return st.leads.filter(l => (ldEstado.aba === "todos" ? (!ldEstado.s || l.status === ldEstado.s) : ldGrupo(l) === ldEstado.aba)
     && (!q || [l.nome, l.cidade, l.modalidade, l.tipo, l.instagram].join(" ").toLowerCase().includes(q)))
-    .sort((a, b) => ldEstado.aba === "retorno" ? (ldDia(a.proxima_acao_em) < ldDia(b.proxima_acao_em) ? -1 : 1) : (b.nota ?? -1) - (a.nota ?? -1));
+    .sort((a, b) => ldEstado.aba === "retorno" ? (ldDia(a.proxima_acao_em) < ldDia(b.proxima_acao_em) ? -1 : 1)
+      : ldEstado.aba === "abordar" && !!a.mensagem_sugerida !== !!b.mensagem_sugerida ? (a.mensagem_sugerida ? -1 : 1)
+      : (b.nota ?? -1) - (a.nota ?? -1));
 }
 
 function leadsTela(el) {
@@ -83,15 +85,15 @@ function ldPintar(el) {
     box.innerHTML = `<div class="vazio">${ldEstado.q ? "Nada com essa busca." : { confirmar: "Nenhuma dúvida pendente. A equipe classificou todos os leads.", abordar: "Nenhum lead esperando abordagem. O Faro traz novos na próxima rodada.", retorno: "Nenhum retorno para hoje.", conversa: "Ninguém em conversa agora.", todos: "Nenhum lead ainda." }[ldEstado.aba]}</div>`;
     return;
   }
-  const acao = l => ({ abordar: "Abordar", retorno: "Fazer retorno", conversa: "Continuar" }[ldGrupo(l)] || "Abrir");
+  const acao = l => ldGrupo(l) === "abordar" && !l.mensagem_sugerida ? "Ver o próximo passo" : ({ abordar: "Abordar", retorno: "Fazer retorno", conversa: "Continuar" }[ldGrupo(l)] || "Abrir");
   if (ldEstado.aba === "confirmar") { ldPintarDuvidas(el, box, it); return; }
   box.innerHTML = it.slice(0, ldEstado.mostrar).map(l => { const [n, c] = ldNota(l.nota); return `
     <div class="ld-item" data-id="${l.id}" role="button" tabindex="0">
       <span class="ld-av">${esc(ldIniciais(l.nome))}</span>
       <div class="ld-txt"><b>${esc(l.nome)}</b>
         <span>${esc([l.tipo, l.modalidade, ldLugar(l)].filter(Boolean).join(" · "))}</span>
-        ${ldEstado.aba === "retorno" && l.proxima_acao ? `<span class="ld-prox">${esc(l.proxima_acao)}</span>` : ""}</div>
-      <span class="ld-contatos">${ldWa(l) ? `<i title="Tem WhatsApp">WA</i>` : ""}${ldIg(l) ? `<i title="Tem Instagram">IG</i>` : ""}${!ldWa(l) && !ldIg(l) ? `<i class="sem" title="Sem contato público">sem contato</i>` : ""}</span>
+        ${(ldEstado.aba === "retorno" || (ldGrupo(l) === "abordar" && !l.mensagem_sugerida)) && l.proxima_acao ? `<span class="ld-prox">${esc(l.proxima_acao)}</span>` : ""}</div>
+      <span class="ld-contatos">${ldGrupo(l) === "abordar" && !l.mensagem_sugerida ? `<i class="sem" title="O robô não escreveu mensagem para este lead">sem mensagem</i>` : ""}${ldWa(l) ? `<i title="Tem WhatsApp">WA</i>` : ""}${ldIg(l) ? `<i title="Tem Instagram">IG</i>` : ""}${!ldWa(l) && !ldIg(l) ? `<i class="sem" title="Sem contato público">sem contato</i>` : ""}</span>
       <span class="ld-nota ${c}" title="Nota do lead (0 a 100)">${n}</span>
       <span class="ld-st">${esc(ST_LEAD[l.status] || l.status)}</span>
       <button class="btn ld-acao" type="button">${acao(l)}</button>
@@ -160,10 +162,10 @@ function ldFicha(l, el) {
       ${l.proxima_acao ? `<div class="peq">Próximo passo: <b>${esc(l.proxima_acao)}</b>${l.proxima_acao_em ? ` · ${esc(ldDia(l.proxima_acao_em).split("-").reverse().join("/"))}` : ""}</div>` : ""}</div>
 
     <div class="ld-bloco"><b>1. Mensagem pronta</b>
-      ${msg ? `<div class="ld-msg">${esc(msg)}</div>` : `<div class="muted peq">${l.classificacao && l.classificacao.resposta ? `Você respondeu "${esc(l.classificacao.resposta)}". A equipe escreve a mensagem certa na próxima rodada.` : "Este lead ainda não tem mensagem pronta. Escreva uma curta, citando o que você viu."}</div>`}
+      ${msg ? `<div class="ld-msg">${esc(msg)}</div>` : `${l.proxima_acao && !(l.classificacao && l.classificacao.resposta) ? `<div class="ld-passo"><b>Próximo passo sugerido pelo Faro:</b> ${esc(l.proxima_acao)}</div>` : ""}<div class="muted peq">${l.classificacao && l.classificacao.resposta ? `Você respondeu "${esc(l.classificacao.resposta)}". A equipe escreve a mensagem certa na próxima rodada.` : "Este lead ainda não tem mensagem pronta. Escreva uma curta, citando o que você viu."}</div>`}
       <div class="linha">
         ${wa ? `<a class="btn prim" target="_blank" rel="noopener" href="https://wa.me/${esc(wa)}${msg ? "?text=" + encodeURIComponent(msg) : ""}">Abrir WhatsApp com a mensagem</a>` : ""}
-        ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>Copiar e abrir o Direct</button>` : ""}
+        ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>${msg ? "Copiar e abrir o Direct" : "Abrir o Direct"}</button>` : ""}
         ${msg ? `<button class="btn" data-copiar>Copiar mensagem</button>` : ""}
       </div>
       ${msg && ig ? `<div class="muted peq">No Instagram o texto não entra sozinho: depois de abrir o Direct, cole a mensagem (Ctrl+V; no celular, segure e toque em Colar).</div>` : ""}
