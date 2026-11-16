@@ -163,9 +163,10 @@ function ldFicha(l, el) {
       ${msg ? `<div class="ld-msg">${esc(msg)}</div>` : `<div class="muted peq">${l.classificacao && l.classificacao.resposta ? `Você respondeu "${esc(l.classificacao.resposta)}". A equipe escreve a mensagem certa na próxima rodada.` : "Este lead ainda não tem mensagem pronta. Escreva uma curta, citando o que você viu."}</div>`}
       <div class="linha">
         ${wa ? `<a class="btn prim" target="_blank" rel="noopener" href="https://wa.me/${esc(wa)}${msg ? "?text=" + encodeURIComponent(msg) : ""}">Abrir WhatsApp com a mensagem</a>` : ""}
-        ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>Copiar e abrir Instagram</button>` : ""}
+        ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>Copiar e abrir o Direct</button>` : ""}
         ${msg ? `<button class="btn" data-copiar>Copiar mensagem</button>` : ""}
       </div>
+      ${msg && ig ? `<div class="muted peq">No Instagram o texto não entra sozinho: depois de abrir o Direct, cole a mensagem (Ctrl+V; no celular, segure e toque em Colar).</div>` : ""}
       ${!wa && !ig ? `<div class="aviso">Sem contato público. ${l.fonte_url ? "Veja a fonte abaixo para achar um canal." : ""}</div>` : ""}
       ${l.contato_publico && !wa && !ig ? `<div class="peq">Contato informado: ${esc(l.contato_publico)}</div>` : ""}</div>
 
@@ -186,9 +187,28 @@ function ldFicha(l, el) {
   const tecla = ev => { if (ev.key === "Escape") fechar(); };
   fundo.onclick = ev => { if (ev.target === fundo) fechar(); };
   fundo.querySelector("[data-fechar]").onclick = fechar;
-  const copiar = async () => { try { await navigator.clipboard.writeText(msg); aviso("Mensagem copiada. Revise antes de enviar."); return true; } catch { aviso("Não deu para copiar: selecione o texto e copie.", true); return false; } };
-  fundo.querySelector("[data-copiar]")?.addEventListener("click", copiar);
-  fundo.querySelector("[data-ig]")?.addEventListener("click", async () => { if (msg) await copiar(); window.open(`https://instagram.com/${ig}`, "_blank", "noopener"); });
+  // Copia com a API do navegador e, se ela falhar (celular, permissão), pelo método antigo.
+  const copiarTexto = async texto => {
+    try { await navigator.clipboard.writeText(texto); return true; } catch {}
+    const t = document.createElement("textarea"); t.value = texto; t.setAttribute("readonly", ""); t.style.cssText = "position:fixed;top:-1000px;opacity:0";
+    document.body.appendChild(t); t.select(); t.setSelectionRange(0, texto.length);
+    let ok = false; try { ok = document.execCommand("copy"); } catch {} t.remove(); return ok;
+  };
+  const marcar = (botao, ok) => { if (!botao) return; const antes = botao.dataset.rotulo || botao.textContent; botao.dataset.rotulo = antes;
+    botao.textContent = ok ? "✓ Copiada" : "Não copiou"; botao.classList.toggle("ld-copiado", ok); setTimeout(() => { botao.textContent = antes; botao.classList.remove("ld-copiado"); }, 2500); };
+  const copiar = async botao => {
+    const ok = await copiarTexto(msg); marcar(botao, ok);
+    if (ok) aviso("Mensagem copiada. Cole na conversa (Ctrl+V no computador; no celular, segure e toque em Colar).");
+    else { aviso("O navegador bloqueou a cópia: selecione o texto da mensagem e copie.", true); const m = fundo.querySelector(".ld-msg"); if (m) { const r = document.createRange(); r.selectNodeContents(m); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); } }
+    return ok;
+  };
+  fundo.querySelector("[data-copiar]")?.addEventListener("click", ev => copiar(ev.currentTarget));
+  // Instagram: abre direto a conversa do Direct (ig.me). O Instagram não aceita texto pronto: a mensagem vai copiada.
+  fundo.querySelector("[data-ig]")?.addEventListener("click", ev => {
+    const janela = window.open(`https://ig.me/m/${encodeURIComponent(ig)}`, "_blank");   // abre já no clique, para o navegador não bloquear
+    if (janela) janela.opener = null;
+    if (msg) copiar(ev.currentTarget);
+  });
   fundo.querySelectorAll("[data-st]").forEach(b => b.onclick = () => ldMudar(l, b.dataset.st, el, fundo));
   document.addEventListener("keydown", tecla);
   document.body.appendChild(fundo);

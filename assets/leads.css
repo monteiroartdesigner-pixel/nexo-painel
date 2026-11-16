@@ -60,3 +60,7 @@
 .ld-pergunta{display:flex;gap:10px;align-items:flex-start;background:var(--card);border-radius:12px;padding:10px}
 .ld-pergunta img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#fff;flex:0 0 auto}
 @media (max-width:760px){.ld-prop{grid-template-columns:1fr 1fr}.ld-prop>div{grid-column:1 / -1}}
+
+/* aviso sempre na frente da ficha do lead e confirmação no próprio botão */
+.toast{z-index:100!important}
+.ld-copiado{background:var(--ok)!important;color:#04220f!important;border-color:transparent!important}
