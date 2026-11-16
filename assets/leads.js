@@ -6,6 +6,7 @@
 // ============================================================================
 
 const LD_ABAS = [
+  ["confirmar", "Para confirmar", "A equipe ficou em dúvida sobre o tipo destes leads. Responda e ela escreve a mensagem certa na próxima rodada."],
   ["abordar", "Para abordar", "Leads com mensagem pronta, esperando o primeiro contato."],
   ["retorno", "Retornos de hoje", "Quem já foi abordado e está na hora de um novo contato."],
   ["conversa", "Em conversa", "Quem respondeu, está conversando ou testando."],
@@ -13,11 +14,13 @@ const LD_ABAS = [
 ];
 const LD_ETAPAS = [["abordado", "Abordei"], ["conversando", "Respondeu"], ["teste", "Em teste"], ["cliente", "Virou cliente"]];
 const LD_FIM = [["perdido", "Perdido"], ["nao_contatar", "Não contatar"]];
-let ldEstado = { aba: "abordar", q: "", s: "", mostrar: 30 };
+let ldEstado = { aba: null, q: "", s: "", mostrar: 30 }, ldCategorias = null;
 
 const ldHoje = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 const ldDia = v => v ? String(v).slice(0, 10) : "";
+const ldDuvida = l => !!(l.classificacao && l.classificacao.pergunta && !l.classificacao.resposta);
 const ldGrupo = l => {
+  if (["novo", "qualificado", "abordar"].includes(l.status) && ldDuvida(l)) return "confirmar";
   if (["novo", "qualificado", "abordar"].includes(l.status)) return "abordar";
   if (["conversando", "teste"].includes(l.status)) return "conversa";
   if (l.status === "abordado" && l.proxima_acao_em && ldDia(l.proxima_acao_em) <= ldHoje()) return "retorno";
@@ -38,8 +41,17 @@ function ldLista() {
 
 function leadsTela(el) {
   const cont = Object.fromEntries(LD_ABAS.map(([k]) => [k, k === "todos" ? st.leads.length : st.leads.filter(l => ldGrupo(l) === k).length]));
+  if (!ldEstado.aba) ldEstado.aba = cont.confirmar ? "confirmar" : "abordar";
+  if (ldCategorias === null) { ldCategorias = []; rpc("nexo_categorias_lead", { p_agente: st.agente }).then(c => { ldCategorias = c || []; if (st.aba === "leads") leadsTela(el); }).catch(() => {}); }
+  const propostas = (ldCategorias || []).filter(c => c.status === "proposta");
   el.innerHTML = `
     <div class="ld">
+      ${propostas.length ? `<section class="ld-props"><b>A equipe propôs ${propostas.length === 1 ? "uma categoria nova" : propostas.length + " categorias novas"}</b>
+        <span class="muted peq">Aprovando, ela passa a valer para os próximos leads.</span>
+        ${propostas.map(c => `<div class="ld-prop" data-slug="${esc(c.slug)}"><div style="min-width:0"><b>${esc(c.nome)}</b>
+          <div class="muted peq">${esc(c.descricao || "")}${c.exemplo ? ` · ex.: ${esc(c.exemplo)}` : ""}</div></div>
+          <select data-prod aria-label="Produto"><option value="varzea" ${c.produto === "varzea" ? "selected" : ""}>NEXO VÁRZEA</option><option value="sport" ${c.produto === "sport" ? "selected" : ""}>NEXO SPORT</option></select>
+          <button class="btn sim peq" data-cat="1" ${podeEditar() ? "" : "disabled"}>Aprovar</button><button class="btn nao peq" data-cat="0" ${podeEditar() ? "" : "disabled"}>Recusar</button></div>`).join("")}</section>` : ""}
       <div class="ld-passos">
         <div><b>1</b> Abra o lead</div><div><b>2</b> Envie a mensagem pelo seu WhatsApp ou Instagram</div><div><b>3</b> Marque "Abordei"</div>
       </div>
@@ -52,6 +64,14 @@ function leadsTela(el) {
       <div class="ld-lista" id="ldLista"></div>
     </div>`;
   $$("[data-ab]", el).forEach(b => b.onclick = () => { ldEstado.aba = b.dataset.ab; ldEstado.mostrar = 30; leadsTela(el); });
+  $$(".ld-prop [data-cat]", el).forEach(b => b.onclick = async () => {
+    const box = b.closest(".ld-prop"), slug = box.dataset.slug, aprovar = b.dataset.cat === "1";
+    $$("button", box).forEach(x => x.disabled = true);
+    try { await rpc("nexo_decidir_categoria", { p_agente: st.agente, p_slug: slug, p_aprovar: aprovar, p_produto: $("[data-prod]", box).value });
+      ldCategorias = ldCategorias.map(c => c.slug === slug ? { ...c, status: aprovar ? "aprovada" : "recusada" } : c);
+      aviso(aprovar ? "Categoria aprovada." : "Categoria recusada."); leadsTela(el); }
+    catch (e) { $$("button", box).forEach(x => x.disabled = false); aviso(msgErro(e), true); }
+  });
   $("#ldq", el).oninput = e => { ldEstado.q = e.target.value; ldEstado.mostrar = 30; ldPintar(el); };
   const s = $("#lds", el); if (s) s.onchange = e => { ldEstado.s = e.target.value; ldPintar(el); };
   ldPintar(el);
@@ -60,10 +80,11 @@ function leadsTela(el) {
 function ldPintar(el) {
   const it = ldLista(), box = $("#ldLista", el);
   if (!it.length) {
-    box.innerHTML = `<div class="vazio">${ldEstado.q ? "Nada com essa busca." : { abordar: "Nenhum lead esperando abordagem. O Faro traz novos na próxima rodada.", retorno: "Nenhum retorno para hoje.", conversa: "Ninguém em conversa agora.", todos: "Nenhum lead ainda." }[ldEstado.aba]}</div>`;
+    box.innerHTML = `<div class="vazio">${ldEstado.q ? "Nada com essa busca." : { confirmar: "Nenhuma dúvida pendente. A equipe classificou todos os leads.", abordar: "Nenhum lead esperando abordagem. O Faro traz novos na próxima rodada.", retorno: "Nenhum retorno para hoje.", conversa: "Ninguém em conversa agora.", todos: "Nenhum lead ainda." }[ldEstado.aba]}</div>`;
     return;
   }
   const acao = l => ({ abordar: "Abordar", retorno: "Fazer retorno", conversa: "Continuar" }[ldGrupo(l)] || "Abrir");
+  if (ldEstado.aba === "confirmar") { ldPintarDuvidas(el, box, it); return; }
   box.innerHTML = it.slice(0, ldEstado.mostrar).map(l => { const [n, c] = ldNota(l.nota); return `
     <div class="ld-item" data-id="${l.id}" role="button" tabindex="0">
       <span class="ld-av">${esc(ldIniciais(l.nome))}</span>
@@ -77,6 +98,38 @@ function ldPintar(el) {
     </div>`; }).join("") + (it.length > ldEstado.mostrar ? `<button class="btn" id="ldMais" style="align-self:center">Mostrar mais (${it.length - ldEstado.mostrar})</button>` : "");
   $$(".ld-item", box).forEach(r => { const abrir = () => ldFicha(st.leads.find(x => String(x.id) === r.dataset.id), el);
     r.onclick = abrir; r.onkeydown = ev => { if (ev.key === "Enter") abrir(); }; });
+  const m = $("#ldMais", box); if (m) m.onclick = () => { ldEstado.mostrar += 30; ldPintar(el); };
+}
+
+function ldPintarDuvidas(el, box, it) {
+  const pode = podeEditar();
+  box.innerHTML = it.slice(0, ldEstado.mostrar).map(l => { const c = l.classificacao || {}; return `
+    <div class="ld-duvida" data-id="${l.id}">
+      <div class="linha entre" style="flex-wrap:nowrap;align-items:flex-start">
+        <div class="linha" style="flex-wrap:nowrap;min-width:0"><span class="ld-av">${esc(ldIniciais(l.nome))}</span>
+          <div class="ld-txt"><b>${esc(l.nome)}</b><span>${esc([l.tipo, l.modalidade, ldLugar(l)].filter(Boolean).join(" · "))}</span></div></div>
+        ${l.fonte_url ? `<a class="peq" href="${esc(l.fonte_url)}" target="_blank" rel="noopener">Ver a fonte</a>` : ""}</div>
+      <div class="ld-pergunta"><img src="assets/equipe/faro-rosto.webp" alt=""><div><b>${esc(c.pergunta || "Que tipo de contato é este?")}</b>
+        ${(c.sinais || []).length ? `<div class="muted peq">O que vi: ${esc(c.sinais.join(" · "))}</div>` : ""}
+        ${c.categoria_sugerida ? `<div class="muted peq">Sugeri uma categoria nova: <b>${esc(c.categoria_sugerida.replace(/_/g, " "))}</b></div>` : ""}</div></div>
+      <div class="linha">${(c.opcoes || []).map(o => `<button class="btn" data-resp="${esc(o)}" ${pode ? "" : "disabled"}>${esc(o)}</button>`).join("")}
+        <input type="text" data-outro placeholder="Outra resposta…" maxlength="120" ${pode ? "" : "disabled"} style="flex:1 1 180px">
+        <button class="btn prim" data-enviar ${pode ? "" : "disabled"}>Responder</button></div>
+    </div>`; }).join("") + (it.length > ldEstado.mostrar ? `<button class="btn" id="ldMais" style="align-self:center">Mostrar mais (${it.length - ldEstado.mostrar})</button>` : "");
+  const responder = async (card, resp) => {
+    resp = String(resp || "").trim(); if (!resp) { aviso("Escolha uma opção ou escreva a resposta.", true); return; }
+    const l = st.leads.find(x => String(x.id) === card.dataset.id);
+    $$("button,input", card).forEach(x => x.disabled = true);
+    try { const r = await rpc("nexo_confirmar_lead", { p_lead: l.id, p_resposta: resp });
+      l.classificacao = { ...(l.classificacao || {}), resposta: resp }; if (r && r.categoria) l.categoria = r.categoria;
+      aviso("Respondido. A equipe escreve a mensagem certa na próxima rodada."); leadsTela(el); }
+    catch (e) { $$("button,input", card).forEach(x => x.disabled = false); aviso(msgErro(e), true); }
+  };
+  $$(".ld-duvida", box).forEach(card => {
+    $$("[data-resp]", card).forEach(b => b.onclick = () => responder(card, b.dataset.resp));
+    $("[data-enviar]", card).onclick = () => responder(card, $("[data-outro]", card).value);
+    $("[data-outro]", card).onkeydown = ev => { if (ev.key === "Enter") responder(card, ev.target.value); };
+  });
   const m = $("#ldMais", box); if (m) m.onclick = () => { ldEstado.mostrar += 30; ldPintar(el); };
 }
 
@@ -101,11 +154,13 @@ function ldFicha(l, el) {
 
     <div class="ld-bloco"><div class="linha entre"><b>Nota do lead</b><span class="ld-nota ${c}">${n}</span></div>
       ${l.motivo_nota ? `<div class="muted peq">${esc(l.motivo_nota)}</div>` : ""}
+      ${l.categoria || (l.classificacao && l.classificacao.resposta) ? `<div class="peq">Tipo: <b>${esc((l.categoria || l.classificacao.resposta).replace(/_/g, " "))}</b>${l.classificacao && l.classificacao.confianca ? ` · certeza ${esc({ alta: "alta", media: "média", baixa: "baixa" }[l.classificacao.confianca] || l.classificacao.confianca)}` : ""}</div>` : ""}
+      ${l.classificacao && (l.classificacao.sinais || []).length ? `<div class="muted peq">O que a equipe viu: ${esc(l.classificacao.sinais.join(" · "))}</div>` : ""}
       <div class="peq">Etapa atual: <b>${esc(ST_LEAD[l.status] || l.status)}</b>${l.abordado_em ? ` · abordado em ${esc(quando(l.abordado_em))}` : ""}</div>
       ${l.proxima_acao ? `<div class="peq">Próximo passo: <b>${esc(l.proxima_acao)}</b>${l.proxima_acao_em ? ` · ${esc(ldDia(l.proxima_acao_em).split("-").reverse().join("/"))}` : ""}</div>` : ""}</div>
 
     <div class="ld-bloco"><b>1. Mensagem pronta</b>
-      ${msg ? `<div class="ld-msg">${esc(msg)}</div>` : `<div class="muted peq">Este lead ainda não tem mensagem pronta. Escreva uma curta, citando o que você viu.</div>`}
+      ${msg ? `<div class="ld-msg">${esc(msg)}</div>` : `<div class="muted peq">${l.classificacao && l.classificacao.resposta ? `Você respondeu "${esc(l.classificacao.resposta)}". A equipe escreve a mensagem certa na próxima rodada.` : "Este lead ainda não tem mensagem pronta. Escreva uma curta, citando o que você viu."}</div>`}
       <div class="linha">
         ${wa ? `<a class="btn prim" target="_blank" rel="noopener" href="https://wa.me/${esc(wa)}${msg ? "?text=" + encodeURIComponent(msg) : ""}">Abrir WhatsApp com a mensagem</a>` : ""}
         ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>Copiar e abrir Instagram</button>` : ""}

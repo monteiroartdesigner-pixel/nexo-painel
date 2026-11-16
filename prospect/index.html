@@ -419,8 +419,12 @@ function marcarDuplicados() {
 const campDe = (e, id) => (e.campanhas || []).find(x => !id || x.id === id) || {};
 const melhorPrio = e => (e.campanhas || []).map(c => c.prioridade).sort((a, b) => ["alta", "media", "baixa"].indexOf(a) - ["alta", "media", "baixa"].indexOf(b))[0];
 const tarefaDe = e => S.tarefas.filter(t => !t.feita && t.empresa === e.id).sort((a, b) => a.vence_em < b.vence_em ? -1 : 1)[0];
+// Classificação flexível: a equipe ficou em dúvida e perguntou antes de escrever a mensagem.
+const duvidaDe = e => { const c = e.classificacao || (e.dados && e.dados.classificacao); return c && c.pergunta && !c.resposta ? c : null; };
 function proximoPasso(e) {
   const t = tarefaDe(e), k = campDe(e), contato = e.whatsapp || e.email || e.instagram;
+  const dv = duvidaDe(e);
+  if (dv && !["perdido", "nao_contatar", "cliente"].includes(e.status)) return { t: "Responder a dúvida da equipe", d: dv.pergunta, tom: "warn" };
   if (t) return { t: t.vence_em < hoje() ? "Tarefa atrasada" : t.vence_em === hoje() ? "Tarefa para hoje" : "Próxima tarefa", d: `${t.titulo} · ${dataBR(t.vence_em)}`, tom: t.vence_em <= hoje() ? "warn" : "" };
   if (["perdido", "nao_contatar", "cliente"].includes(e.status)) return { t: e.status === "cliente" ? "Cliente" : "Encerrado", d: e.status === "cliente" ? "Acompanhe a entrega e peça indicação." : "Nenhuma ação pendente.", tom: "" };
   if (["novo", "qualificado", "abordar"].includes(e.status)) return contato ? { t: "Fazer a primeira abordagem", d: k.mensagem_pt || k.mensagem_en || k.oportunidade ? "Abra a ficha: a mensagem sugerida está lá para revisar e enviar." : "Escreva uma mensagem curta citando o que você viu.", tom: "pri" } : { t: "Achar um contato", d: "A empresa ainda não tem contato comercial público.", tom: "" };
@@ -436,7 +440,8 @@ function vInicio(el) {
   const i = S.indic || {}, ativas = S.campanhas.filter(c => c.status === "ativa"), h = hoje();
   const atrasadas = S.tarefas.filter(t => !t.feita && t.vence_em < h), deHoje = S.tarefas.filter(t => !t.feita && t.vence_em === h);
   const pendentes = S.tarefas.filter(t => !t.feita);
-  const semAbordar = S.empresas.filter(e => ["novo", "qualificado", "abordar"].includes(e.status) && melhorPrio(e) === "alta").slice(0, 6);
+  const duvidas = S.empresas.filter(e => duvidaDe(e) && !["perdido", "nao_contatar", "cliente"].includes(e.status)).slice(0, 6);
+  const semAbordar = S.empresas.filter(e => ["novo", "qualificado", "abordar"].includes(e.status) && melhorPrio(e) === "alta" && !duvidaDe(e)).slice(0, 6);
   const funil = [["Encontradas", i.empresas || 0], ["Qualificadas", i.qualificadas || 0], ["Abordadas", i.abordadas || 0], ["Responderam", i.responderam || 0], ["Propostas", i.propostas || 0], ["Contratos", i.contratos || 0]];
   const max = Math.max(1, ...funil.map(f => f[1]));
   const nome = (S.email || "").split("@")[0];
@@ -452,6 +457,7 @@ function vInicio(el) {
         <div class="list">${[...atrasadas, ...deHoje].slice(0, 6).map(t => `<div class="li" data-emp="${t.empresa}"><div class="av">${iniciais(t.empresa_nome)}</div><div class="grow"><div style="font-weight:600">${esc(t.titulo)}</div><div class="peq muted">${esc(t.empresa_nome)}</div></div><span class="badge ${t.vence_em < h ? "bad" : "warn"}">${t.vence_em < h ? "atrasada · " + dataBR(t.vence_em) : "hoje"}</span></div>`).join("")
           || (S.faltaCrm ? `<div class="alert warn">${ic("alert")}<div>As tarefas aparecem depois da atualização do banco (migração do CRM).</div></div>`
             : `<div class="empty" style="padding:18px"><div class="peq">Nenhuma tarefa vencendo. Ao registrar uma abordagem, crie o follow-up.</div></div>`)}</div>
+        ${duvidas.length ? `<h3 style="margin:16px 0 6px">Dúvidas da equipe para você</h3><div class="list">${duvidas.map(e => `<div class="li" data-emp="${e.id}"><div class="av">${iniciais(e.nome)}</div><div class="grow"><div style="font-weight:600">${esc(e.nome)}</div><div class="peq muted">${esc(duvidaDe(e).pergunta)}</div></div><span class="badge warn">responder</span></div>`).join("")}</div>` : ""}
         ${semAbordar.length ? `<h3 style="margin:16px 0 6px">Prioritárias ainda sem abordagem</h3><div class="list">${semAbordar.map(e => `<div class="li" data-emp="${e.id}"><div class="av">${iniciais(e.nome)}</div><div class="grow"><div style="font-weight:600">${esc(e.nome)}</div><div class="peq muted">${esc([e.segmento, e.cidade].filter(Boolean).join(" · "))}</div></div><span class="score ${scoreCls(e.pontuacao)}">${e.pontuacao ?? "–"}</span></div>`).join("")}</div>` : ""}
       </div>
       <div class="card"><div class="card-h"><h2>Funil comercial</h2><span class="muted peq">todas as campanhas</span></div>
@@ -525,7 +531,7 @@ function cardLead(e) {
   return `<div class="kc" draggable="true" data-id="${e.id}" tabindex="0">
     <div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><span class="nm">${esc(e.nome)}</span><span class="score ${scoreCls(e.pontuacao)}">${e.pontuacao ?? "–"}</span></div>
     <div class="meta">${esc([e.segmento, e.cidade].filter(Boolean).join(" · "))}</div>
-    <div class="meta">${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : ""}${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${e._dup ? `<span class="badge warn" title="Parecida com: ${esc(e._dup.join(", "))}">possível duplicado</span>` : ""}</div>
+    <div class="meta">${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : ""}${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${e._dup ? `<span class="badge warn" title="Parecida com: ${esc(e._dup.join(", "))}">possível duplicado</span>` : ""}${duvidaDe(e) ? `<span class="badge warn" title="${esc(duvidaDe(e).pergunta)}">dúvida para você</span>` : ""}</div>
     ${t ? `<div class="meta"><span class="badge ${t.vence_em < hoje() ? "bad" : t.vence_em === hoje() ? "warn" : ""}">${ic("cal")}${dataBR(t.vence_em)}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo)}</span></div>` : ""}
   </div>`;
 }
@@ -600,6 +606,12 @@ function pintarFicha(f) {
           ${e.site ? `<a class="btn sm" target="_blank" rel="noopener" href="${esc(e.site)}">${ic("web")}Site</a>` : ""}
           ${!e.whatsapp && !e.email && !e.instagram ? `<span class="peq muted">Sem contato comercial público.</span>` : ""}
         </div></div>
+      ${(() => { const dv = duvidaDe(e); if (!dv) return ""; return `<div class="alert warn" style="flex-direction:column;align-items:stretch">
+        <div><b>${esc(dv.pergunta)}</b>${(dv.sinais || []).length ? `<div class="peq t2">O que a equipe viu: ${esc(dv.sinais.join(" · "))}</div>` : ""}
+          <div class="peq t2">A mensagem só é escrita depois da sua resposta, na próxima rodada.</div></div>
+        <div class="row">${(dv.opcoes || []).map(o => `<button class="btn sm" data-resp="${esc(o)}" ${pode ? "" : "disabled"}>${esc(o)}</button>`).join("")}
+          <input class="input" data-outro placeholder="Outra resposta…" maxlength="160" style="flex:1 1 160px;min-height:30px;height:30px" ${pode ? "" : "disabled"}>
+          <button class="btn sm pri" data-enviar ${pode ? "" : "disabled"}>Responder</button></div></div>`; })()}
       ${pode ? `<div class="row">${[["abordagem", "Registrar contato", "wa"], ["resposta", "Resposta", "mail"], ["proposta", "Proposta", "edit"], ["contrato", "Contrato", "target"], ["nota", "Anotação", "edit"]].map(([t, n, i]) => `<button class="btn sm" data-reg="${t}">${ic(i)}${n}</button>`).join("")}</div>` : ""}
       <div class="tabs" role="tablist">${[["visao", "Oportunidade"], ["tarefas", `Tarefas (${(f.tarefas || []).filter(t => !t.feita).length})`], ["historico", "Histórico"]].map(([k, n]) => `<button role="tab" data-aba="${k}" aria-selected="${fichaAba === k}">${n}</button>`).join("")}</div>
       <div id="fAba"></div>
@@ -609,6 +621,13 @@ function pintarFicha(f) {
   const fs = $("#fSt", d); if (fs) fs.onchange = async () => { await mudarStatus(e.id, fs.value); };
   $$("[data-aba]", d).forEach(b => b.onclick = () => { fichaAba = b.dataset.aba; pintarFicha(f); });
   $$("[data-reg]", d).forEach(b => b.onclick = () => modalRegistro(f, b.dataset.reg));
+  const responder = async resp => {
+    resp = String(resp || "").trim(); if (!resp) { toast("Escolha uma opção ou escreva a resposta.", true); return; }
+    try { await rpc("nexo_prospect_confirmar", { p_empresa: e.id, p_resposta: resp }); toast("Respondido. A equipe escreve a mensagem na próxima rodada."); await recarregarFicha(e.id); }
+    catch (err) { toast(msgErro(err), true); }
+  };
+  $$("[data-resp]", d).forEach(b => b.onclick = () => responder(b.dataset.resp));
+  const env = $("[data-enviar]", d); if (env) env.onclick = () => responder($("[data-outro]", d).value);
   const a = $("#fAba", d);
   if (fichaAba === "visao") abaOportunidade(a, e, camps);
   else if (fichaAba === "tarefas") abaTarefas(a, f, pode);
