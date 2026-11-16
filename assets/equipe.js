@@ -16,9 +16,13 @@ const EQUIPE = [
   { id: "faro", nome: "Faro", cargo: "Pesquisa e prospecção", roupa: "#3f6b46", aba: "leads", funcao: "pesquisar",
     faz: "Pesquisa cidades atrás de times, ligas e arenas, acha o contato público de cada um e organiza os retornos dos leads.",
     acoes: ["prospeccao", "cadencia"], agenda: "cerebro" },
-  { id: "rabisco", nome: "Rabisco", cargo: "Criação", roupa: "#6a35b0", aba: "aprovar",
-    faz: "Escreve as peças e monta as artes de posts e stories. Tudo passa pela sua aprovação antes de ir ao ar.",
-    acoes: ["arte_pronta", "artes_ok", "arte_falhou", "conteudo_para_revisar"], agenda: "cerebro" },
+  { id: "pauta", nome: "Pauta", cargo: "Social media", roupa: "#2a56d6", aba: "aprovar",
+    arte: "assets/nexo-marketing.webp", rosto: "assets/nexo-marketing-rosto.webp",
+    faz: "Planeja o calendário, escreve as legendas e os roteiros das peças e manda tudo para a sua aprovação antes de ir ao ar.",
+    acoes: ["conteudo_para_revisar"], agenda: "cerebro" },
+  { id: "rabisco", nome: "Rabisco", cargo: "Designer gráfico", roupa: "#6a35b0", aba: "aprovar",
+    faz: "Monta as artes de cada peça (imagens de posts e stories) no padrão visual da marca.",
+    acoes: ["arte_pronta", "artes_ok", "arte_falhou"], agenda: "cerebro" },
   { id: "vitrine", nome: "Vitrine", cargo: "Publicação", roupa: "#c8464f", aba: "aprovar", funcao: "publicar",
     faz: "Publica no Instagram só as peças que você aprovou, no horário marcado, dentro do limite do dia.",
     acoes: ["publicado", "story_repost", "falha_publicar", "sem_instagram", "teste_video"], agenda: "hora" },
@@ -32,7 +36,7 @@ const EQUIPE = [
 const PESSOA = Object.fromEntries(EQUIPE.map(p => [p.id, p]));
 
 // ---------------------------------------------------------------- desenho (artes da equipe NEXO Marketing)
-const ARTE = p => `assets/equipe/${p.id}.webp`, ROSTO = p => `assets/equipe/${p.id}-rosto.webp`;
+const ARTE = p => p.arte || `assets/equipe/${p.id}.webp`, ROSTO = p => p.rosto || `assets/equipe/${p.id}-rosto.webp`;
 const rosto = (p, cls = "") => `<img class="rosto ${cls}" src="${ROSTO(p)}" alt="" loading="lazy" decoding="async">`;
 const CORES_CONF = ["#f2b632", "#3CC4E6", "#4cc27a", "#ff7a6e", "#8b3fd1", "#ffd76e"];
 const confete = () => CORES_CONF.map((c, i) => `<i style="left:${20 + i * 12}%;background:${c};--dx:${(i % 2 ? 1 : -1) * (10 + i * 6)}px;animation-delay:${i * 60}ms"></i>`).join("");
@@ -41,7 +45,7 @@ const confete = () => CORES_CONF.map((c, i) => `<i style="left:${20 + i * 12}%;b
 const MIN = 60e3, HORA = 60 * MIN;
 let eqCache = { em: 0, itens: [] }, eqTimer = null;
 const acaoDe = x => x.origem === "painel" ? null : EQUIPE.find(p => p.acoes.includes(x.acao)) ||
-  (x.acao === "ingerido" ? (/lead/i.test(x.texto || "") ? PESSOA.faro : /prospect/i.test(x.texto || "") ? null : PESSOA.rabisco) : null);
+  (x.acao === "ingerido" ? (/lead/i.test(x.texto || "") ? PESSOA.faro : /prospect/i.test(x.texto || "") ? null : PESSOA.pauta) : null);
 const totalDe = o => Object.values(o || {}).reduce((a, b) => a + (Number(b) || 0), 0);
 const hhmm = d => d.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 const corta = (s, n = 110) => { s = String(s || "").replace(/\s+/g, " ").trim(); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
@@ -94,7 +98,7 @@ function estadoDe(p, itens, r) {
   if (p.id === "gestora" && c.pausado) return { ...base, st: "atencao", rot: "Pausada", fala: "Pausei a equipe, como você pediu. Ninguém trabalha até você retomar no Início." };
   if (p.funcao && c[p.funcao] === false) return { ...base, st: "off", rot: "Desligada", fala: `Minha função está desligada no painel. Quando quiser, ligue em Início › Interruptores.` };
   if (p.id === "gestora" && r.erros_24h > 0) return { ...base, st: "atencao", rot: "Atenção", fala: `A equipe teve ${r.erros_24h} erro(s) nas últimas 24 horas. Os detalhes estão na Atividade.` };
-  if (p.id === "rabisco" && (cont.revisar || 0) > 0) return { ...base, st: "espera", rot: "Esperando você", fala: `Tenho ${cont.revisar} peça(s) prontas esperando a sua aprovação.` };
+  if (p.id === "pauta" && (cont.revisar || 0) > 0) return { ...base, st: "espera", rot: "Esperando você", fala: `Tenho ${cont.revisar} peça(s) prontas esperando a sua aprovação.` };
   if (p.id === "lupa") { const prob = (r.integracoes || []).filter(i => i.ultimo_teste_ok === false || i.status === "erro"); if (prob.length) return { ...base, st: "atencao", rot: "Atenção", fala: `A conexão ${prob.map(i => i.tipo).join(", ")} precisa de você. Veja em Integrações.` }; }
   if (erroRec) return { ...base, st: "atencao", rot: "Atenção", fala: falaDoRegistro(erroRec) };
   if (ult && agora - new Date(ult.em) < 12 * MIN) return { ...base, st: "trab", rot: "Trabalhando", fala: falaDoRegistro(ult) };
@@ -121,7 +125,7 @@ function nivelDe(n) {
 }
 function missoes(n, r) {
   const m = [];
-  if (n.revisar) m.push({ p: "rabisco", voce: true, t: `Aprovar ${n.revisar} peça(s)`, d: "Prontas e esperando o seu OK para entrar na fila.", aba: "aprovar" });
+  if (n.revisar) m.push({ p: "pauta", voce: true, t: `Aprovar ${n.revisar} peça(s)`, d: "Prontas e esperando o seu OK para entrar na fila.", aba: "aprovar" });
   if (n.retornos && n.retornosEm && (Date.now() - new Date(n.retornosEm)) < 20 * HORA) m.push({ p: "faro", voce: true, t: `${n.retornos} retorno(s) de leads para hoje`, d: "A Faro separou quem está na hora de receber um retorno.", aba: "leads" });
   if (n.leadsAbordar) m.push({ p: "faro", voce: true, t: `${n.leadsAbordar} lead(s) esperando abordagem`, d: "Com mensagem pronta. Você copia, revisa e envia.", aba: "leads" });
   if (n.cidades) m.push({ p: "faro", t: "Mapa da prospecção", d: `${n.cidades[0]} de ${n.cidades[1]} cidades pesquisadas.`, pct: Math.round(100 * n.cidades[0] / n.cidades[1]), aba: "leads" });
@@ -135,12 +139,12 @@ function conquistas(n, r) {
   const L = faixa(n.leadsTotal, [25, 50, 100, 250, 500, 1000]), P = faixa(n.publicados, [1, 5, 20, 50, 100]), C = n.cidades ? faixa(n.cidades[0], [10, 50, 100, 200, n.cidades[1]]) : null;
   const S = n.seguidores != null ? faixa(n.seguidores, [100, 250, 500, 1000, 5000]) : null;
   return [
-    { i: "🎯", t: L.feito ? `Caçadora de leads · ${L.feito}` : "Caçadora de leads", d: L.prox ? `${n.leadsTotal} de ${L.prox} leads` : `${n.leadsTotal} leads`, ok: !!L.feito },
-    { i: "📣", t: P.feito ? `No ar · ${P.feito} publicação(ões)` : "Primeira publicação", d: P.prox ? `${n.publicados} de ${P.prox}` : `${n.publicados} publicadas`, ok: !!P.feito },
-    C && { i: "🗺️", t: C.feito ? `Desbravadora · ${C.feito} cidades` : "Desbravadora", d: C.prox ? `${n.cidades[0]} de ${C.prox} cidades` : "Mapa completo", ok: !!C.feito },
-    S && { i: "⭐", t: S.feito ? `Comunidade · ${S.feito}` : "Comunidade de 100", d: S.prox ? `${n.seguidores} de ${S.prox} seguidores` : `${n.seguidores} seguidores`, ok: !!S.feito },
-    { i: "🛡️", t: "Ronda limpa", d: r.erros_24h ? `${r.erros_24h} erro(s) nas últimas 24 h` : "Nenhum erro nas últimas 24 h", ok: !r.erros_24h },
-    ig && { i: "🔗", t: "Conectada ao Instagram", d: ig.status === "conectado" ? "Conexão oficial ativa" : "Conexão pendente", ok: ig.status === "conectado" },
+    { i: "🎯", t: L.feito ? `Caçadora de leads · ${L.feito}` : "Caçadora de leads", d: L.prox ? `${n.leadsTotal} de ${L.prox} leads` : `${n.leadsTotal} leads`, ok: !!L.feito, aba: "leads" },
+    { i: "📣", t: P.feito ? `No ar · ${P.feito} publicação(ões)` : "Primeira publicação", d: P.prox ? `${n.publicados} de ${P.prox}` : `${n.publicados} publicadas`, ok: !!P.feito, aba: "aprovar" },
+    C && { i: "🗺️", t: C.feito ? `Desbravadora · ${C.feito} cidades` : "Desbravadora", d: C.prox ? `${n.cidades[0]} de ${C.prox} cidades` : "Mapa completo", ok: !!C.feito, aba: "leads" },
+    S && { i: "⭐", t: S.feito ? `Comunidade · ${S.feito}` : "Comunidade de 100", d: S.prox ? `${n.seguidores} de ${S.prox} seguidores` : `${n.seguidores} seguidores`, ok: !!S.feito, aba: "inicio" },
+    { i: "🛡️", t: "Ronda limpa", d: r.erros_24h ? `${r.erros_24h} erro(s) nas últimas 24 h` : "Nenhum erro nas últimas 24 h", ok: !r.erros_24h, aba: "atividade" },
+    ig && { i: "🔗", t: "Conectada ao Instagram", d: ig.status === "conectado" ? "Conexão oficial ativa" : "Conexão pendente", ok: ig.status === "conectado", aba: "integracoes" },
   ].filter(Boolean);
 }
 
@@ -164,7 +168,7 @@ async function equipe(el) {
     <section class="eq-hero">
       <img class="eq-mascote" src="assets/nexo-marketing.webp" alt="NEXO Marketing">
       <h2>Equipe ${esc(nomeAg)}</h2>
-      <p>Seis onças, cada uma com um trabalho de verdade do seu agente. O que você vê aqui sai dos registros reais: quando alguém trabalha, ele aparece na mesa; quando termina, comemora.</p>
+      <p>Sete onças, cada uma com um trabalho de verdade do seu agente. O que você vê aqui sai dos registros reais: quando alguém trabalha, ele aparece na mesa; quando termina, comemora.</p>
       <div class="eq-stats">
         <div class="eq-stat" title="Experiência = leads + 3 × peças criadas + 10 × publicações"><div class="l">Nível da equipe</div><div class="v">${lv.nivel}</div><div class="eq-xp"><i style="width:${lv.pct}%"></i></div><div class="s">faltam ${lv.falta} pontos</div></div>
         <div class="eq-stat"><div class="l">Na ativa agora</div><div class="v">${ativos} de ${EQUIPE.length}</div><div class="s">trabalhando ou recém-concluído</div></div>
@@ -200,7 +204,7 @@ async function equipe(el) {
     </section>
 
     <section class="card"><div class="linha entre"><h2>Conquistas da equipe</h2><span class="muted peq">${cq.filter(c => c.ok).length} de ${cq.length}</span></div>
-      <div class="conq">${cq.map(c => `<div class="medalha ${c.ok ? "" : "bloq"}"><div class="m" aria-hidden="true">${c.i}</div><div><div class="t">${esc(c.t)}</div><div class="d">${esc(c.d)}</div></div></div>`).join("")}</div>
+      <div class="conq">${cq.map(c => `<div class="medalha ${c.ok ? "" : "bloq"}" data-ir="${c.aba}" role="button" tabindex="0" title="Abrir"><div class="m" aria-hidden="true">${c.i}</div><div><div class="t">${esc(c.t)}</div><div class="d">${esc(c.d)}</div></div></div>`).join("")}</div>
     </section>
   </div>`;
 
