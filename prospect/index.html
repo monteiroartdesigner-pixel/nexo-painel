@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
 <link rel="stylesheet" href="../assets/plataforma.css">
+<script src="../assets/aparencia.js"></script>
 <style>
 /* ============================================================ design system: tokens */
 :root{
@@ -27,7 +28,33 @@
   --t:160ms cubic-bezier(.2,.8,.2,1);
   --side:232px;
   color-scheme:dark;
+  /* nomes usados pela janela de logo e cores (comum às duas áreas) */
+  --panel:var(--surface); --borda:var(--border-strong); --fina:var(--border); --fg:var(--text); --cyan:var(--primary); --onca:#f2b632;
 }
+/* cor de destaque escolhida na janela de logo e cores (vale também aqui) */
+:root[style*="--onca"]{--primary:var(--onca);--primary-strong:color-mix(in srgb,var(--onca) 82%,#000);--primary-soft:color-mix(in srgb,var(--onca) 16%,transparent)}
+/* modo Claro · Café: creme, azul-marinho e contorno de adesivo, como as artes NEXO Marketing */
+:root[data-tema="cafe"]{
+  --bg:#F6EFE2; --surface:#FFFCF5; --surface-2:#FFF7EA; --surface-3:#F1E5CF;
+  --border:rgba(22,34,77,.16); --border-strong:rgba(22,34,77,.42); --text:#16224D; --text-2:#34406B; --muted:#5C6684;
+  --sh:4px 4px 0 #16224D; color-scheme:light; --destaque-fundo:#fff; --destaque-borda:#16224D;
+}
+[data-tema="cafe"] .card,[data-tema="cafe"] .col{border:2px solid #16224D;box-shadow:4px 4px 0 #16224D}
+[data-tema="cafe"] .btn{border:2px solid #16224D;background:#fff;color:#16224D;box-shadow:2px 2px 0 #16224D}
+[data-tema="cafe"] .btn.pri{background:var(--primary);color:#fff}
+[data-tema="cafe"] .btn.ghost{border-color:transparent;box-shadow:none;background:transparent}
+[data-tema="cafe"] .nav a[aria-current="page"]{background:var(--primary);color:#fff;box-shadow:2px 2px 0 #16224D}
+[data-tema="cafe"] .side,[data-tema="cafe"] .topm,[data-tema="cafe"] .bottom{background:#FFF6E6}
+[data-tema="cafe"] .kc{background:#fff;border:2px solid rgba(22,34,77,.3)}
+[data-tema="cafe"] .plat-marca b{color:#16224D} [data-tema="cafe"] .plat-marca span{color:#5C6684;opacity:1}
+[data-tema="cafe"] .areas{background:#F1E5CF;border:2px solid #16224D}
+[data-tema="cafe"] .areas a{color:#5C6684} [data-tema="cafe"] .areas a[aria-current="page"]{color:#16224D;background:#fff;box-shadow:inset 0 0 0 2px #16224D}
+[data-tema="cafe"] .toast{background:#fff;color:#16224D;border:2px solid #16224D}
+[data-tema="cafe"] .overlay{background:rgba(22,34,77,.35)}
+[data-tema="cafe"] .input,[data-tema="cafe"] .select,[data-tema="cafe"] .textarea{background:#fff}
+/* classes usadas pela janela de logo e cores */
+.linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap} .entre{justify-content:space-between}
+.btn.prim{background:var(--primary);border-color:transparent;color:#fff}
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text)}
 body{font:14.5px/1.5 var(--f);-webkit-font-smoothing:antialiased}
@@ -237,12 +264,12 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <!-- app -->
 <div id="telaApp" class="app oculto">
   <header class="topm">
-    <div class="l1"><a class="plat-marca" href="../"><img src="../assets/nexo-marca.webp" alt=""><span class="txt"><b>NEXO</b><span>Plataforma</span></span></a>
+    <div class="l1"><button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="../assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Plataforma</span></span></button>
       <button class="btn ghost sm" data-sair>Sair</button></div>
     <nav class="areas" aria-label="Áreas da plataforma"><a class="sys" href="../"><i></i>System</a><a class="pro" href="./" aria-current="page"><i></i>Prospect</a></nav>
   </header>
   <aside class="side">
-    <a class="plat-marca" href="../"><img src="../assets/nexo-marca.webp" alt=""><span class="txt"><b>NEXO</b><span>Plataforma</span></span></a>
+    <button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="../assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Plataforma</span></span></button>
     <nav class="areas" aria-label="Áreas da plataforma"><a class="sys" href="../" title="NEXO System: agentes, conteúdo e integrações"><i></i>System</a><a class="pro" href="./" aria-current="page" title="NEXO Prospect: prospecção e CRM"><i></i>Prospect</a></nav>
     <nav class="nav" id="nav" aria-label="Módulos do NEXO Prospect"></nav>
     <div class="side-f">
@@ -809,6 +836,9 @@ $("#formLogin").onsubmit = async ev => {
   if (error) { $("#lErro").textContent = msgErro(error); return; }
   iniciar();
 };
+// Logo e cores: a mesma janela do NEXO System (assets/aparencia.js), com o contexto do Prospect.
+window.AP_CTX = { agente: () => S.agente, logo: () => S.logo, guardarLogo: v => { S.logo = v; }, aviso: m => toast(m) };
+$$("[data-marca]").forEach(b => b.addEventListener("click", abrirAparencia));
 $$("[data-sair]").forEach(b => b.onclick = async () => { await sb.auth.signOut(); location.reload(); });
 async function iniciar() {
   $$("[data-logo]").forEach(x => x.innerHTML = LOGO); $$("[data-ic]").forEach(x => x.outerHTML = ic(x.dataset.ic));
@@ -821,6 +851,7 @@ async function iniciar() {
   $("#quem").textContent = S.email;
   if (!emp) { $("#main").innerHTML = `<div class="card"><div class="empty"><h2>Sem acesso ao NEXO Prospect</h2><p class="muted" style="margin:0">O login ${esc(S.email)} não tem papel na NEXO Inteligência e Automação. Peça acesso ao administrador.</p></div></div>`; return; }
   S.agente = emp.agentes.find(a => a.slug === "prospect").id; S.papel = emp.papel;
+  rpc("nexo_resumo", { p_agente: S.agente }).then(r => { S.logo = r?.identidade?.logo_painel || null; aplicarLogo(); }).catch(() => aplicarLogo());
   try { S.crm.vista = localStorage.getItem("prospect.vista") || "kanban"; } catch {}
   $("#main").innerHTML = `<div class="sk" style="height:34px;width:260px"></div><div class="grid g-kpi">${"<div class='sk' style='height:92px'></div>".repeat(5)}</div><div class="sk" style="height:280px"></div>`;
   try { await carregarTudo(); } catch (e) { $("#main").innerHTML = `<div class="alert warn">${ic("alert")}<div>${esc(msgErro(e))}</div></div>`; return; }

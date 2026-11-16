@@ -8,8 +8,17 @@
 // Carregado antes do script principal: só usa st, rpc e aviso na hora do clique.
 // ============================================================================
 
+// Cada área informa o seu contexto em window.AP_CTX = { agente(), logo(), guardarLogo(v), aviso(msg) }.
+// Sem AP_CTX, usa o do NEXO System (st, aviso).
+const AP_BASE = (document.currentScript && document.currentScript.src || "").replace(/aparencia\.js.*$/, "") || "assets/";
+const apCtx = () => window.AP_CTX || {
+  agente: () => (typeof st !== "undefined" ? st.agente : null),
+  logo: () => (typeof st !== "undefined" ? st.resumo?.identidade?.logo_painel : null),
+  guardarLogo: v => { if (typeof st !== "undefined" && st.resumo) st.resumo.identidade = { ...(st.resumo.identidade || {}), logo_painel: v }; },
+  aviso: m => aviso(m),
+};
 const AP_CORES = [["Ouro", "#f2b632"], ["Laranja", "#F2A623"], ["Azul", "#2B8CEB"], ["Coral", "#ff7a59"], ["Roxo", "#8b5cf6"], ["Verde", "#22a06b"]];
-const AP_LOGOS = [["NEXO", "assets/nexo-marca.webp"], ["NEXO Marketing", "assets/nexo-marketing-rosto.webp"]];
+const AP_LOGOS = [["NEXO", AP_BASE + "nexo-marca.webp"], ["NEXO Marketing", AP_BASE + "nexo-marketing-rosto.webp"]];
 const apLer = k => { try { return localStorage.getItem(k); } catch { return null; } };
 const apGravar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
 
@@ -22,9 +31,8 @@ function aplicarTema() {
 aplicarTema();   // antes de desenhar, para não piscar
 
 function logoAtual() {
-  const banco = typeof st !== "undefined" ? st.resumo?.identidade?.logo_painel : null;
-  const local = typeof st !== "undefined" && st.agente ? apLer("nexo.logo." + st.agente) : null;
-  return banco || local || "assets/nexo-marca.webp";
+  const c = apCtx(), ag = c.agente();
+  return c.logo() || (ag ? apLer("nexo.logo." + ag) : null) || AP_BASE + "nexo-marca.webp";
 }
 function aplicarLogo() { document.querySelectorAll("[data-logo-painel]").forEach(img => { img.src = logoAtual(); }); }
 
@@ -49,15 +57,16 @@ function apReduzir(src) {
 async function apSalvarLogo(dataUrl) {
   // dataUrl null = voltar para a logo NEXO
   try {
-    await rpc("nexo_salvar_logo_painel", { p_agente: st.agente, p_logo: dataUrl });
-    if (st.resumo) { st.resumo.identidade = { ...(st.resumo.identidade || {}), logo_painel: dataUrl }; }
-    apGravar("nexo.logo." + st.agente, null);
+    const c = apCtx();
+    await rpc("nexo_salvar_logo_painel", { p_agente: c.agente(), p_logo: dataUrl });
+    c.guardarLogo(dataUrl);
+    apGravar("nexo.logo." + c.agente(), null);
     return "banco";
   } catch (e) {
     const m = (e && e.message) || "";
     if (/sem_permissao/.test(m)) throw new Error("Seu papel não permite trocar a logo.");
     if (/logo_invalida/.test(m)) throw new Error("Use uma imagem PNG, JPG ou WEBP.");
-    apGravar("nexo.logo." + st.agente, dataUrl);   // função ainda não existe no banco: guarda neste aparelho
+    apGravar("nexo.logo." + apCtx().agente(), dataUrl);   // função ainda não existe no banco: guarda neste aparelho
     return "aparelho";
   }
 }
@@ -106,12 +115,12 @@ function abrirAparencia() {
   salvar.onclick = async () => {
     salvar.disabled = true;
     try { const onde = await apSalvarLogo(escolha); aplicarLogo();
-      aviso(onde === "banco" ? "Logo salva. Ela aparece em qualquer aparelho." : "Logo salva neste aparelho. Para valer em todos, falta aplicar a migração da logo no banco.");
+      apCtx().aviso(onde === "banco" ? "Logo salva. Ela aparece em qualquer aparelho." : "Logo salva neste aparelho. Para valer em todos, falta aplicar a migração da logo no banco.");
       fechar();
     } catch (e) { salvar.disabled = false; nota.textContent = e.message; }
   };
   $a("#apPadrao").onclick = async () => {
-    try { await apSalvarLogo(null); aplicarLogo(); previa.src = logoAtual(); escolha = null; salvar.disabled = true; aviso("Voltou para a logo NEXO."); }
+    try { await apSalvarLogo(null); aplicarLogo(); previa.src = logoAtual(); escolha = null; salvar.disabled = true; apCtx().aviso("Voltou para a logo NEXO."); }
     catch (e) { nota.textContent = e.message; }
   };
   fundo.querySelectorAll("[data-tema]").forEach(b => b.onclick = () => {
