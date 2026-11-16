@@ -11,6 +11,14 @@ const ID_ST = { na_fila: ["Na fila", "info"], pronto: ["Pronto", "ok"], sem_resu
 const ID_ST_PECA = { rascunho: "Esperando aprovação", revisar: "Esperando aprovação", aprovado: "Aprovada", pronto: "Na fila para publicar",
   publicando: "Publicando", publicado: "Publicada", cancelado: "Cancelada", recusado: "Recusada" };
 let idQtd = 3, idCache = null;
+// Transcrição .srt/.vtt: tira números, horários e linhas repetidas; sobra só a fala.
+function idLimparLegenda(txt) {
+  const linhas = String(txt || "").replace(/\r/g, "").split("\n").map(l => l.trim())
+    .filter(l => l && l !== "WEBVTT" && !/^\d+$/.test(l) && !/-->/.test(l) && !/^(NOTE|Kind:|Language:)/.test(l))
+    .map(l => l.replace(/<[^>]+>/g, "").trim()).filter(Boolean);
+  return linhas.filter((l, i) => l !== linhas[i - 1]).join(" ").replace(/\s+/g, " ").trim();
+}
+const idPalavras = t => (String(t || "").trim().match(/\S+/g) || []).length;
 
 // O retrato do robô sai ~1h30 antes de cada rodada (04:40 › 06:10, 10:40 › 12:10, 16:40 › 18:10).
 function idProximaRodada() {
@@ -46,6 +54,14 @@ async function ideias(el) {
     </section>
     <section class="card">
       <label class="campo">O que você quer?<textarea id="idTexto" maxlength="500" placeholder="Ex.: peças para o fim de semana da final do campeonato · algo para atrair donos de arena · deixe em branco para a equipe escolher" ${pode ? "" : "disabled"}></textarea></label>
+      <details class="id-mat"><summary><b>Usar um material seu</b> <span class="muted peq">(transcrição de vídeo, podcast, áudio ou texto)</span></summary>
+        <p class="muted peq" style="margin:6px 0">A equipe cria a partir das <b>suas palavras</b>, sem partir do zero: carrossel com as ideias principais, guia passo a passo ou roteiro de reels.</p>
+        <label class="campo">Material<textarea id="idMat" maxlength="40000" placeholder="Cole aqui a transcrição ou o texto (mínimo de 200 caracteres)." ${pode ? "" : "disabled"} style="min-height:150px"></textarea></label>
+        <div class="linha">
+          <label class="btn" ${pode ? "" : 'aria-disabled="true"'}>Carregar arquivo (.txt, .srt, .vtt)<input type="file" id="idArq" accept=".txt,.srt,.vtt,text/plain" hidden ${pode ? "" : "disabled"}></label>
+          <select id="idOrigem" aria-label="De onde veio" style="width:auto" ${pode ? "" : "disabled"}><option value="vídeo">Vídeo</option><option value="podcast">Podcast</option><option value="áudio">Áudio</option><option value="texto">Texto</option></select>
+          <span class="muted peq" id="idConta">0 palavras</span>
+        </div></details>
       <div class="linha entre">
         <div class="linha"><span class="muted peq">Quantas ideias?</span><div class="id-qtd" role="group" aria-label="Quantidade">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-q="${n}" aria-pressed="${idQtd === n}" ${pode ? "" : "disabled"}>${n}</button>`).join("")}</div></div>
         <button class="btn prim" id="idPedir" ${pode && naFila < 5 ? "" : "disabled"}>Pedir à equipe</button>
@@ -60,6 +76,7 @@ async function ideias(el) {
             <div style="min-width:0"><b>${p.texto ? esc(p.texto) : "Surpreendam-me (a equipe escolhe o tema)"}</b>
               <div class="muted peq">${p.quantidade} ideia(s) · pedido ${esc(quando(p.criado_em))}</div></div>
             <span class="pill ${cls}">${rot}</span></div>
+          ${p.material_palavras ? `<div class="peq muted id-mat-info">Material: <b>${esc(p.material_origem || "texto")}</b> · ${p.material_palavras} palavras${p.material_inicio ? ` · “${esc(p.material_inicio.slice(0, 110))}…”` : ""}</div>` : ""}
           ${p.status === "na_fila" ? `<div class="linha entre"><span class="peq muted">A equipe pega na próxima rodada${prox ? ` (${esc(idHora(prox))})` : ""}.</span>${pode ? `<button class="btn nao peq" data-cancelar="${p.id}">Cancelar</button>` : ""}</div>` : ""}
           ${p.status === "sem_resultado" && p.observacao ? `<div class="aviso peq">${esc(p.observacao)}</div>` : ""}
           ${(p.pecas || []).length ? `<div class="id-pecas">${p.pecas.map(c => `
@@ -77,10 +94,29 @@ async function ideias(el) {
   const pedir = $("#idPedir", el);
   if (pedir) pedir.onclick = async () => {
     pedir.disabled = true;
-    try { await rpc("nexo_pedir_ideias", { p_agente: st.agente, p_texto: $("#idTexto", el).value.trim() || null, p_quantidade: idQtd });
-      aviso("Pedido enviado à equipe."); ideias(el); }
-    catch (e) { pedir.disabled = false; aviso(msgErro(e).replace(/^.*pedido_invalido:\s*/, ""), true); }
+    const texto = $("#idTexto", el).value.trim() || null, mat = $("#idMat", el).value.trim();
+    if (mat && mat.length < 200) { pedir.disabled = false; aviso("O material precisa de pelo menos 200 caracteres.", true); return; }
+    try {
+      if (mat) await rpc("nexo_pedir_ideias_material", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd, p_material: mat, p_origem: $("#idOrigem", el).value });
+      else await rpc("nexo_pedir_ideias", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd });
+      aviso(mat ? "Pedido enviado com o seu material." : "Pedido enviado à equipe."); ideias(el); }
+    catch (e) { pedir.disabled = false;
+      const m = (e && e.message) || "";
+      aviso(/nexo_pedir_ideias_material|Could not find/i.test(m) ? "O material precisa da atualização do banco (migração 20261116230000_nexo_ideias_material.sql)." : msgErro(e).replace(/^.*pedido_invalido:\s*/, ""), true); }
   };
+  const mat = $("#idMat", el), conta = $("#idConta", el);
+  if (mat) {
+    const contar = () => { const n = idPalavras(mat.value); conta.textContent = `${n} palavras${n ? ` · uns ${Math.max(1, Math.round(n / 140))} min de fala` : ""}`; };
+    mat.oninput = contar;
+    $("#idArq", el).onchange = ev => {
+      const f = ev.target.files?.[0]; if (!f) return;
+      if (f.size > 2 * 1024 * 1024) { aviso("Arquivo muito grande (máximo 2 MB de texto).", true); return; }
+      const r = new FileReader();
+      r.onload = () => { let t = String(r.result || ""); if (/\.(srt|vtt)$/i.test(f.name) || /-->/.test(t)) t = idLimparLegenda(t);
+        mat.value = t.slice(0, 40000); contar(); if (t.length > 40000) aviso("O material foi cortado em 40 mil caracteres.", true); };
+      r.readAsText(f, "utf-8");
+    };
+  }
   $$("[data-cancelar]", el).forEach(b => b.onclick = async () => {
     b.disabled = true;
     try { await rpc("nexo_cancelar_ideia", { p_pedido: b.dataset.cancelar }); aviso("Pedido cancelado."); ideias(el); }
