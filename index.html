@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
 <link rel="stylesheet" href="assets/plataforma.css">
+<link rel="stylesheet" href="assets/equipe.css">
 <link rel="icon" href="assets/nexo-marca.webp">
 <style>
 :root{
@@ -188,7 +189,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
     <select id="selAgente" aria-label="Escolher agente"></select>
     <nav class="menu" aria-label="Seções do NEXO System">
       <span class="grupo">Operação</span>
-      <button data-aba="inicio" aria-current="page">Início</button>
+      <button data-aba="equipe" aria-current="page">Equipe</button>
+      <button data-aba="inicio">Início</button>
       <button data-aba="aprovar">Aprovar <b id="nAprovar"></b></button>
       <button data-aba="leads">Leads</button>
       <button data-aba="atividade">Atividade</button>
@@ -209,7 +211,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
     <div><div class="eyebrow" id="nomeEmpresa">NEXO System</div><h1 id="nomeAgente">Painel</h1></div>
   </header>
 
-  <section data-sec="inicio" aria-label="Início"></section>
+  <section data-sec="equipe" aria-label="Equipe"></section>
+  <section data-sec="inicio" class="oculto" aria-label="Início"></section>
   <section data-sec="aprovar" class="oculto" aria-label="Aprovar"></section>
   <section data-sec="leads" class="oculto" aria-label="Leads"></section>
   <section data-sec="agente" class="oculto" aria-label="Agente"></section>
@@ -306,7 +309,7 @@ $("#formLogin").addEventListener("submit", async ev => {
 });
 $$("[data-sair]").forEach(b => b.addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); }));
 // Ícones do menu (um traço só, o mesmo estilo do NEXO Prospect).
-const ICONES_MENU = { inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", aprovar: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
+const ICONES_MENU = { equipe: "M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21v-3a5 5 0 0 1 9-3M22 21v-3a5 5 0 0 0-9-3M12 21v-2a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v2", inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", aprovar: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
   leads: "M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
   atividade: "M22 12h-4l-3 9L9 3l-3 9H2", agente: "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2",
   funcoes: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
@@ -344,7 +347,7 @@ async function iniciar() {
   $("#selAgente").value = st.agente;
   $("#selAgente").onchange = () => { st.agente = $("#selAgente").value; try { localStorage.setItem("nexo.agente", st.agente); } catch {} carregar(); };
   $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto");
-  let aba = "inicio"; try { aba = localStorage.getItem("nexo.aba") || "inicio"; } catch {}
+  let aba = "equipe"; try { aba = localStorage.getItem("nexo.aba") || "equipe"; } catch {}
   // Volta do "Entrar com Facebook": mostra o resultado e limpa o endereço.
   const volta = new URLSearchParams(location.search);
   if (volta.get("conexao")) {
@@ -355,7 +358,7 @@ async function iniciar() {
     history.replaceState(null, "", location.pathname);
   }
   await carregar();
-  abrirAba($(`.menu button[data-aba="${aba}"]`) ? aba : "inicio");
+  abrirAba($(`.menu button[data-aba="${aba}"]`) ? aba : "equipe");
 }
 async function carregar() {
   try {
@@ -371,7 +374,7 @@ async function carregar() {
 }
 function desenhar() {
   if (!st.resumo) return;
-  ({ inicio, aprovar, leads, agente, funcoes, conhecimento, integracoes, prospect, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+  ({ equipe, inicio, aprovar, leads, agente, funcoes, conhecimento, integracoes, prospect, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
 }
 
 // ---------------------------------------------------------------- INÍCIO
@@ -1116,5 +1119,6 @@ function ajuda(el) {
 sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") mostrarLogin(); });
 iniciar();
 </script>
+<script src="assets/equipe.js"></script>
 </body>
 </html>
