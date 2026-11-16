@@ -11,6 +11,8 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
 <link rel="stylesheet" href="assets/plataforma.css">
 <link rel="stylesheet" href="assets/equipe.css">
+<link rel="stylesheet" href="assets/temas.css">
+<script src="assets/aparencia.js"></script>
 <link rel="icon" href="assets/nexo-marca.webp">
 <style>
 :root{
@@ -178,7 +180,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <div id="telaApp" class="app oculto">
   <aside class="lado" aria-label="Navegação da plataforma">
     <div class="topo-m">
-      <a class="plat-marca" href="./"><img src="assets/nexo-marca.webp" alt=""><span class="txt"><b>NEXO</b><span>Plataforma</span></span></a>
+      <button class="plat-marca botao" id="btnMarca" type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Plataforma</span></span></button>
       <button class="sair sair-m" type="button" data-sair>Sair</button>
     </div>
     <nav class="areas" aria-label="Áreas da plataforma">
@@ -228,6 +230,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <div id="toast" class="toast oculto" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="assets/equipe.js"></script>
 <script>
 "use strict";
 // Chave pública (publishable) do projeto: feita para ficar no navegador. Quem protege os dados são as
@@ -307,6 +310,7 @@ $("#formLogin").addEventListener("submit", async ev => {
   $("#senha").value = "";
   iniciar();
 });
+$("#btnMarca").addEventListener("click", abrirAparencia);
 $$("[data-sair]").forEach(b => b.addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); }));
 // Ícones do menu (um traço só, o mesmo estilo do NEXO Prospect).
 const ICONES_MENU = { equipe: "M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21v-3a5 5 0 0 1 9-3M22 21v-3a5 5 0 0 0-9-3M12 21v-2a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v2", inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", aprovar: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
@@ -367,6 +371,7 @@ async function carregar() {
     const ident = r.identidade || {};
     $("#nomeEmpresa").textContent = r.empresa?.nome || "NEXO System";
     $("#nomeAgente").textContent = ident.nome_exibicao || r.agente?.nome || "Agente";
+    aplicarLogo();
     const n = st.conteudos.filter(x => x.status === "revisar").length;
     $("#nAprovar").textContent = n ? n : "";
     desenhar();
@@ -1119,6 +1124,5 @@ function ajuda(el) {
 sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") mostrarLogin(); });
 iniciar();
 </script>
-<script src="assets/equipe.js"></script>
 </body>
 </html>

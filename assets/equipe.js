@@ -7,7 +7,6 @@
 // Usa rpc, st, esc, quando e abrirAba do painel (index.html).
 // ============================================================================
 
-const ONCA_TRACO = "#3a2408", ONCA_PELO = "#F2B632", ONCA_PELO2 = "#E8A62A";
 
 // Quem faz o quê. "acoes" são os nomes gravados pelo agente em mkt.log.
 const EQUIPE = [
@@ -32,60 +31,9 @@ const EQUIPE = [
 ];
 const PESSOA = Object.fromEntries(EQUIPE.map(p => [p.id, p]));
 
-// ---------------------------------------------------------------- desenho
-function acessorio(id) {
-  const t = ONCA_TRACO;
-  return {
-    gestora: `<path d="M50 96 L60 118 L70 96Z" fill="#e9eef7"/><path d="M58 98 h4 l3 18 -5 6 -5 -6z" fill="#f2b632"/>
-      <path d="M44 98 L52 124 M76 98 L68 124" stroke="#16306e" stroke-width="3"/><rect x="74" y="112" width="12" height="9" rx="2" fill="#e9eef7"/>`,
-    faro: `<path d="M24 36 q36 -30 72 0z" fill="#6b8a45" stroke="#2b3a1a" stroke-width="2"/><rect x="18" y="32" width="84" height="7" rx="3.5" fill="#56733a" stroke="#2b3a1a" stroke-width="2"/>
-      <g fill="#222a36" stroke="#0c1018" stroke-width="2"><circle cx="52" cy="112" r="6"/><circle cx="68" cy="112" r="6"/></g><path d="M58 112 h4" stroke="#0c1018" stroke-width="3"/>`,
-    rabisco: `<ellipse cx="64" cy="28" rx="27" ry="10" fill="#8b3fd1" stroke="#3b145e" stroke-width="2"/><circle cx="66" cy="18" r="3.2" fill="#3b145e"/>
-      <g transform="rotate(-38 92 34)"><rect x="82" y="31" width="24" height="5" rx="2" fill="#f2c94c" stroke="#7a5a0a" stroke-width="1"/><path d="M106 31 l5 2.5 -5 2.5z" fill="#3a2408"/></g>
-      <circle cx="48" cy="114" r="3" fill="#f2c94c"/><circle cx="58" cy="118" r="3" fill="#3CC4E6"/><circle cx="68" cy="114" r="3" fill="#ff7a6e"/>`,
-    vitrine: `<rect x="38" y="25" width="18" height="10" rx="5" fill="#141414"/><rect x="64" y="25" width="18" height="10" rx="5" fill="#141414"/><path d="M56 29 h8" stroke="#141414" stroke-width="2.5"/>
-      <path d="M90 104 l3 6 6 1 -4.5 4 1 6 -5.5 -3 -5.5 3 1 -6 -4.5 -4 6 -1z" fill="#ffd76e"/>`,
-    papo: `<path d="M26 54 C24 14 96 14 94 54" stroke="#e9eef7" stroke-width="5" fill="none"/><rect x="18" y="46" width="12" height="18" rx="5" fill="#1f7f86" stroke="#0d4d4d" stroke-width="2"/>
-      <rect x="90" y="46" width="12" height="18" rx="5" fill="#1f7f86" stroke="#0d4d4d" stroke-width="2"/><path d="M24 64 q2 14 20 12" stroke="#e9eef7" stroke-width="3" fill="none"/><circle cx="45" cy="76" r="3.4" fill="#e9eef7"/>`,
-    lupa: `<g fill="rgba(200,230,255,.18)" stroke="#d6e4f7" stroke-width="2.5"><circle cx="48" cy="54" r="9"/><circle cx="72" cy="54" r="9"/></g><path d="M57 54 h6" stroke="#d6e4f7" stroke-width="2.5"/>
-      <rect x="70" y="104" width="4" height="12" rx="1.5" fill="#e9eef7"/><g fill="#9fd3ff"><rect x="46" y="112" width="4" height="8"/><rect x="52" y="108" width="4" height="12"/><rect x="58" y="104" width="4" height="16"/></g>`,
-  }[id] || "";
-}
-// A onça: rosetas no pelo, orelhas redondas, focinho claro. viewBox 120x140.
-function oncaSVG(p) {
-  const t = ONCA_TRACO;
-  return `<svg class="onca-svg" viewBox="0 0 120 140" aria-hidden="true">
-    <path class="rabo" d="M22 116 C2 110 4 88 14 82" stroke="${ONCA_PELO2}" stroke-width="7" fill="none" stroke-linecap="round"/>
-    <path d="M24 140 C24 108 38 96 60 96 C82 96 96 108 96 140Z" fill="${p.roupa}"/>
-    <rect x="52" y="84" width="16" height="16" rx="6" fill="${ONCA_PELO2}"/>
-    <g class="cabeca">
-      <circle cx="34" cy="30" r="11" fill="${ONCA_PELO2}" stroke="${t}" stroke-width="2.5"/><circle cx="34" cy="31" r="5" fill="${t}"/>
-      <circle cx="86" cy="30" r="11" fill="${ONCA_PELO2}" stroke="${t}" stroke-width="2.5"/><circle cx="86" cy="31" r="5" fill="${t}"/>
-      <ellipse cx="60" cy="56" rx="32" ry="29" fill="${ONCA_PELO}" stroke="${t}" stroke-width="2.5"/>
-      <g fill="none" stroke="#6b440f" stroke-width="2"><circle cx="45" cy="38" r="3.2"/><circle cx="60" cy="34" r="3"/><circle cx="75" cy="39" r="3.2"/><circle cx="35" cy="60" r="2.6"/><circle cx="85" cy="60" r="2.6"/></g>
-      <g fill="#6b440f"><circle cx="52" cy="42" r="1.5"/><circle cx="68" cy="43" r="1.5"/><circle cx="40" cy="70" r="1.3"/><circle cx="80" cy="70" r="1.3"/></g>
-      <ellipse cx="60" cy="69" rx="15" ry="11" fill="#FFF1D6"/>
-      <path d="M55 63 h10 l-5 5z" fill="${t}"/>
-      <path class="boca" d="M54 72 q6 5 12 0" stroke="${t}" stroke-width="2" fill="none" stroke-linecap="round"/>
-      <g class="olhos"><circle cx="48" cy="54" r="4" fill="#1a1206"/><circle cx="72" cy="54" r="4" fill="#1a1206"/><circle cx="49.4" cy="52.6" r="1.3" fill="#fff"/><circle cx="73.4" cy="52.6" r="1.3" fill="#fff"/></g>
-      <g class="olhos-f"><path d="M44 55 q4 3 8 0 M68 55 q4 3 8 0" stroke="#1a1206" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
-    </g>
-    ${acessorio(p.id)}
-    <ellipse class="pata-e" cx="42" cy="128" rx="8" ry="6" fill="${ONCA_PELO}" stroke="${t}" stroke-width="2"/>
-    <ellipse class="pata-d" cx="78" cy="128" rx="8" ry="6" fill="${ONCA_PELO}" stroke="${t}" stroke-width="2"/>
-  </svg>`;
-}
-function telaSVG(id) {
-  const g = {
-    gestora: `<g stroke="#4cc27a" stroke-width="2.4" fill="none" stroke-linecap="round"><path d="M6 7l2.5 2.5L13 5M6 15l2.5 2.5L13 13M6 23l2.5 2.5L13 21"/></g><g fill="#3b5a8f"><rect x="17" y="6" width="22" height="3" rx="1.5"/><rect x="17" y="14" width="18" height="3" rx="1.5"/><rect x="17" y="22" width="20" height="3" rx="1.5"/></g>`,
-    faro: `<path d="M4 24 L14 6 L24 18 L32 10 L40 24Z" fill="#1d3a2a" stroke="#4cc27a" stroke-width="1.5"/><path d="M28 4c-3.3 0-6 2.6-6 5.8 0 4.4 6 10.2 6 10.2s6-5.8 6-10.2C34 6.6 31.3 4 28 4z" fill="#ff7a6e"/><circle cx="28" cy="10" r="2.2" fill="#fff"/>`,
-    rabisco: `<rect x="4" y="4" width="20" height="20" rx="3" fill="#2a1f4d" stroke="#8b3fd1" stroke-width="1.5"/><circle cx="10" cy="11" r="2.5" fill="#f2c94c"/><path d="M5 22l6-7 5 5 3-3 4 5" stroke="#3CC4E6" stroke-width="1.6" fill="none"/><g fill="#6a35b0"><rect x="28" y="5" width="12" height="3" rx="1.5"/><rect x="28" y="12" width="9" height="3" rx="1.5"/><rect x="28" y="19" width="11" height="3" rx="1.5"/></g>`,
-    vitrine: `<rect x="14" y="2" width="16" height="25" rx="3" fill="#2a1420" stroke="#ff7a6e" stroke-width="1.5"/><g fill="#ff9aa2"><rect x="17" y="6" width="4.5" height="4.5" rx="1"/><rect x="22.5" y="6" width="4.5" height="4.5" rx="1"/><rect x="17" y="11.5" width="4.5" height="4.5" rx="1"/><rect x="22.5" y="11.5" width="4.5" height="4.5" rx="1"/></g><path d="M34 10l5 -3v12l-5 -3z" fill="#ffd76e"/>`,
-    papo: `<path d="M4 5h22a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H12l-5 4v-4H4a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3z" fill="#123c40" stroke="#3CC4E6" stroke-width="1.4"/><path d="M20 12h18a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3h-2v4l-5-4H20a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3z" fill="#1f7f86"/><g fill="#9fe9ee"><circle cx="9" cy="12" r="1.5"/><circle cx="14" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></g>`,
-    lupa: `<g fill="#2B8CEB"><rect x="5" y="16" width="5" height="10" rx="1"/><rect x="13" y="11" width="5" height="15" rx="1"/><rect x="21" y="6" width="5" height="20" rx="1"/></g><path d="M5 12 L15 8 L23 4 L36 2" stroke="#3CC4E6" stroke-width="2" fill="none"/><circle cx="34" cy="18" r="5" fill="none" stroke="#f2c94c" stroke-width="2"/><path d="M37.5 21.5 L41 25" stroke="#f2c94c" stroke-width="2.4" stroke-linecap="round"/>`,
-  }[id] || "";
-  return `<svg viewBox="0 0 44 28" aria-hidden="true"><g class="tela-luz">${g}</g></svg>`;
-}
+// ---------------------------------------------------------------- desenho (artes da equipe NEXO Marketing)
+const ARTE = p => `assets/equipe/${p.id}.webp`, ROSTO = p => `assets/equipe/${p.id}-rosto.webp`;
+const rosto = (p, cls = "") => `<img class="rosto ${cls}" src="${ROSTO(p)}" alt="" loading="lazy" decoding="async">`;
 const CORES_CONF = ["#f2b632", "#3CC4E6", "#4cc27a", "#ff7a6e", "#8b3fd1", "#ffd76e"];
 const confete = () => CORES_CONF.map((c, i) => `<i style="left:${20 + i * 12}%;background:${c};--dx:${(i % 2 ? 1 : -1) * (10 + i * 6)}px;animation-delay:${i * 60}ms"></i>`).join("");
 
@@ -214,6 +162,7 @@ async function equipe(el) {
 
   el.innerHTML = `<div class="eq">
     <section class="eq-hero">
+      <img class="eq-mascote" src="assets/nexo-marketing.webp" alt="NEXO Marketing">
       <h2>Equipe ${esc(nomeAg)}</h2>
       <p>Seis onças, cada uma com um trabalho de verdade do seu agente. O que você vê aqui sai dos registros reais: quando alguém trabalha, ele aparece na mesa; quando termina, comemora.</p>
       <div class="eq-stats">
@@ -227,11 +176,9 @@ async function equipe(el) {
     <section class="eq-office" aria-label="Escritório da equipe">
       ${EQUIPE.map(p => { const e = estados[p.id]; return `
       <article class="est st-${e.st}" data-pessoa="${p.id}" tabindex="0" role="button" aria-label="${esc(p.nome)}, ${esc(p.cargo)}: ${esc(e.rot)}">
-        <div class="est-top"><div><div class="est-nome">${esc(p.nome)}</div><div class="est-cargo">${esc(p.cargo)}</div></div><span class="chip-st"><i></i>${esc(e.rot)}</span></div>
-        <div class="cena"><span class="janela"></span><span class="quadro"></span>
-          <div class="onca" style="left:40%">${oncaSVG(p)}</div>
-          <svg class="mesa" viewBox="0 0 200 40" preserveAspectRatio="none" aria-hidden="true"><rect x="0" y="0" width="200" height="8" rx="3" fill="#6b4a2a"/><rect x="0" y="8" width="200" height="32" fill="#4a321c"/></svg>
-          <div class="monitor" style="left:58%">${telaSVG(p.id)}</div>
+        <div class="est-top"><span class="agora">Agora</span><span class="chip-st"><i></i>${esc(e.rot)}</span></div>
+        <div class="cena">
+          <img class="onca" src="${ARTE(p)}" alt="" decoding="async">
           <span class="sinal ex">!</span><span class="sinal ok">✓</span><span class="zz">z z</span><div class="conf">${confete()}</div>
         </div>
         <div class="balao">${esc(e.fala)}${e.ult ? `<small>${quando(e.ult.em)}</small>` : ""}</div>
@@ -242,12 +189,12 @@ async function equipe(el) {
     <section class="eq-cols">
       <div class="card"><div class="linha entre"><h2>Missões em andamento</h2><span class="muted peq">${ms.length}</span></div>
         <div>${ms.map(m => `<div class="miss ${m.voce ? "voce" : ""}" data-ir="${m.aba}" role="button" tabindex="0">
-          <div class="av">${oncaSVG(PESSOA[m.p])}</div>
+          <div class="av">${rosto(PESSOA[m.p])}</div>
           <div style="flex:1;min-width:0"><div class="linha entre" style="flex-wrap:nowrap"><span class="t">${esc(m.t)}</span><span class="tag">${m.voce ? "com você" : esc(PESSOA[m.p].nome)}</span></div>
             <div class="d">${esc(m.d)}</div>${m.pct != null ? `<div class="barra"><i style="width:${Math.min(100, m.pct)}%"></i></div>` : ""}</div></div>`).join("")
           || `<div class="vazio">Nenhuma missão aberta agora. A equipe volta na próxima ronda.</div>`}</div></div>
       <div class="card"><h2>Diário da equipe</h2>
-        <div>${feitos.map(x => { const p = acaoDe(x); return `<div class="feito"><div class="mini">${oncaSVG(p)}</div><div><b>${esc(p.nome)}</b> <span class="muted">${esc(falaDoRegistro(x))}</span></div><span class="q">${quando(x.em)}</span></div>`; }).join("")
+        <div>${feitos.map(x => { const p = acaoDe(x); return `<div class="feito"><div class="mini">${rosto(p)}</div><div><b>${esc(p.nome)}</b> <span class="muted">${esc(falaDoRegistro(x))}</span></div><span class="q">${quando(x.em)}</span></div>`; }).join("")
           || `<div class="vazio">Ainda sem entregas registradas.</div>`}</div>
         <button class="btn" data-ir="atividade" style="margin-top:8px">Ver tudo na Atividade</button></div>
     </section>
@@ -269,7 +216,7 @@ function fichaOnca(p, e) {
   document.querySelector(".eq-ficha-fundo")?.remove();
   const fundo = document.createElement("div"); fundo.className = "eq-ficha-fundo";
   fundo.innerHTML = `<aside class="eq-ficha" role="dialog" aria-modal="true" aria-label="${esc(p.nome)}">
-    <div class="topo"><div class="retrato">${oncaSVG(p)}</div><div style="flex:1"><div class="eyebrow">${esc(p.cargo)}</div><h2 style="margin:2px 0">${esc(p.nome)}</h2>
+    <div class="topo"><div class="retrato"><img src="${ARTE(p)}" alt=""></div><div style="flex:1"><div class="eyebrow">${esc(p.cargo)}</div><h2 style="margin:2px 0">${esc(p.nome)}</h2>
       <span class="chip-st st-${e.st}" style="display:inline-flex"><i></i>${esc(e.rot)}</span></div><button class="btn" data-fechar aria-label="Fechar">✕</button></div>
     <div class="card" style="padding:12px"><b>O que eu faço</b><span class="muted peq">${esc(p.faz)}</span>
       ${e.prox ? `<span class="peq">Próxima ronda prevista: <b>${hhmm(e.prox)}</b></span>` : ""}</div>

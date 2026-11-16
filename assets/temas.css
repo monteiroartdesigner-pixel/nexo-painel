@@ -1,0 +1,62 @@
+/* Modos de cor do NEXO System. "escuro" é o padrão (variáveis do index.html).
+   "cafe" é o modo claro no estilo das artes NEXO Marketing: creme, azul-marinho e contorno de adesivo. */
+:root[data-tema="cafe"]{
+  --bg:#F6EFE2; --panel:#FFFCF5; --card:#FFF7EA; --line:#16224D; --cyan:#1E5BB8; --fg:#16224D; --muted:#5C6684; --dark:#FFFFFF;
+  --ok:#1E8A4C; --warn:#A86A00; --bad:#C2413A;
+  --borda:color-mix(in srgb,#16224D 40%,transparent); --fina:color-mix(in srgb,#16224D 16%,transparent);
+  --destaque-fundo:#fff; --destaque-borda:#16224D; color-scheme:light;
+}
+[data-tema="cafe"] .lado{background:#FFF6E6}
+[data-tema="cafe"] .card{border:2px solid #16224D;box-shadow:4px 4px 0 #16224D}
+[data-tema="cafe"] .menu button:hover{background:#fff}
+[data-tema="cafe"] .menu button[aria-current="page"]{background:var(--onca);color:#16224D;box-shadow:2px 2px 0 #16224D}
+[data-tema="cafe"] .menu button b{background:#16224D;color:#fff}
+[data-tema="cafe"] .btn{background:#fff;border:2px solid #16224D;color:#16224D;box-shadow:2px 2px 0 #16224D}
+[data-tema="cafe"] .btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #16224D}
+[data-tema="cafe"] .btn.prim,[data-tema="cafe"] .btn.onca{background:var(--onca);color:#16224D}
+[data-tema="cafe"] .btn.sim{background:#1E8A4C;color:#fff}
+[data-tema="cafe"] .btn.nao{background:#fff;color:var(--bad)}
+[data-tema="cafe"] .sair{background:#fff;color:#16224D}
+[data-tema="cafe"] .sw span{background:#cfc6b3}
+[data-tema="cafe"] .onca{color:#9a5b00}
+[data-tema="cafe"] .plat-marca b{color:#16224D}
+[data-tema="cafe"] .plat-marca span{color:#5C6684;opacity:1}
+[data-tema="cafe"] .plat-marca img{box-shadow:0 0 0 2px #16224D,2px 2px 0 2px #16224D}
+[data-tema="cafe"] .areas{background:#F1E5CF;border:2px solid #16224D}
+[data-tema="cafe"] .areas a{color:#5C6684}
+[data-tema="cafe"] .areas a:hover{color:#16224D;background:rgba(255,255,255,.6)}
+[data-tema="cafe"] .areas a[aria-current="page"]{color:#16224D;background:#fff;box-shadow:inset 0 0 0 2px #16224D}
+[data-tema="cafe"] .eq{--eq-sombra:#16224D}
+[data-tema="cafe"] .eq-hero{background:#FFF1D8;border:2.5px solid #16224D;box-shadow:5px 5px 0 #16224D}
+[data-tema="cafe"] .eq-stat{background:#fff;border:2px solid #16224D}
+[data-tema="cafe"] .eq-xp{background:#EADFC9}
+[data-tema="cafe"] .eq-mascote{box-shadow:4px 4px 0 #16224D}
+[data-tema="cafe"] .eq-ficha-fundo,[data-tema="cafe"] .ap-fundo{background:rgba(22,34,77,.35)}
+[data-tema="cafe"] .toast{background:#fff;border:2px solid #16224D;color:#16224D}
+
+/* janela de aparência (logo e cores) */
+.plat-marca.botao{background:none;border:0;padding:0;cursor:pointer;font:inherit;color:inherit;text-align:left;position:relative;border-radius:12px}
+.plat-marca.botao:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+.plat-marca.botao .lapis{position:absolute;left:26px;top:26px;width:18px;height:18px;border-radius:50%;background:var(--onca);color:#16224D;
+  display:grid;place-items:center;font-size:10px;border:2px solid var(--bg);opacity:0;transform:scale(.6);transition:opacity .16s,transform .16s}
+.plat-marca.botao:hover .lapis,.plat-marca.botao:focus-visible .lapis{opacity:1;transform:none}
+@media (hover:none){.plat-marca.botao .lapis{opacity:1;transform:none}}
+.ap-fundo{position:fixed;inset:0;background:rgba(3,6,12,.6);z-index:50;display:grid;place-items:center;padding:16px}
+.ap{width:min(520px,100%);max-height:calc(100dvh - 32px);overflow:auto;background:var(--panel);border:1px solid var(--borda);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:18px}
+[data-tema="cafe"] .ap{border:2.5px solid #16224D;box-shadow:6px 6px 0 #16224D}
+.ap h3{margin:0 0 8px}
+.ap-logo{display:flex;gap:14px;align-items:center}
+.ap-logo .previa{width:84px;height:84px;border-radius:20px;object-fit:cover;background:#fff;border:2px solid var(--borda);flex:0 0 auto}
+.ap-opcoes{display:flex;gap:8px;flex-wrap:wrap}
+.ap-pre{width:52px;height:52px;border-radius:14px;overflow:hidden;border:2px solid var(--fina);background:#fff;padding:0;cursor:pointer}
+.ap-pre img{width:100%;height:100%;object-fit:cover;display:block}
+.ap-pre[aria-pressed="true"]{border-color:var(--onca);box-shadow:0 0 0 3px color-mix(in srgb,var(--onca) 40%,transparent)}
+.ap-modos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ap-modo{border:2px solid var(--fina);border-radius:14px;padding:10px;background:none;cursor:pointer;text-align:left;color:var(--fg);display:flex;flex-direction:column;gap:8px;font-weight:700}
+.ap-modo[aria-pressed="true"]{border-color:var(--onca)}
+.ap-modo .amostra{height:46px;border-radius:9px;display:flex;gap:6px;padding:8px}
+.ap-modo .amostra i{flex:1;border-radius:5px}
+.ap-cores{display:flex;gap:10px;flex-wrap:wrap}
+.ap-cor{width:38px;height:38px;border-radius:50%;border:3px solid var(--panel);box-shadow:0 0 0 2px var(--fina);cursor:pointer;padding:0}
+.ap-cor[aria-pressed="true"]{box-shadow:0 0 0 3px var(--fg)}
+.ap-nota{font-size:12.5px;color:var(--muted)}
