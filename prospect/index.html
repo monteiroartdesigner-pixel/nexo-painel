@@ -221,6 +221,13 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 @media (prefers-reduced-motion:no-preference){.ursa.oi svg{animation:oi 2.4s ease-in-out 1}}
 @keyframes oi{0%,100%{transform:rotate(0)}20%{transform:rotate(-6deg)}40%{transform:rotate(5deg)}60%{transform:rotate(-3deg)}}
 
+.auto-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.auto-k{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.auto-k span{font-size:12px;color:var(--muted)} .auto-k b{font-size:22px} .auto-k small{font-size:11.5px;color:var(--muted)}
+.auto-prox{display:flex;gap:10px;align-items:flex-start;background:var(--primary-soft);border-radius:12px;padding:10px 12px}
+.auto-det summary{cursor:pointer;font-weight:600;color:var(--text-2)}
+.analise{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2)}
+@media (max-width:900px){.auto-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* celular */
 .bottom{display:none}
 @media (max-width:900px){
@@ -407,6 +414,7 @@ async function carregarTudo() {
     rpc("nexo_prospect_empresas", { p_agente: S.agente, p_campanha: null }),
     rpc("nexo_prospect_indicadores", { p_agente: S.agente, p_campanha: null }).catch(() => null)]);
   S.campanhas = camp || []; S.empresas = emp || []; S.indic = ind;
+  try { S.oper = await rpc("nexo_prospect_operacao", { p_agente: S.agente }); } catch { S.oper = null; }
   try { S.tarefas = await rpc("nexo_prospect_tarefas", { p_agente: S.agente, p_filtro: "todas" }) || []; S.faltaCrm = false; }
   catch (e) { S.tarefas = []; S.faltaCrm = true; }
   marcarDuplicados(); pintarNav();
@@ -464,6 +472,7 @@ function vInicio(el) {
         <div class="funil">${funil.map(([n, v]) => `<div class="f"><span class="t2">${n}</span><div class="bar"><i style="width:${Math.round(100 * v / max)}%"></i></div><b class="tnum" style="text-align:right">${v}</b></div>`).join("")}</div>
         <div class="peq muted" style="margin-top:12px">Abordagens, respostas, propostas e contratos contam o que você registra na ficha de cada lead.</div></div>
     </div>
+    ${quadroAutomacao()}
     ${S.indic ? `<div class="grid g-kpi">
       ${kpi("Leads no CRM", i.empresas || 0, `${i.com_contato || 0} com contato`, "crm")}
       ${kpi("Qualificados", i.qualificadas || 0, "nota 45 ou mais", "check")}
@@ -638,6 +647,65 @@ function propostaTexto(e, k) {
   return en ? `Proposal · ${serv}\nFor: ${e.nome}${lugar ? ` (${lugar})` : ""}\n\nWhat I noticed: ${k.oportunidade}\nWhat I propose: ${serv}\n${k.oferta ? `What you get: ${k.oferta}\n` : ""}Investment: ${preco}\n\nRicardo Monteiro · NEXO Intelligence & Automation`
     : `Proposta · ${serv}\nPara: ${e.nome}${lugar ? ` (${lugar})` : ""}\n\nO que eu vi: ${k.oportunidade}\nO que proponho: ${serv}\n${k.oferta ? `O que você recebe: ${k.oferta}\n` : ""}Investimento: ${preco}\n\nRicardo Monteiro · NEXO Inteligência e Automação`;
 }
+// Análise comercial feita pelo robô (dados.analise). O projeto de referência é só para você: a mensagem não cita cliente.
+const PROJ_NEXO = { scariot: "Scariot Bike · loja online", fornari: "Fornari · catálogo e rodízio de vendedoras", meinerz: "Meinerz · sistema de orçamentos",
+  movin: "MOVIN · painel + app do cliente", nexo_sport: "NEXO Sport · plataforma para escolinhas", panarotto: "Panarotto · atendimento em campo",
+  godoi: "Godoi · CRM e manutenções", agente_marketing: "Agente de marketing NEXO" };
+function blocoAnalise(e) {
+  const a = (e.dados && e.dados.analise) || e.analise; if (!a) return "";
+  const pot = { alto: ["Alto", "ok"], medio: ["Médio", "warn"], baixo: ["Baixo", ""] }[a.potencial];
+  return `<div class="analise"><div class="row between"><b>Análise comercial</b>${pot ? `<span class="badge ${pot[1]}">Potencial ${pot[0].toLowerCase()}</span>` : ""}</div>
+    ${a.o_que_faz ? `<div><span class="peq muted">O que a empresa faz</span><div>${esc(a.o_que_faz)}</div></div>` : ""}
+    ${(a.problemas || []).length ? `<div><span class="peq muted">Problemas prováveis (do que foi visto)</span><ul style="margin:2px 0 0;padding-left:18px">${a.problemas.map(p => `<li>${esc(p)}</li>`).join("")}</ul></div>` : ""}
+    ${a.sistema_sugerido ? `<div><span class="peq muted">Sistema que a NEXO faria</span><div>${esc(a.sistema_sugerido)}</div></div>` : ""}
+    ${a.projeto_referencia ? `<div><span class="peq muted">Projeto de referência (só para você)</span><div>${esc(PROJ_NEXO[a.projeto_referencia] || a.projeto_referencia)}</div></div>` : ""}
+    ${a.abordagem ? `<div><span class="peq muted">Melhor abordagem</span><div class="t2">${esc(a.abordagem)}</div></div>` : ""}
+    ${a.proxima_acao ? `<div><span class="peq muted">Próxima ação</span><div><b>${esc(a.proxima_acao)}</b></div></div>` : ""}
+  </div>`;
+}
+
+// Próxima rodada do robô (seg. a sáb., 06:10 manhã, 12:10 tarde, 18:10 noite) e quais campanhas entram nela.
+function proximaRodadaProspect() {
+  const agora = new Date(), sp = new Date(agora.toLocaleString("en-US", { timeZone: FUSO })), dif = agora - sp;
+  for (let d = 0; d < 8; d++) for (const [h, m, t] of [[6, 10, "manha"], [12, 10, "tarde"], [18, 10, "noite"]]) {
+    const n = new Date(sp); n.setDate(n.getDate() + d); n.setHours(h, m, 0, 0);
+    const dia = ((n.getDay() + 6) % 7) + 1;   // 1 = segunda … 7 = domingo
+    if (n > sp && dia <= 6) return { quando: new Date(+n + dif), turno: t, dia };
+  }
+  return null;
+}
+function quadroAutomacao() {
+  const o = S.oper;
+  if (!o) return `<div class="alert">${ic("info")}<div>O quadro da automação aparece depois da atualização do banco (migração 20261117000000_nexo_prospect_automacao.sql).</div></div>`;
+  const prox = proximaRodadaProspect(), nomesTurno = { manha: "manhã", tarde: "tarde", noite: "noite" };
+  const daVez = prox ? (o.campanhas || []).filter(c => c.status === "ativa" && ((c.modo === "automatico" && (c.turnos || []).includes(prox.turno) && (c.dias || []).includes(prox.dia) && c.rodadas_sem_novas < 3) || c.pedida)) : [];
+  const paradas = (o.campanhas || []).filter(c => c.status === "ativa" && c.modo === "automatico" && c.rodadas_sem_novas >= 3);
+  const h = o.hoje || {}, em = o.empresas || {};
+  const k = (n, v, sub) => `<div class="auto-k"><span>${n}</span><b class="num">${v}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
+  return `<section class="card stack"><div class="card-h" style="margin:0"><h2>Automação</h2>
+      <span class="badge ${o.erros && o.erros.length ? "warn" : "ok"}"><span class="dot"></span>${o.erros && o.erros.length ? o.erros.length + " aviso(s) em 48 h" : "Rodando sem erro"}</span></div>
+    <div class="auto-grid">
+      ${k("Pesquisas hoje", h.rodadas || 0, `${h.buscas || 0} buscas`)}
+      ${k("Encontradas hoje", h.encontradas || 0, `${h.novas || 0} novas`)}
+      ${k("Aprovadas", em.aprovadas || 0, "nota 45 ou mais")}
+      ${k("Descartadas", (o.rejeitadas_hoje || 0) + (em.descartadas || 0), `${o.rejeitadas_hoje || 0} hoje pelo código`)}
+      ${k("Mensagens prontas", o.mensagens_prontas || 0, "esperando você")}
+      ${k("Dúvidas", em.com_duvida || 0, "para você responder")}
+    </div>
+    <div class="auto-prox">${ic("cal")}<div>${prox ? `<b>Próxima rodada: ${prox.quando.toLocaleString("pt-BR", { timeZone: FUSO, weekday: "long", hour: "2-digit", minute: "2-digit" })}</b> (${nomesTurno[prox.turno]})
+      <div class="peq t2">${daVez.length ? "Entram: " + daVez.map(c => esc(c.nome)).join(", ") : "Nenhuma campanha neste turno."}</div>` : "Sem rodada prevista."}
+      <div class="peq muted">Última rodada: ${o.ultima_rodada ? quando(o.ultima_rodada) : "ainda não houve"}. O GitHub pode atrasar alguns minutos.</div></div></div>
+    <details class="auto-det"><summary>Campanhas em execução (${(o.campanhas || []).filter(c => c.status === "ativa").length})</summary>
+      <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Campanha</th><th>Turno</th><th>Buscas hoje</th><th>Última pesquisa</th><th>Situação</th></tr></thead><tbody>
+      ${(o.campanhas || []).map(c => `<tr><td>${esc(c.nome)}</td><td>${c.modo === "automatico" ? (c.turnos || []).map(t => nomesTurno[t] || t).join(", ") : "manual"}</td>
+        <td class="tnum">${c.buscas_hoje} de ${c.limite}</td><td>${c.ultima ? quando(c.ultima) : "–"}</td>
+        <td>${c.status !== "ativa" ? `<span class="badge">${esc(c.status)}</span>` : c.rodadas_sem_novas >= 3 ? `<span class="badge warn">parada por economia</span>` : c.pedida ? `<span class="badge info">pesquisa pedida</span>` : `<span class="badge ok">no ar</span>`}</td></tr>`).join("")}
+      </tbody></table></div></details>
+    ${paradas.length ? `<div class="alert warn">${ic("alert")}<div><b>${paradas.map(c => esc(c.nome)).join(", ")}</b> ${paradas.length > 1 ? "pararam" : "parou"} por economia: 3 rodadas seguidas sem empresa nova. Ajuste os filtros em Campanhas para voltar.</div></div>` : ""}
+    ${(o.erros || []).length ? `<details class="auto-det"><summary>Avisos e erros (48 h)</summary><div class="list" style="margin-top:6px">${o.erros.map(x => `<div class="peq" style="padding:6px 0;border-top:1px solid var(--border)"><span class="muted">${quando(x.em)}</span> · <b>${esc(x.acao.replace(/_/g, " "))}</b> ${esc(x.texto || "")}</div>`).join("")}</div></details>` : ""}
+  </section>`;
+}
+
 function abaOportunidade(a, e, camps) {
   if (!camps.length) { a.innerHTML = `<div class="muted">Sem campanha ligada.</div>`; return; }
   a.innerHTML = camps.map((k, i) => `<div class="stack" style="${i ? "border-top:1px solid var(--border);padding-top:16px" : ""}">
@@ -646,6 +714,7 @@ function abaOportunidade(a, e, camps) {
     ${k.oportunidade ? `<div><div class="peq muted">Oportunidade</div><div style="font-weight:600">${esc(k.oportunidade)}</div></div>` : `<div class="alert">${ic("info")}<div>Sem oportunidade comprovada: o robô não achou evidência suficiente. Pesquise antes de abordar.</div></div>`}
     ${k.servico_recomendado ? `<div><div class="peq muted">Serviço recomendado</div><div>${esc(k.servico_recomendado)}${k.preco_sugerido_centavos ? ` · <b>${dinheiro(k.preco_sugerido_centavos, k.moeda)}</b>` : ""}</div></div>` : ""}
     ${k.justificativa ? `<div><div class="peq muted">Por quê</div><div class="t2">${esc(k.justificativa)}</div></div>` : ""}
+    ${i === 0 ? blocoAnalise(e) : ""}
     ${(k.evidencias || []).length ? `<div><div class="peq muted">Evidências</div><ul style="margin:4px 0 0;padding-left:18px">${k.evidencias.map(v => `<li><a href="${esc(v.onde)}" target="_blank" rel="noopener">${esc(v.o_que)}</a></li>`).join("")}</ul></div>` : ""}
     ${["pt", "en"].filter(l => k["mensagem_" + l]).map(l => `<div><div class="row between"><span class="peq muted">Mensagem em ${l === "pt" ? "português" : "inglês"}</span><button class="btn sm ghost" data-copiar="${i}:${l}">${ic("copy")}Copiar</button></div><div class="msg">${esc(k["mensagem_" + l])}</div></div>`).join("")}
     ${k.oportunidade ? `<div class="row"><button class="btn sm" data-prop="${i}">${ic("copy")}Copiar proposta</button></div>` : ""}
