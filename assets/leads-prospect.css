@@ -1,0 +1,21 @@
+/* ============================================================================
+   Tela de Leads (assets/leads.js + leads.css) dentro do NEXO Prospect.
+   O leads.js nasceu no System; aqui ficam só as peças do System que ele usa,
+   presas em .ld-host para não mexer no resto do Prospect. Cores vêm dos tokens do Prospect.
+   ============================================================================ */
+.ld-host{--card:var(--surface-2);--line:var(--border);--dark:var(--surface-3);display:flex;flex-direction:column;gap:14px;min-width:0}
+.ld-host .linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ld-host .entre{justify-content:space-between}
+.ld-host .aviso{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--surface));padding:12px 14px;border-radius:10px}
+.ld-host .aviso.info{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 7%,var(--surface));color:var(--text)}
+.ld-host .vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--border);border-radius:14px}
+.ld-host .btn.sim{background:var(--ok);color:#04220f;border-color:transparent}
+.ld-host .btn.nao{background:none;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 60%,transparent)}
+.ld-host .btn.prim{background:var(--primary);color:#fff;border-color:transparent}
+.ld-marca{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:color-mix(in srgb,var(--onca) 16%,transparent);color:var(--onca);border:1px solid color-mix(in srgb,var(--onca) 40%,transparent)}
+[data-tema="cafe"] .ld-host .aviso{background:#fff}
+[data-tema="cafe"] .ld-marca{color:#16224D;background:#FFF1C9;border-color:#16224D}
+/* campos (busca, filtros, resposta) com o mesmo visual dos campos do Prospect */
+.ld-host input:not([type=checkbox]):not([type=radio]),.ld-host select,.ld-host textarea{background:var(--bg);border:1px solid var(--border-strong);border-radius:var(--r-sm);padding:9px 11px;color:var(--text);font:inherit;font-size:14px;min-height:38px}
+.ld-host input:focus,.ld-host select:focus,.ld-host textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+[data-tema="cafe"] .ld-host input:not([type=checkbox]):not([type=radio]),[data-tema="cafe"] .ld-host select,[data-tema="cafe"] .ld-host textarea{background:#fff}

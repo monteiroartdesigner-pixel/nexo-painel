@@ -2,8 +2,11 @@
 // ============================================================================
 // LEADS · tela simples: o que fazer agora, uma ação por lead e a ficha ao lado.
 // Usa os mesmos dados (nexo_leads) e a mesma gravação (nexo_mudar_lead) de antes.
-// Usa st, rpc, esc, aviso, msgErro, podeEditar e ST_LEAD do painel (index.html).
+// Desde 18/11/2026 mora no NEXO Prospect (módulo "Leads Instagram"), que passou a ser o único lugar de leads.
+// Usa do Prospect: st (agente, leads, aba), rpc, aviso, msgErro, podeEditar e quando; esc e $/$$ vêm de base.js.
 // ============================================================================
+
+const ST_LEAD = { novo: "Novo", qualificado: "Qualificado", abordar: "Abordar", abordado: "Abordado", conversando: "Conversando", teste: "Em teste", cliente: "Cliente", perdido: "Perdido", nao_contatar: "Não contatar" };
 
 const LD_ABAS = [
   ["confirmar", "Para confirmar", "A equipe ficou em dúvida sobre o tipo destes leads. Responda e ela escreve a mensagem certa na próxima rodada."],
@@ -111,7 +114,7 @@ function ldPintarDuvidas(el, box, it) {
       <div class="linha entre" style="flex-wrap:nowrap;align-items:flex-start">
         <div class="linha" style="flex-wrap:nowrap;min-width:0"><span class="ld-av">${esc(ldIniciais(l.nome))}</span>
           <div class="ld-txt"><b>${esc(l.nome)}</b><span>${esc([l.tipo, l.modalidade, ldLugar(l)].filter(Boolean).join(" · "))}</span></div></div>
-        ${l.fonte_url ? `<a class="peq" href="${esc(l.fonte_url)}" target="_blank" rel="noopener">Ver a fonte</a>` : ""}</div>
+        ${urlSegura(l.fonte_url) ? `<a class="peq" href="${hrefSeguro(l.fonte_url)}" target="_blank" rel="noopener">Ver a fonte</a>` : ""}</div>
       <div class="ld-pergunta"><img src="assets/equipe/faro-rosto.webp" alt=""><div><b>${esc(c.pergunta || "Que tipo de contato é este?")}</b>
         ${(c.sinais || []).length ? `<div class="muted peq">O que vi: ${esc(c.sinais.join(" · "))}</div>` : ""}
         ${c.categoria_sugerida ? `<div class="muted peq">Sugeri uma categoria nova: <b>${esc(c.categoria_sugerida.replace(/_/g, " "))}</b></div>` : ""}</div></div>
@@ -170,7 +173,7 @@ function ldFicha(l, el) {
         ${msg ? `<button class="btn" data-copiar>Copiar mensagem</button>` : ""}
       </div>
       ${msg && ig ? `<div class="muted peq">No Instagram o texto não entra sozinho: depois de abrir o Direct, cole a mensagem (Ctrl+V; no celular, segure e toque em Colar).</div>` : ""}
-      ${!wa && !ig ? `<div class="aviso">Sem contato público. ${l.fonte_url ? "Veja a fonte abaixo para achar um canal." : ""}</div>` : ""}
+      ${!wa && !ig ? `<div class="aviso">Sem contato público. ${urlSegura(l.fonte_url) ? "Veja a fonte abaixo para achar um canal." : ""}</div>` : ""}
       ${l.contato_publico && !wa && !ig ? `<div class="peq">Contato informado: ${esc(l.contato_publico)}</div>` : ""}</div>
 
     <div class="ld-bloco"><b>2. Em que pé está?</b>
@@ -183,7 +186,7 @@ function ldFicha(l, el) {
       <div class="linha peq">
         ${ig ? `<a href="https://instagram.com/${esc(ig)}" target="_blank" rel="noopener">@${esc(ig)}</a>` : ""}
         ${wa ? `<a href="https://wa.me/${esc(wa)}" target="_blank" rel="noopener">WhatsApp ${esc(l.whatsapp)}</a>` : ""}
-        ${l.fonte_url ? `<a href="${esc(l.fonte_url)}" target="_blank" rel="noopener">Onde o Faro achou</a>` : ""}
+        ${urlSegura(l.fonte_url) ? `<a href="${hrefSeguro(l.fonte_url)}" target="_blank" rel="noopener">Onde o Faro achou</a>` : ""}
       </div></div>
   </aside>`;
   const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); };
