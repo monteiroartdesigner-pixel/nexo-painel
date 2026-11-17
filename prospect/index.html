@@ -299,9 +299,9 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script src="../assets/base.js?v=20261118a"></script>
 <script src="../assets/links.js?v=20261117c"></script>
-<script src="../assets/leads.js?v=20261118b"></script>
-<script src="../assets/plano.js?v=20261118e"></script>
-<script src="../assets/conta.js?v=20261118h"></script>
+<script src="../assets/leads.js?v=20261118c"></script>
+<script src="../assets/plano.js?v=20261118i"></script>
+<script src="../assets/conta.js?v=20261118i"></script>
 <script src="../assets/explicador.js?v=20261117f"></script>
 <script>
 "use strict";
@@ -390,6 +390,9 @@ async function copiarTexto(t) {
   document.body.appendChild(a); a.select(); a.setSelectionRange(0, t.length);
   let ok = false; try { ok = document.execCommand("copy"); } catch {} a.remove(); return ok;
 }
+// Instagram: o banco pode guardar "@perfil", "perfil" ou o link inteiro. O link ig.me não abre no computador: vai o perfil.
+const usuarioIg = v => String(v || "").trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0];
+const perfilIg = v => `https://www.instagram.com/${encodeURIComponent(usuarioIg(v))}/`;
 // Mensagem sugerida do lead, no idioma da campanha.
 const msgDe = (camps = []) => { const k = camps.find(c => c.mensagem_pt || c.mensagem_en) || {}; return (k.idioma === "en" ? k.mensagem_en || k.mensagem_pt : k.mensagem_pt || k.mensagem_en) || ""; };
 // Botões de contato que copiam a mensagem no clique: o link abre e o texto já está pronto para colar (Ctrl+V).
@@ -677,7 +680,7 @@ function pintarFicha(f) {
         <div class="row" style="margin-top:10px">
           ${e.whatsapp ? `<a class="btn sm" data-copia target="_blank" rel="noopener" href="https://wa.me/${esc(e.whatsapp)}${msgDe(camps) ? "?text=" + encodeURIComponent(msgDe(camps)) : ""}" title="Abre o WhatsApp com a mensagem e deixa ela copiada">${ic("wa")}WhatsApp</a>` : ""}
           ${e.email ? `<a class="btn sm" data-copia href="mailto:${esc(e.email)}${msgDe(camps) ? "?body=" + encodeURIComponent(msgDe(camps)) : ""}" title="Abre o e-mail com a mensagem e deixa ela copiada">${ic("mail")}E-mail</a>` : ""}
-          ${e.instagram ? `<a class="btn sm" data-copia target="_blank" rel="noopener" href="https://ig.me/m/${encodeURIComponent(String(e.instagram).replace(/^@/, ""))}" title="Copia a mensagem e abre o Direct: é só colar">${ic("ig")}@${esc(e.instagram)}</a>` : ""}
+          ${e.instagram ? `<a class="btn sm" data-copia target="_blank" rel="noopener" href="${esc(perfilIg(e.instagram))}" title="Copia a mensagem e abre o perfil: toque em Mensagem e cole">${ic("ig")}@${esc(usuarioIg(e.instagram))}</a>` : ""}
           ${msgDe(camps) && (e.whatsapp || e.email || e.instagram) ? `<span class="peq muted" style="flex-basis:100%">Ao tocar num contato, a mensagem sugerida já vai copiada: lá é só colar (Ctrl+V).</span>` : ""}
           ${urlSegura(e.site) ? `<a class="btn sm" target="_blank" rel="noopener" href="${hrefSeguro(e.site)}">${ic("web")}Site</a>` : ""}
           ${!e.whatsapp && !e.email && !e.instagram ? `<span class="peq muted">Sem contato comercial público.</span>` : ""}

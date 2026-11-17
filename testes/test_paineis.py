@@ -609,7 +609,7 @@ class CopiaAoAbrir(unittest.TestCase):
     def test_instagram_da_ficha_copia_a_mensagem(self):
         e = EMPRESAS_P[0]
         antes = (e.get("instagram"), [dict(c) for c in e["campanhas"]])
-        e["instagram"] = "clinicateste"
+        e["instagram"] = "https://www.instagram.com/clinicateste/"
         e["campanhas"][0]["mensagem_pt"] = "Oi! Vi o perfil de vocês e tenho uma ideia."
         p = Pagina()
         try:
@@ -617,8 +617,8 @@ class CopiaAoAbrir(unittest.TestCase):
             pg = p.abrir("/prospect/#/crm", 1800)
             pg.click('.kc[data-id="e1"]')
             pg.wait_for_timeout(700)
-            link = pg.query_selector('a[data-copia][href^="https://ig.me/m/clinicateste"]')
-            self.assertIsNotNone(link, "Instagram abre direto o Direct")
+            link = pg.query_selector('a[data-copia][href="https://www.instagram.com/clinicateste/"]')
+            self.assertIsNotNone(link, "Instagram abre o perfil (ig.me não abre no computador)")
             with pg.expect_popup() as janela:
                 link.click()
             janela.value.close()

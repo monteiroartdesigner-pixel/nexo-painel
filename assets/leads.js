@@ -32,7 +32,8 @@ const ldGrupo = l => {
 const ldNota = n => n == null ? ["–", "b"] : n >= 70 ? [n, "a"] : n >= 45 ? [n, "m"] : [n, "b"];
 const ldIniciais = s => (String(s || "?").replace(/[^\p{L}\p{N} ]/gu, "").trim().split(/\s+/).slice(0, 2).map(p => p[0]).join("") || "?").toUpperCase();
 const ldWa = l => String(l.whatsapp || "").replace(/\D/g, "");
-const ldIg = l => String(l.instagram || "").replace(/^@/, "").trim();
+// Aceita "@perfil", "perfil" ou o link inteiro do perfil.
+const ldIg = l => String(l.instagram || "").trim().replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0];
 const ldLugar = l => [l.cidade, l.uf].filter(Boolean).join("/");
 
 function ldLista() {
@@ -169,10 +170,10 @@ function ldFicha(l, el) {
       ${msg ? `<div class="ld-msg">${esc(msg)}</div>` : `${l.proxima_acao && !(l.classificacao && l.classificacao.resposta) ? `<div class="ld-passo"><b>Próximo passo sugerido pelo Faro:</b> ${esc(l.proxima_acao)}</div>` : ""}<div class="muted peq">${l.classificacao && l.classificacao.resposta ? `Você respondeu "${esc(l.classificacao.resposta)}". A equipe escreve a mensagem certa na próxima rodada.` : "Este lead ainda não tem mensagem pronta. Escreva uma curta, citando o que você viu."}</div>`}
       <div class="linha">
         ${wa ? `<a class="btn prim" data-wa-copia target="_blank" rel="noopener" href="https://wa.me/${esc(wa)}${msg ? "?text=" + encodeURIComponent(msg) : ""}">Abrir WhatsApp com a mensagem</a>` : ""}
-        ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>${msg ? "Copiar e abrir o Direct" : "Abrir o Direct"}</button>` : ""}
+        ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>${msg ? "Copiar e abrir o perfil" : "Abrir o perfil"}</button>` : ""}
         ${msg ? `<button class="btn" data-copiar>Copiar mensagem</button>` : ""}
       </div>
-      ${msg && ig ? `<div class="muted peq">No Instagram o texto não entra sozinho: depois de abrir o Direct, cole a mensagem (Ctrl+V; no celular, segure e toque em Colar).</div>` : ""}
+      ${msg && ig ? `<div class="muted peq">No Instagram o texto não entra sozinho: no perfil, toque em Mensagem e cole (Ctrl+V; no celular, segure e toque em Colar).</div>` : ""}
       ${!wa && !ig ? `<div class="aviso">Sem contato público. ${urlSegura(l.fonte_url) ? "Veja a fonte abaixo para achar um canal." : ""}</div>` : ""}
       ${l.contato_publico && !wa && !ig ? `<div class="peq">Contato informado: ${esc(l.contato_publico)}</div>` : ""}</div>
 
@@ -211,9 +212,9 @@ function ldFicha(l, el) {
   fundo.querySelector("[data-copiar]")?.addEventListener("click", ev => copiar(ev.currentTarget));
   // WhatsApp: o texto já vai preenchido no link, e fica copiado também (se o app abrir sem o texto, é só colar).
   fundo.querySelector("[data-wa-copia]")?.addEventListener("click", () => { if (msg) copiar(null); });
-  // Instagram: abre direto a conversa do Direct (ig.me). O Instagram não aceita texto pronto: a mensagem vai copiada.
+  // Instagram: abre o perfil (o link ig.me não abre no computador). O Instagram não aceita texto pronto: a mensagem vai copiada.
   fundo.querySelector("[data-ig]")?.addEventListener("click", ev => {
-    const janela = window.open(`https://ig.me/m/${encodeURIComponent(ig)}`, "_blank");   // abre já no clique, para o navegador não bloquear
+    const janela = window.open(`https://www.instagram.com/${encodeURIComponent(ig)}/`, "_blank");   // abre já no clique, para o navegador não bloquear
     if (janela) janela.opener = null;
     if (msg) copiar(ev.currentTarget);
   });

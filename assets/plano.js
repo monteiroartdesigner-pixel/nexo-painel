@@ -29,7 +29,7 @@ function planoTem(recurso, empresaId) {
   return (s.recursos || []).includes(recurso);
 }
 
-const PL_CONTATO = "https://ig.me/m/nexo.rm";
+const PL_CONTATO = "https://www.instagram.com/nexo.rm/";
 function planoBloqueio(recurso, empresaId) {
   const s = PL.sits[empresaId] || {}, inativo = s.tem_assinatura && !["total", "aviso"].includes(s.acesso);
   const titulo = inativo ? (s.status === "teste_vencido" ? "Seu teste grátis acabou" : s.acesso === "bloqueado" ? "Assinatura cancelada" : "Assinatura inativa")

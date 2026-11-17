@@ -80,7 +80,7 @@ async function ctCriarConta() {
   try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { planos = []; }
   if (!planos.length) {
     ctJanela("Criar conta", `<p class="ct-txt">O cadastro com teste grátis ainda não está aberto. Fale com a NEXO para começar.</p>
-      <a class="btn prim pri" href="https://ig.me/m/nexo.rm" target="_blank" rel="noopener">Falar com a NEXO</a>`);
+      <a class="btn prim pri" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener">Falar com a NEXO</a>`);
     return;
   }
   ctJanela("Teste grátis do NEXO", `<form class="ct-form" data-f>
