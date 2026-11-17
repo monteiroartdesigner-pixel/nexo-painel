@@ -141,7 +141,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .nivel input{margin-top:3px;accent-color:var(--onca)}
 
 /* login */
-.login{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:28px 16px 40px}
+.login{min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) 360px;align-items:start;gap:28px;padding:24px max(16px,3vw) 40px;max-width:1440px;margin:0 auto;box-sizing:border-box}.login .exp{width:100%}.login>.card{width:100%!important;position:sticky;top:20px}@media (max-width:900px){.login{grid-template-columns:1fr;gap:22px}.login>.card{order:-1;max-width:420px;justify-self:center;position:static}}
 .login h1{text-align:center}
 .login .card{width:min(100%,400px);gap:14px;padding:24px}
 .login .marca svg{width:56px;height:56px}
@@ -239,7 +239,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="assets/equipe.js?v=20261117c"></script>
 <script src="assets/leads.js?v=20261117c"></script>
 <script src="assets/ideias.js?v=20261117c"></script>
-<script src="assets/explicador.js?v=20261117c"></script>
+<script src="assets/explicador.js?v=20261117d"></script>
 <script>
 "use strict";
 // Chave pública (publishable) do projeto: feita para ficar no navegador. Quem protege os dados são as
@@ -311,7 +311,7 @@ const podeEditar = () => ["plataforma", "dono", "admin", "editor"].includes(st.r
 // ---------------------------------------------------------------- login
 let expVideo = null;
 function mostrarLogin() { $("#telaApp").classList.add("oculto"); $("#telaLogin").classList.remove("oculto");
-  if (typeof explicadorMontar === "function") expVideo = explicadorMontar($("#explicador"), { irPara: "#formLogin" }) || expVideo; }
+  if (typeof explicadorMontar === "function") expVideo = explicadorMontar($("#explicador"), {}) || expVideo; }
 $("#formLogin").addEventListener("submit", async ev => {
   ev.preventDefault();
   const b = $("#btnEntrar"); b.disabled = true; b.textContent = "Entrando…"; $("#erroLogin").classList.add("oculto");

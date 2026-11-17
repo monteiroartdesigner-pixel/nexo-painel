@@ -8,8 +8,10 @@
 // Só fatos do que está construído. Narração: "a onça" + nome (regra do Ricardo).
 // ============================================================================
 
-const EXP_IMG = n => `assets/explicador/${n}.webp`;
-const EXP_AUDIO = n => `assets/explicador/audio/cena_${String(n).padStart(2, "0")}.mp3`;
+// base: "" no NEXO System, "../" no NEXO Prospect (que fica na pasta prospect/)
+let EXP_BASE = "";
+const EXP_IMG = n => `${EXP_BASE}assets/explicador/${n}.webp`;
+const EXP_AUDIO = n => `${EXP_BASE}assets/explicador/audio/cena_${String(n).padStart(2, "0")}.mp3`;
 const EXP_CENAS = [
   { tit: "Abertura", eb: "NEXO", h: "Uma equipe de onças trabalhando por você", abre: true,
     fala: "Esta é a equipe da NEXO. Enquanto você cuida do seu dia, ela pesquisa clientes, prepara mensagens e cria conteúdo. Vou te mostrar, do começo ao fim, o que a sua automação faz.",
@@ -55,6 +57,7 @@ const EXP_CENAS = [
 function explicadorMontar(el, opcoes = {}) {
   if (!el || el.dataset.montado) return;
   el.dataset.montado = "1";
+  EXP_BASE = opcoes.base || "";
   const N = EXP_CENAS.length;
   const img = n => `<img src="${EXP_IMG(n)}" alt="" width="352" height="440" loading="lazy" decoding="async">`;
   el.classList.add("exp");
