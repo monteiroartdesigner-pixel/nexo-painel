@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="assets/temas.css?v=20261117c">
 <link rel="stylesheet" href="assets/leads.css?v=20261117c">
 <link rel="stylesheet" href="assets/ideias.css?v=20261117c">
+<link rel="stylesheet" href="assets/explicador.css?v=20261117c">
 <script src="assets/aparencia.js?v=20261117c"></script>
 <link rel="icon" href="assets/nexo-marca.webp">
 <style>
@@ -140,7 +141,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .nivel input{margin-top:3px;accent-color:var(--onca)}
 
 /* login */
-.login{min-height:100dvh;display:grid;place-items:center;padding:24px 16px}
+.login{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:28px 16px 40px}
 .login h1{text-align:center}
 .login .card{width:min(100%,400px);gap:14px;padding:24px}
 .login .marca svg{width:56px;height:56px}
@@ -167,6 +168,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 
 <!-- LOGIN -->
 <main id="telaLogin" class="login oculto">
+  <div id="explicador"></div>
   <form class="card" id="formLogin" autocomplete="on">
     <img class="plat-logo-grande" src="assets/nexo-logo.webp" alt="NEXO">
     <div style="text-align:center"><div class="eyebrow">Plataforma NEXO · System</div><h1>Entrar</h1></div>
@@ -237,6 +239,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="assets/equipe.js?v=20261117c"></script>
 <script src="assets/leads.js?v=20261117c"></script>
 <script src="assets/ideias.js?v=20261117c"></script>
+<script src="assets/explicador.js?v=20261117c"></script>
 <script>
 "use strict";
 // Chave pública (publishable) do projeto: feita para ficar no navegador. Quem protege os dados são as
@@ -306,7 +309,9 @@ const podeMudar = () => ["plataforma", "dono", "admin"].includes(st.resumo?.pape
 const podeEditar = () => ["plataforma", "dono", "admin", "editor"].includes(st.resumo?.papel);
 
 // ---------------------------------------------------------------- login
-function mostrarLogin() { $("#telaApp").classList.add("oculto"); $("#telaLogin").classList.remove("oculto"); }
+let expVideo = null;
+function mostrarLogin() { $("#telaApp").classList.add("oculto"); $("#telaLogin").classList.remove("oculto");
+  if (typeof explicadorMontar === "function") expVideo = explicadorMontar($("#explicador"), { irPara: "#formLogin" }) || expVideo; }
 $("#formLogin").addEventListener("submit", async ev => {
   ev.preventDefault();
   const b = $("#btnEntrar"); b.disabled = true; b.textContent = "Entrando…"; $("#erroLogin").classList.add("oculto");
@@ -347,7 +352,7 @@ async function iniciar() {
   st.prospect = todosAgentes.find(a => a.slug === "prospect") || null;
   const agentes = todosAgentes.filter(a => a.slug !== "prospect");
   if (!agentes.length) {
-    $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto");
+    $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
     $("[data-sec=inicio]").innerHTML = `<div class="vazio">Seu login (${esc(st.ctx.email)}) ainda não tem acesso a nenhuma empresa. Peça ao administrador para incluir você.</div>`;
     return;
   }
@@ -356,7 +361,7 @@ async function iniciar() {
   st.agente = agentes.find(a => a.id === salvo)?.id || agentes[0].id;
   $("#selAgente").value = st.agente;
   $("#selAgente").onchange = () => { st.agente = $("#selAgente").value; try { localStorage.setItem("nexo.agente", st.agente); } catch {} carregar(); };
-  $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto");
+  $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
   let aba = "equipe"; try { aba = localStorage.getItem("nexo.aba") || "equipe"; } catch {}
   // Volta do "Entrar com Facebook": mostra o resultado e limpa o endereço.
   const volta = new URLSearchParams(location.search);
