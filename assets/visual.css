@@ -1,0 +1,131 @@
+/* ============================================================================
+   VISUAL NEXO (18/11) · grafite com vidro, cor de destaque e as oncinhas como assinatura.
+   Vale para o NEXO System e o NEXO Prospect. Carregado DEPOIS do estilo de cada página,
+   só troca aparência (cores, bordas, sombras); não muda estrutura nem comportamento.
+   Modos (aparencia.js grava em data-tema): "escuro" (padrão), "claro" e "cafe" (que segue com o estilo próprio).
+   A cor de destaque vem de --onca (escolhida no botão de paleta) e --onca-txt (texto legível sobre ela).
+   ============================================================================ */
+
+/* ---------------------------------------------------------------- escuro (grafite) */
+:root:not([data-tema="cafe"]):not([data-tema="claro"]){
+  /* System */
+  --bg:#0A0B0E; --panel:#13151B; --card:#1A1D25; --dark:#0E1015; --fg:#ECEEF3; --muted:#A3AABA;
+  --borda:rgba(255,255,255,.13); --fina:rgba(255,255,255,.07); --cyan:color-mix(in srgb,var(--onca) 80%,#fff);
+  /* Prospect */
+  --surface:#13151B; --surface-2:#191C24; --surface-3:#20242E; --border:rgba(255,255,255,.08); --border-strong:rgba(255,255,255,.14);
+  --text:#ECEEF3; --text-2:#B7BDCA; --vidro-luz:rgba(255,255,255,.045); --sombra-card:0 20px 40px -26px rgba(0,0,0,.85);
+  --sh:0 1px 0 rgba(255,255,255,.04) inset,var(--sombra-card);
+  --plat-fundo:#0E1015; --plat-borda:rgba(255,255,255,.1);
+}
+
+/* ---------------------------------------------------------------- claro (novo) */
+:root[data-tema="claro"]{
+  --bg:#F3F4F7; --panel:#FFFFFF; --card:#F6F7FA; --dark:#FFFFFF; --fg:#0F172A; --muted:#5B6577; --line:#94A3B8;
+  --borda:rgba(15,23,42,.16); --fina:rgba(15,23,42,.08); --cyan:color-mix(in srgb,var(--onca) 70%,#000);
+  --ok:#059669; --warn:#B45309; --bad:#DC2626; --info:#0284C7;
+  --surface:#FFFFFF; --surface-2:#F6F7FA; --surface-3:#EEF0F4; --border:rgba(15,23,42,.09); --border-strong:rgba(15,23,42,.17);
+  --text:#0F172A; --text-2:#334155; --vidro-luz:rgba(255,255,255,.9); --sombra-card:0 14px 30px -22px rgba(15,23,42,.35);
+  --sh:0 1px 0 rgba(255,255,255,.9) inset,var(--sombra-card);
+  --plat-fundo:#EEF0F4; --plat-borda:rgba(15,23,42,.1); --plat-prata:#5B6577;
+  --destaque-fundo:#FFFFFF; --destaque-borda:color-mix(in srgb,var(--onca) 55%,transparent);
+  color-scheme:light;
+}
+
+/* ---------------------------------------------------------------- cor de destaque nos dois painéis */
+:root:not([data-tema="cafe"]){
+  --primary:var(--onca); --primary-strong:color-mix(in srgb,var(--onca) 84%,#000); --primary-soft:color-mix(in srgb,var(--onca) 15%,transparent);
+  --onca-forte:var(--onca);
+}
+:root[data-tema="claro"]{--onca-forte:color-mix(in srgb,var(--onca) 68%,#000)}
+
+/* fundo com brilho suave da cor de destaque */
+:root:not([data-tema="cafe"]) body{background:
+  radial-gradient(1100px 560px at 75% -12%,color-mix(in srgb,var(--onca) 9%,transparent),transparent 62%),
+  radial-gradient(900px 500px at -10% 110%,color-mix(in srgb,var(--onca) 5%,transparent),transparent 60%),var(--bg);background-attachment:fixed}
+:root:not([data-tema="cafe"]) .app{--destaque-fundo:color-mix(in srgb,var(--onca) 14%,var(--panel));--destaque-borda:color-mix(in srgb,var(--onca) 45%,transparent)}
+
+/* ---------------------------------------------------------------- vidro: cartões, menus e janelas */
+:root:not([data-tema="cafe"]) :is(.card,.ap,.eq-stat,.kc,.col){
+  background:linear-gradient(180deg,var(--vidro-luz),transparent 70%),var(--panel);
+  border:1px solid var(--fina);box-shadow:0 1px 0 var(--vidro-luz) inset,var(--sombra-card)}
+:root:not([data-tema="cafe"]) :is(.card,.ap){border-radius:18px}
+:root:not([data-tema="cafe"]) .kc{background:var(--surface-2);box-shadow:none}
+:root:not([data-tema="cafe"]) :is(.lado,.side,.topm){background:color-mix(in srgb,var(--panel) 72%,transparent);border-color:var(--fina);backdrop-filter:blur(14px)}
+:root:not([data-tema="cafe"]) .bottom{background:color-mix(in srgb,var(--panel) 88%,transparent);backdrop-filter:blur(14px);border-color:var(--fina)}
+:root:not([data-tema="cafe"]) .cab{border-bottom-color:var(--fina)}
+:root:not([data-tema="cafe"]) .eyebrow{color:var(--onca-forte)}
+
+/* menu do System: item atual com faixa da cor de destaque */
+:root:not([data-tema="cafe"]) .menu button{position:relative}
+:root:not([data-tema="cafe"]) .menu button[aria-current="page"]{background:linear-gradient(90deg,color-mix(in srgb,var(--onca) 17%,transparent),color-mix(in srgb,var(--onca) 3%,transparent));color:var(--fg)}
+:root:not([data-tema="cafe"]) .menu button[aria-current="page"]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--onca)}
+:root:not([data-tema="cafe"]) .menu button[aria-current="page"] svg{color:var(--onca-forte)}
+:root:not([data-tema="cafe"]) .menu button b{background:var(--onca);color:var(--onca-txt,#1a1200)}
+/* menu do Prospect */
+:root:not([data-tema="cafe"]) .nav a{position:relative}
+:root:not([data-tema="cafe"]) .nav a[aria-current="page"]{background:linear-gradient(90deg,color-mix(in srgb,var(--onca) 17%,transparent),color-mix(in srgb,var(--onca) 3%,transparent));color:var(--text)}
+:root:not([data-tema="cafe"]) .nav a[aria-current="page"]::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--onca)}
+:root:not([data-tema="cafe"]) .nav a[aria-current="page"] svg{color:var(--onca-forte)}
+:root:not([data-tema="cafe"]) .bottom a[aria-current="page"]{color:var(--onca-forte)}
+@media (max-width:900px){:root:not([data-tema="cafe"]) .menu button[aria-current="page"]::before{display:none}}
+
+/* botões principais com texto legível sobre a cor escolhida */
+:root:not([data-tema="cafe"]) :is(.btn.pri,.btn.prim,.btn.onca){background:linear-gradient(180deg,color-mix(in srgb,var(--onca) 82%,#fff),var(--onca));color:var(--onca-txt,#1a1200);border-color:transparent}
+:root:not([data-tema="cafe"]) .btn.pri:hover{background:var(--primary-strong)}
+:root:not([data-tema="cafe"]) .chip[aria-pressed="true"]{color:var(--text)}
+:root:not([data-tema="cafe"]) .plat-marca.botao .lapis{color:var(--onca-txt,#16224D)}
+
+/* ---------------------------------------------------------------- modo claro: ajustes de peças com cor fixa */
+[data-tema="claro"] .plat-marca b{color:#0F172A}
+[data-tema="claro"] .areas a{color:#5B6577}
+[data-tema="claro"] .areas a:hover{color:#0F172A;background:rgba(15,23,42,.04)}
+[data-tema="claro"] .areas a[aria-current="page"]{color:#0F172A}
+[data-tema="claro"] :is(.input,.select,.textarea,.lado select){background:#fff}
+[data-tema="claro"] .btn:hover{border-color:var(--border-strong)}
+[data-tema="claro"] .ap-fundo,[data-tema="claro"] .eq-ficha-fundo,[data-tema="claro"] .overlay{background:rgba(15,23,42,.32)}
+[data-tema="claro"] .toast{background:#fff;color:#0F172A;border:1px solid var(--borda)}
+[data-tema="claro"] .eq-hero{background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--onca) 14%,#fff) 0%,#fff 60%)}
+[data-tema="claro"] .eq-xp{background:#E5E7EB}
+
+/* ---------------------------------------------------------------- equipe: oncinha inteira sobre o fundo da cor dela */
+:root:not([data-tema="cafe"]) .eq-hero{border-color:var(--fina);box-shadow:var(--sombra-card)}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) .eq-hero{background:radial-gradient(120% 140% at 0% 0%,color-mix(in srgb,var(--onca) 13%,#14161d) 0%,#111318 50%,#0c0d11 100%)}
+:root:not([data-tema="cafe"]) .eq-mascote{background:radial-gradient(circle at 50% 40%,#2a56d6 0%,var(--dark) 80%);border:1px solid var(--borda);box-shadow:var(--sombra-card);transform:none;border-radius:22px}
+:root:not([data-tema="cafe"]) .est{background:linear-gradient(180deg,var(--vidro-luz),transparent 70%),var(--panel);color:var(--fg);
+  border:1px solid var(--fina);box-shadow:0 1px 0 var(--vidro-luz) inset,var(--sombra-card);border-radius:20px}
+:root:not([data-tema="cafe"]) .est:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--onca) 45%,transparent);box-shadow:0 1px 0 var(--vidro-luz) inset,var(--sombra-card)}
+:root:not([data-tema="cafe"]) .est:active{transform:translateY(-1px);box-shadow:none}
+:root:not([data-tema="cafe"]) .est .cena{background:radial-gradient(circle at 50% 36%,var(--cor,#2a56d6) 0%,var(--dark) 80%);border:1px solid var(--borda)}
+:root[data-tema="claro"] .est .cena{background:radial-gradient(circle at 50% 36%,color-mix(in srgb,var(--cor,#2a56d6) 55%,#fff) 0%,#EEF0F4 82%)}
+:root:not([data-tema="cafe"]) .est .cena .onca{filter:drop-shadow(0 8px 12px rgba(0,0,0,.35))}
+:root:not([data-tema="cafe"]) .st-off .cena .onca{filter:grayscale(1) opacity(.55)}
+:root:not([data-tema="cafe"]) .est-top .agora,:root:not([data-tema="cafe"]) .est .pe{color:var(--muted)}
+:root:not([data-tema="cafe"]) .chip-st{background:transparent;border-width:1px}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) .chip-st{filter:brightness(1.55) saturate(1.1)}
+:root:not([data-tema="cafe"]) .balao{background:var(--card);color:var(--fg);border:1px solid var(--fina)}
+:root:not([data-tema="cafe"]) .balao small{color:var(--muted)}
+:root:not([data-tema="cafe"]) .zz{color:#fff}
+[data-tema="claro"] .zz{color:#0F172A}
+
+/* ---------------------------------------------------------------- botão de paleta (ao lado da logo) */
+.ap-linha{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.ap-rapido{width:36px;height:36px;flex:0 0 auto;display:grid;place-items:center;border-radius:11px;cursor:pointer;padding:0;
+  background:color-mix(in srgb,var(--fg,var(--text)) 5%,transparent);border:1px solid var(--fina,var(--border));color:var(--muted)}
+.ap-rapido:hover{color:var(--onca-forte,var(--onca));border-color:color-mix(in srgb,var(--onca) 45%,transparent)}
+.ap-rapido:focus-visible{outline:2px solid var(--onca);outline-offset:2px}
+.ap-rapido svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+[data-tema="cafe"] .ap-rapido{background:#fff;border:2px solid #16224D;color:#16224D;box-shadow:2px 2px 0 #16224D}
+.ap-modos{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:420px){.ap-modos{grid-template-columns:1fr 1fr}}
+.lado .topo-m,.topm .l1{display:flex;align-items:center;gap:8px}
+:is(.topo-m,.l1) .ap-rapido{margin-left:auto}
+
+/* ---------------------------------------------------------------- ajustes finos (cores que eram fixas em azul) */
+:root:not([data-tema="cafe"]){--navy:color-mix(in srgb,var(--onca) 35%,var(--surface-3,#20242E))}
+:root:not([data-tema="cafe"]) .av{color:var(--onca-forte)}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) .eq-xp{background:rgba(255,255,255,.08)}
+[data-tema="claro"] a:not(.btn){color:var(--onca-forte)}
+[data-tema="claro"] .btn:not(.pri):not(.prim):not(.onca):not(.sim):not(.nao):not(.danger){color:var(--text,var(--fg))}
+[data-tema="claro"] .eq-stat{background:#fff}
+[data-tema="claro"] :is(.nav,.bottom) a:not([aria-current="page"]){color:var(--text-2)}
+[data-tema="claro"] :is(.nav,.bottom) a[aria-current="page"]{color:var(--text)}

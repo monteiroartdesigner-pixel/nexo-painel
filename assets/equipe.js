@@ -17,7 +17,7 @@ const EQUIPE = [
     faz: "Pesquisa cidades atrás de times, ligas e arenas, acha o contato público de cada um e organiza os retornos dos leads.",
     acoes: ["prospeccao", "cadencia"], agenda: "cerebro" },
   { id: "pauta", nome: "Pauta", cargo: "Social media", roupa: "#2a56d6", aba: "aprovar",
-    arte: "assets/nexo-marketing.webp", rosto: "assets/nexo-marketing-rosto.webp",
+    arte: "assets/equipe/pauta.webp?v=20261118", rosto: "assets/nexo-marketing-rosto.webp",
     faz: "Planeja o calendário, escreve as legendas e os roteiros das peças e manda tudo para a sua aprovação antes de ir ao ar.",
     acoes: ["conteudo_para_revisar"], agenda: "cerebro" },
   { id: "rabisco", nome: "Rabisco", cargo: "Designer gráfico", roupa: "#6a35b0", aba: "aprovar",
@@ -167,7 +167,7 @@ async function equipe(el) {
 
   el.innerHTML = `<div class="eq">
     <section class="eq-hero">
-      <img class="eq-mascote" src="assets/nexo-marketing.webp" alt="NEXO Marketing">
+      <img class="eq-mascote" src="assets/equipe/pauta.webp?v=20261118" alt="NEXO Marketing">
       <h2>Equipe ${esc(nomeAg)}</h2>
       <p>Sete onças, cada uma com um trabalho de verdade do seu agente. O que você vê aqui sai dos registros reais: quando alguém trabalha, ele aparece na mesa; quando termina, comemora.</p>
       <div class="eq-stats">
@@ -180,7 +180,7 @@ async function equipe(el) {
 
     <section class="eq-office" aria-label="Escritório da equipe">
       ${EQUIPE.map(p => { const e = estados[p.id]; return `
-      <article class="est st-${e.st}" data-pessoa="${p.id}" tabindex="0" role="button" aria-label="${esc(p.nome)}, ${esc(p.cargo)}: ${esc(e.rot)}">
+      <article class="est st-${e.st}" style="--cor:${p.roupa}" data-pessoa="${p.id}" tabindex="0" role="button" aria-label="${esc(p.nome)}, ${esc(p.cargo)}: ${esc(e.rot)}">
         <div class="est-top"><span class="agora">Agora</span><span class="chip-st"><i></i>${esc(e.rot)}</span></div>
         <div class="cena">
           <img class="onca" src="${ARTE(p)}" alt="" decoding="async">

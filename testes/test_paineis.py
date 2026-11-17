@@ -305,5 +305,48 @@ class Prospect(unittest.TestCase):
             p.fechar()
 
 
+class Aparencia(unittest.TestCase):
+    """Visual NEXO: botão de paleta, três modos e cor de destaque, nos dois painéis."""
+
+    def test_visual_carrega_depois_do_estilo_da_pagina(self):
+        for nome in ("index.html", "prospect/index.html"):
+            h = (RAIZ / nome).read_text(encoding="utf-8")
+            self.assertGreater(h.find("visual.css"), h.find("</style>"), f"{nome}: visual.css precisa vir depois do <style>")
+
+    def test_paleta_troca_modo_e_cor(self):
+        for url in ("/index.html", "/prospect/"):
+            p = Pagina()
+            try:
+                pg = p.abrir(url, 1500)
+                botoes = [b for b in pg.query_selector_all(".ap-rapido") if b.is_visible()]
+                self.assertEqual(len(botoes), 1, f"{url}: um botão de paleta visível")
+                botoes[0].click()
+                pg.click('.ap-modo[data-tema="claro"]')
+                pg.click('.ap-cor[aria-label="Roxo"]')
+                self.assertEqual(pg.evaluate("document.documentElement.dataset.tema"), "claro")
+                self.assertEqual(pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--onca').trim()"), "#8b5cf6")
+                self.assertEqual(pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--onca-txt').trim()"), "#ffffff")
+                self.assertEqual(pg.evaluate("getComputedStyle(document.body).backgroundColor"), "rgb(243, 244, 247)")
+                pg.reload(); pg.wait_for_timeout(800)
+                self.assertEqual(pg.evaluate("document.documentElement.dataset.tema"), "claro", f"{url}: modo salvo no aparelho")
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
+
+    def test_equipe_mostra_onca_inteira_com_a_cor_dela(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            cartoes = pg.eval_on_selector_all(".est", "es => es.map(e => [e.style.getPropertyValue('--cor'), e.querySelector('.onca').getAttribute('src')])")
+            self.assertEqual(len(cartoes), 7)
+            for cor, src in cartoes:
+                self.assertRegex(cor, r"^#[0-9a-f]{6}$")
+                self.assertNotIn("rosto", src)
+            quebradas = pg.evaluate("[...document.querySelectorAll('.est .onca')].filter(i => i.complete && !i.naturalWidth).length")
+            self.assertEqual(quebradas, 0)
+        finally:
+            p.fechar()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

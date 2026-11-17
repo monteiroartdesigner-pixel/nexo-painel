@@ -17,16 +17,25 @@ const apCtx = () => window.AP_CTX || {
   guardarLogo: v => { if (typeof st !== "undefined" && st.resumo) st.resumo.identidade = { ...(st.resumo.identidade || {}), logo_painel: v }; },
   aviso: m => aviso(m),
 };
-const AP_CORES = [["Ouro", "#f2b632"], ["Laranja", "#F2A623"], ["Azul", "#2B8CEB"], ["Coral", "#ff7a59"], ["Roxo", "#8b5cf6"], ["Verde", "#22a06b"]];
+const AP_CORES = [["Ouro", "#f2b632"], ["Laranja", "#F2A623"], ["Coral", "#ff7a59"], ["Rosa", "#EC4899"], ["Roxo", "#8b5cf6"], ["Azul", "#2B8CEB"], ["Turquesa", "#14B8A6"], ["Verde", "#22a06b"]];
 const AP_LOGOS = [["NEXO", AP_BASE + "nexo-marca.webp"], ["NEXO Marketing", AP_BASE + "nexo-marketing-rosto.webp"]];
 const apLer = k => { try { return localStorage.getItem(k); } catch { return null; } };
 const apGravar = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
 
+// Texto legível sobre a cor de destaque: escuro em cores claras, branco em cores fortes.
+function apTextoSobre(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return "#1a1200";
+  const n = parseInt(m[1], 16), c = [n >> 16, (n >> 8) & 255, n & 255].map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });
+  return (.2126 * c[0] + .7152 * c[1] + .0722 * c[2]) > .3 ? "#1a1200" : "#ffffff";
+}
+const AP_FUNDO = { escuro: "#0A0B0E", claro: "#F3F4F7", cafe: "#F6EFE2" };
 function aplicarTema() {
-  const tema = apLer("nexo.tema") || "escuro", cor = apLer("nexo.cor");
-  document.documentElement.dataset.tema = tema;
-  if (cor) document.documentElement.style.setProperty("--onca", cor); else document.documentElement.style.removeProperty("--onca");
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", tema === "cafe" ? "#F6EFE2" : "#050B15");
+  const tema = AP_FUNDO[apLer("nexo.tema")] ? apLer("nexo.tema") : "escuro", cor = apLer("nexo.cor");
+  const r = document.documentElement;
+  r.dataset.tema = tema;
+  if (cor) r.style.setProperty("--onca", cor); else r.style.removeProperty("--onca");
+  r.style.setProperty("--onca-txt", apTextoSobre(cor || "#f2b632"));
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", AP_FUNDO[tema]);
 }
 aplicarTema();   // antes de desenhar, para não piscar
 
@@ -76,8 +85,17 @@ function abrirAparencia() {
   const temaAtual = apLer("nexo.tema") || "escuro", corAtual = apLer("nexo.cor") || "#f2b632";
   let escolha = null;   // nova logo (data URL) ainda não salva
   const fundo = document.createElement("div"); fundo.className = "ap-fundo";
-  fundo.innerHTML = `<div class="ap" role="dialog" aria-modal="true" aria-label="Logo e cores">
-    <div class="linha entre"><h2 style="margin:0">Logo e cores</h2><button class="btn" data-fechar aria-label="Fechar">✕</button></div>
+  fundo.innerHTML = `<div class="ap" role="dialog" aria-modal="true" aria-label="Cores e logo">
+    <div class="linha entre"><h2 style="margin:0">Cores e logo</h2><button class="btn" data-fechar aria-label="Fechar">✕</button></div>
+    <section><h3>Modo de cor</h3>
+      <div class="ap-modos">
+        <button type="button" class="ap-modo" data-tema="escuro" aria-pressed="${temaAtual === "escuro"}"><span class="amostra" style="background:#0A0B0E"><i style="background:#13151B"></i><i style="background:#1A1D25"></i><i style="background:${corAtual}"></i></span>Escuro</button>
+        <button type="button" class="ap-modo" data-tema="claro" aria-pressed="${temaAtual === "claro"}"><span class="amostra" style="background:#F3F4F7;box-shadow:inset 0 0 0 1px rgba(15,23,42,.12)"><i style="background:#fff;box-shadow:inset 0 0 0 1px rgba(15,23,42,.12)"></i><i style="background:#E5E7EB"></i><i style="background:${corAtual}"></i></span>Claro</button>
+        <button type="button" class="ap-modo" data-tema="cafe" aria-pressed="${temaAtual === "cafe"}"><span class="amostra" style="background:#F6EFE2;box-shadow:inset 0 0 0 2px #16224D"><i style="background:#fff;box-shadow:inset 0 0 0 2px #16224D"></i><i style="background:#16224D"></i><i style="background:${corAtual}"></i></span>Claro · Café</button>
+      </div></section>
+    <section><h3>Cor de destaque</h3>
+      <div class="ap-cores">${AP_CORES.map(([n, c]) => `<button type="button" class="ap-cor" data-cor="${c}" style="background:${c}" title="${n}" aria-label="${n}" aria-pressed="${c.toLowerCase() === corAtual.toLowerCase()}"></button>`).join("")}</div>
+      <p class="ap-nota">Modo e cor valem neste aparelho. Cada pessoa escolhe o seu.</p></section>
     <section><h3>Sua logo</h3>
       <div class="ap-logo"><img class="previa" id="apPrevia" src="${logoAtual()}" alt="Prévia da logo">
         <div class="stack" style="display:flex;flex-direction:column;gap:8px">
@@ -86,14 +104,6 @@ function abrirAparencia() {
         </div></div>
       <div class="linha" style="margin-top:10px"><button class="btn prim" id="apSalvar" disabled>Salvar logo</button><button class="btn" id="apPadrao">Voltar para a logo NEXO</button></div>
       <p class="ap-nota" id="apNota">Imagem quadrada fica melhor. Ela é reduzida para 256 × 256 antes de salvar.</p></section>
-    <section><h3>Modo de cor</h3>
-      <div class="ap-modos">
-        <button type="button" class="ap-modo" data-tema="escuro" aria-pressed="${temaAtual === "escuro"}"><span class="amostra" style="background:#050B15"><i style="background:#0c1a33"></i><i style="background:#112447"></i><i style="background:${corAtual}"></i></span>Escuro</button>
-        <button type="button" class="ap-modo" data-tema="cafe" aria-pressed="${temaAtual === "cafe"}"><span class="amostra" style="background:#F6EFE2;box-shadow:inset 0 0 0 2px #16224D"><i style="background:#fff;box-shadow:inset 0 0 0 2px #16224D"></i><i style="background:#16224D"></i><i style="background:${corAtual}"></i></span>Claro · Café</button>
-      </div></section>
-    <section><h3>Cor de destaque</h3>
-      <div class="ap-cores">${AP_CORES.map(([n, c]) => `<button type="button" class="ap-cor" data-cor="${c}" style="background:${c}" title="${n}" aria-label="${n}" aria-pressed="${c.toLowerCase() === corAtual.toLowerCase()}"></button>`).join("")}</div>
-      <p class="ap-nota">Modo e cor valem neste aparelho. Cada pessoa escolhe o seu.</p></section>
   </div>`;
   const $a = s => fundo.querySelector(s), previa = $a("#apPrevia"), salvar = $a("#apSalvar"), nota = $a("#apNota");
   const fechar = () => { fundo.remove(); document.removeEventListener("keydown", teclas); document.getElementById("btnMarca")?.focus(); };
@@ -136,3 +146,19 @@ function abrirAparencia() {
   document.body.appendChild(fundo);
   $a("[data-fechar]").focus();
 }
+
+// Botão de paleta ao lado da logo: abre a mesma janela (cores primeiro, logo depois).
+const AP_ICONE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.7-1.6 1.6-1.6H16a5 5 0 0 0 5-5C21 6.5 17 3 12 3z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></svg>';
+function apBotoesPaleta() {
+  document.querySelectorAll(".plat-marca.botao").forEach(marca => {
+    if (marca.dataset.paleta) return; marca.dataset.paleta = "1";
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "ap-rapido"; b.title = "Trocar cor"; b.setAttribute("aria-label", "Trocar cor"); b.innerHTML = AP_ICONE;
+    b.addEventListener("click", abrirAparencia);
+    const pai = marca.parentElement;
+    if (pai && (pai.classList.contains("topo-m") || pai.classList.contains("l1"))) { marca.after(b); return; }
+    const linha = document.createElement("div"); linha.className = "ap-linha";
+    marca.before(linha); linha.append(marca, b);
+  });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apBotoesPaleta); else apBotoesPaleta();
