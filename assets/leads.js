@@ -168,7 +168,7 @@ function ldFicha(l, el) {
     <div class="ld-bloco"><b>1. Mensagem pronta</b>
       ${msg ? `<div class="ld-msg">${esc(msg)}</div>` : `${l.proxima_acao && !(l.classificacao && l.classificacao.resposta) ? `<div class="ld-passo"><b>Próximo passo sugerido pelo Faro:</b> ${esc(l.proxima_acao)}</div>` : ""}<div class="muted peq">${l.classificacao && l.classificacao.resposta ? `Você respondeu "${esc(l.classificacao.resposta)}". A equipe escreve a mensagem certa na próxima rodada.` : "Este lead ainda não tem mensagem pronta. Escreva uma curta, citando o que você viu."}</div>`}
       <div class="linha">
-        ${wa ? `<a class="btn prim" target="_blank" rel="noopener" href="https://wa.me/${esc(wa)}${msg ? "?text=" + encodeURIComponent(msg) : ""}">Abrir WhatsApp com a mensagem</a>` : ""}
+        ${wa ? `<a class="btn prim" data-wa-copia target="_blank" rel="noopener" href="https://wa.me/${esc(wa)}${msg ? "?text=" + encodeURIComponent(msg) : ""}">Abrir WhatsApp com a mensagem</a>` : ""}
         ${ig ? `<button class="btn ${wa ? "" : "prim"}" data-ig>${msg ? "Copiar e abrir o Direct" : "Abrir o Direct"}</button>` : ""}
         ${msg ? `<button class="btn" data-copiar>Copiar mensagem</button>` : ""}
       </div>
@@ -209,6 +209,8 @@ function ldFicha(l, el) {
     return ok;
   };
   fundo.querySelector("[data-copiar]")?.addEventListener("click", ev => copiar(ev.currentTarget));
+  // WhatsApp: o texto já vai preenchido no link, e fica copiado também (se o app abrir sem o texto, é só colar).
+  fundo.querySelector("[data-wa-copia]")?.addEventListener("click", () => { if (msg) copiar(null); });
   // Instagram: abre direto a conversa do Direct (ig.me). O Instagram não aceita texto pronto: a mensagem vai copiada.
   fundo.querySelector("[data-ig]")?.addEventListener("click", ev => {
     const janela = window.open(`https://ig.me/m/${encodeURIComponent(ig)}`, "_blank");   // abre já no clique, para o navegador não bloquear

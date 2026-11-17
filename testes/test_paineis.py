@@ -584,5 +584,36 @@ class PlanoDaEmpresa(unittest.TestCase):
             p.fechar()
 
 
+class CopiaAoAbrir(unittest.TestCase):
+    """Tocar em Instagram, WhatsApp ou e-mail na ficha deixa a mensagem sugerida copiada."""
+
+    def test_instagram_da_ficha_copia_a_mensagem(self):
+        e = EMPRESAS_P[0]
+        antes = (e.get("instagram"), [dict(c) for c in e["campanhas"]])
+        e["instagram"] = "clinicateste"
+        e["campanhas"][0]["mensagem_pt"] = "Oi! Vi o perfil de vocês e tenho uma ideia."
+        p = Pagina()
+        try:
+            p.ctx.grant_permissions(["clipboard-read", "clipboard-write"])
+            pg = p.abrir("/prospect/#/crm", 1800)
+            pg.click('.kc[data-id="e1"]')
+            pg.wait_for_timeout(700)
+            link = pg.query_selector('a[data-copia][href^="https://ig.me/m/clinicateste"]')
+            self.assertIsNotNone(link, "Instagram abre direto o Direct")
+            with pg.expect_popup() as janela:
+                link.click()
+            janela.value.close()
+            pg.wait_for_timeout(300)
+            self.assertEqual(pg.evaluate("navigator.clipboard.readText()"), "Oi! Vi o perfil de vocês e tenho uma ideia.")
+            wa = pg.get_attribute("a[data-copia][href^='https://wa.me/']", "href")
+            self.assertIn("text=Oi", wa, "WhatsApp abre com a mensagem preenchida")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+            e["instagram"], e["campanhas"] = antes[0], antes[1]
+            if antes[0] is None:
+                e.pop("instagram", None)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
