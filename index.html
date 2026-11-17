@@ -152,7 +152,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="assets/visual.css?v=20261118f">
+<link rel="stylesheet" href="assets/visual.css?v=20261118h">
 <link rel="stylesheet" href="assets/master.css?v=20261118c">
 </head>
 <body>
@@ -240,8 +240,9 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script src="assets/base.js?v=20261118a"></script>
 <script src="assets/equipe.js?v=20261118b"></script>
-<script src="assets/master.js?v=20261118c"></script>
+<script src="assets/master.js?v=20261118h"></script>
 <script src="assets/plano.js?v=20261118e"></script>
+<script src="assets/conta.js?v=20261118h"></script>
 <script src="assets/ideias.js?v=20261117c"></script>
 <script src="assets/explicador.js?v=20261117f"></script>
 <script>
@@ -307,6 +308,7 @@ const podeEditar = () => ["plataforma", "dono", "admin", "editor"].includes(st.r
 let expVideo = null;
 function mostrarLogin() { $("#telaApp").classList.add("oculto"); $("#telaLogin").classList.remove("oculto");
   if (typeof explicadorMontar === "function") expVideo = explicadorMontar($("#explicador"), {}) || expVideo; }
+contaLigarLogin($("#formLogin"), $("#email"));
 $("#formLogin").addEventListener("submit", async ev => {
   ev.preventDefault();
   const b = $("#btnEntrar"); b.disabled = true; b.textContent = "Entrando…"; $("#erroLogin").classList.add("oculto");
@@ -345,6 +347,7 @@ function abrirAba(aba) {
 async function iniciar() {
   const { data } = await sb.auth.getSession();
   if (!data.session) return mostrarLogin();
+  await contaPosLogin();   // aceita convites e termina um cadastro que esperava a confirmação do e-mail (assets/conta.js)
   try { st.ctx = await rpc("nexo_contexto"); } catch (e) { aviso(msgErro(e), true); return mostrarLogin(); }
   const todosAgentes = st.ctx.empresas.flatMap(e => e.agentes.map(a => ({ ...a, empresa: e.nome, papel: e.papel })));
   st.prospect = todosAgentes.find(a => a.slug === "prospect") || null;
@@ -378,8 +381,9 @@ async function iniciar() {
 }
 async function carregar() {
   try {
-    const [r, c, l] = await Promise.all([rpc("nexo_resumo", { p_agente: st.agente }), rpc("nexo_conteudos", { p_agente: st.agente }), rpc("nexo_leads", { p_agente: st.agente })]);
-    st.resumo = r; st.conteudos = c || []; st.leads = l || [];
+    // Conteúdos e leads são do recurso Marketing: fora do plano o banco recusa, e o painel segue com a lista vazia (a aba mostra o convite do plano).
+    const [r, c, l] = await Promise.all([rpc("nexo_resumo", { p_agente: st.agente }), rpc("nexo_conteudos", { p_agente: st.agente }).catch(() => []), rpc("nexo_leads", { p_agente: st.agente }).catch(() => [])]);
+    st.resumo = r; st.conteudos = c || []; st.leads = l || []; st.publicados = null;   // o arquivo recarrega ao abrir
     // Plano da empresa do agente: o que não está no plano fica trancado (assets/plano.js).
     st.empresaId = (st.ctx.empresas || []).find(e => (e.agentes || []).some(a => a.id === st.agente))?.id || null;
     await planoCarregar(st.empresaId);
@@ -454,11 +458,23 @@ function midiaHtml(m) {
     ? `<video src="${esc(x.url)}" preload="metadata" controls playsinline muted></video>`
     : `<a href="${hrefSeguro(x.url)}" target="_blank" rel="noopener" aria-label="Abrir a arte em tamanho real"><img src="${esc(x.mini || x.url)}" alt="" loading="lazy"></a>`).join("");
 }
+// Publicados saem da fila e ficam no arquivo (aba "Publicados"), do mais recente para o mais antigo. Nada é apagado.
+let aprovarVista = "fila";
 function aprovar(el) {
-  const lista = st.conteudos;
+  // Arquivo completo vem de nexo_publicados (todas as publicadas); sem a migração, usa as dos últimos 14 dias que já vieram.
+  const todos = st.conteudos, arq = st.publicados || todos.filter(c => c.status === "publicado");
+  const lista = aprovarVista === "arquivo" ? [...arq].sort((a, b) => (b.agendado_para || "").localeCompare(a.agendado_para || "")) : todos.filter(c => c.status !== "publicado");
   const pub = st.resumo.controle?.publicar;
-  if (!lista.length) { el.innerHTML = `<div class="vazio">Nenhuma peça na fila.</div>`; return; }
-  let html = pub ? "" : `<div class="aviso info">Publicar está <b>desligado</b>. Aprovar deixa a peça pronta; ela só vai ao ar quando você ligar Publicar no Início.</div>`;
+  const abas = `<div class="ap-abas" role="tablist">
+      <button role="tab" data-vista="fila" aria-selected="${aprovarVista === "fila"}">Na fila <b>${todos.filter(c => c.status !== "publicado").length}</b></button>
+      <button role="tab" data-vista="arquivo" aria-selected="${aprovarVista === "arquivo"}">Publicados (arquivo) <b>${arq.length}</b></button></div>`;
+  const ligarAbas = () => $$("[data-vista]", el).forEach(b => b.onclick = async () => {
+    aprovarVista = b.dataset.vista;
+    if (aprovarVista === "arquivo" && !st.publicados) { try { st.publicados = await rpc("nexo_publicados", { p_agente: st.agente }) || []; } catch { st.publicados = null; } }
+    aprovar(el);
+  });
+  if (!lista.length) { el.innerHTML = abas + `<div class="vazio">${aprovarVista === "arquivo" ? "Nenhuma peça publicada ainda." : "Nenhuma peça na fila. As publicadas estão em Publicados."}</div>`; ligarAbas(); return; }
+  let html = abas + (pub || aprovarVista === "arquivo" ? "" : `<div class="aviso info">Publicar está <b>desligado</b>. Aprovar deixa a peça pronta; ela só vai ao ar quando você ligar Publicar no Início.</div>`);
   let diaAtual = "";
   for (const c of lista) {
     const d = diaChave(c.agendado_para);
@@ -486,6 +502,7 @@ function aprovar(el) {
       </article>`;
   }
   el.innerHTML = html;
+  ligarAbas();
   $$("[data-abrir]", el).forEach(b => b.onclick = () => { const l = b.previousElementSibling; l.classList.toggle("aberta"); b.textContent = l.classList.contains("aberta") ? "Fechar legenda" : "Ver legenda inteira"; });
   $$("article[data-id]", el).forEach(art => {
     const id = art.dataset.id, q = $("[data-quando]", art);
@@ -826,8 +843,13 @@ function ajuda(el) {
         <li><b>Atividade:</b> tudo o que o agente fez e quem mudou o quê no painel.</li>
       </ol>
     </div>
+    ${["plataforma", "dono", "admin"].includes(st.resumo?.papel) && st.empresaId ? `<div class="card"><div class="linha entre"><div><h3>Equipe da empresa</h3>
+      <p class="muted peq" style="margin:4px 0 0">Quem acessa o painel, com qual papel. Convide por e-mail ou tire o acesso.</p></div>
+      <button class="btn prim" id="btnEquipe">Abrir equipe</button></div></div>` : ""}
     <div class="card"><h3>Em breve</h3><p class="muted peq" style="margin:0">Central de Ajuda com manual e vídeos curtos (Etapa 7) e conexão guiada do Instagram (Etapa 4).</p></div>
     <div class="muted mono">Logado como ${esc(st.ctx?.email)} · ${esc(PAPEL[st.resumo?.papel] || "")}</div>`;
+  const be = $("#btnEquipe", el);
+  if (be) be.onclick = () => abrirEquipe(st.empresaId, (st.ctx.empresas || []).find(e => e.id === st.empresaId)?.nome);
 }
 
 // ---------------------------------------------------------------- início

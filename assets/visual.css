@@ -194,3 +194,34 @@
           mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2'%3E%3Crect x='4' y='10' width='16' height='11' rx='2.5'/%3E%3Cpath d='M8 10V7a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E") center/contain no-repeat}
 .trancado{opacity:.72}
 @media (max-width:600px){.plano-trava{flex-direction:column;padding:20px}}
+
+/* ---------------------------------------------------------------- System › Aprovar: fila e arquivo de publicados */
+.ap-abas{display:inline-flex;gap:4px;padding:4px;border-radius:12px;background:var(--panel);border:1px solid var(--fina);align-self:flex-start;flex-wrap:wrap}
+.ap-abas button{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border:0;border-radius:9px;background:none;color:var(--muted);font:600 13.5px var(--f);cursor:pointer}
+.ap-abas button[aria-selected="true"]{background:color-mix(in srgb,var(--onca) 16%,transparent);color:var(--fg)}
+.ap-abas b{font:700 11.5px var(--f);padding:1px 7px;border-radius:99px;background:var(--card);color:var(--fg)}
+[data-tema="cafe"] .ap-abas{background:#fff;border:2px solid #16224D}
+
+/* ---------------------------------------------------------------- conta: criar conta, esqueci a senha, equipe (assets/conta.js) */
+.ct-links{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:2px}
+.ct-link{background:none;border:0;padding:4px 0;font:600 13px var(--f);color:var(--onca-forte,var(--onca));cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.ct-janela{width:min(560px,100%);gap:14px}
+.ct-form{display:flex;flex-direction:column;gap:12px}
+.ct-txt{margin:0;color:var(--muted,var(--text-2))}
+.ct-campo{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted);min-width:0}
+.ct-campo input,.ct-campo select{width:100%;background:var(--dark,var(--bg));border:1px solid var(--borda,var(--border-strong));border-radius:10px;padding:9px 11px;color:var(--fg,var(--text));font:inherit;font-size:14px;min-height:42px}
+.ct-campo input:focus,.ct-campo select:focus{outline:none;border-color:var(--onca);box-shadow:0 0 0 3px color-mix(in srgb,var(--onca) 22%,transparent)}
+[data-tema="claro"] .ct-campo input,[data-tema="claro"] .ct-campo select,[data-tema="cafe"] .ct-campo input,[data-tema="cafe"] .ct-campo select{background:#fff;color:#0F172A}
+.ct-duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ct-nota{margin:0;font-size:13px;color:var(--muted)} .ct-nota.ct-erro{color:var(--bad)}
+.ct-planos{border:0;padding:0;margin:0;display:grid;gap:8px}
+.ct-planos legend{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.ct-plano{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;border:1px solid var(--borda,var(--border));cursor:pointer}
+.ct-plano:has(input:checked){border-color:var(--onca);background:color-mix(in srgb,var(--onca) 12%,transparent)}
+.ct-plano input{accent-color:var(--onca);margin-top:3px}
+.ct-plano span{display:flex;flex-direction:column;gap:2px} .ct-plano small{color:var(--muted);font-size:12px}
+.ct-lista{display:flex;flex-direction:column;gap:6px}
+.ct-membro{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--card,var(--surface-2));border:1px solid var(--fina,var(--border))}
+.ct-membro div{display:flex;flex-direction:column;gap:2px;min-width:0} .ct-membro b{overflow:hidden;text-overflow:ellipsis}
+.ct-membro small{color:var(--muted);font-size:12px} .ct-pend{border-style:dashed}
+@media (max-width:560px){.ct-duas{grid-template-columns:1fr}}

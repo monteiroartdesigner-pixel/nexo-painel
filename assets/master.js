@@ -74,6 +74,7 @@ async function master(el) {
   $("#mRecarregar").onclick = async () => { mst.carregado = false; master(el); };
   $("#mNova").onclick = () => mEditarEmpresa(null);
   el.querySelectorAll("[data-m-editar]").forEach(b => b.onclick = () => mEditarEmpresa(mst.empresas.find(e => e.id === b.dataset.mEditar)));
+  el.querySelectorAll("[data-m-equipe]").forEach(b => b.onclick = () => abrirEquipe(b.dataset.mEquipe, mst.empresas.find(e => e.id === b.dataset.mEquipe)?.nome));
   el.querySelectorAll("[data-m-plano]").forEach(b => b.onclick = () => mEditarAssinatura(mst.empresas.find(e => e.id === b.dataset.mPlano)));
   el.querySelectorAll("form[data-m-salvar-plano]").forEach(f => f.onsubmit = ev => { ev.preventDefault(); mSalvarPlano(f, el); });
 }
@@ -91,7 +92,7 @@ function mLinhaEmpresa(e) {
       <span class="muted peq">${esc(M_ORIGEM[e.origem] || e.origem || "")} · ${e.membros} usuário(s) · ${e.agentes} agente(s)${e.status !== "ativa" ? ` · empresa ${esc(e.status)}` : ""}</span>
       <span class="peq">${plano}${extra}</span></div>
     <span class="pill ${ac[1]}">${esc(ac[0])}</span>
-    <div class="linha"><button class="btn" data-m-plano="${e.id}">Plano</button><button class="btn" data-m-editar="${e.id}">Editar</button></div>
+    <div class="linha"><button class="btn" data-m-equipe="${e.id}">Equipe</button><button class="btn" data-m-plano="${e.id}">Plano</button><button class="btn" data-m-editar="${e.id}">Editar</button></div>
   </div>`;
 }
 

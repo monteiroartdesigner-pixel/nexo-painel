@@ -55,6 +55,10 @@ EMPRESAS_P = [
 
 
 TAREFAS = []   # cada teste que precisa de tarefa preenche e limpa
+CONTEUDOS = []  # peças do System (Aprovar)
+PUBLICADOS = []  # arquivo completo (nexo_publicados)
+PLANOS_PUB = []  # planos no cadastro público
+FALHAR = {}      # funções que o banco recusa neste teste
 SITUACAO = {}  # situação do plano por empresa (vazio = sem assinatura = tudo liberado)
 
 SIT_INTERNO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "status_gravado": "ativa", "plano": "interno",
@@ -111,7 +115,22 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return TAREFAS
     if nome == "nexo_situacao":
         return SITUACAO.get(args.get("p_empresa"), {"tem_assinatura": False, "acesso": "total"})
-    if nome in ("nexo_conteudos", "nexo_atividades", "nexo_ideias", "nexo_links", "nexo_categorias_lead", "nexo_integracoes"):
+    if nome == "nexo_conteudos":
+        if FALHAR.get("nexo_conteudos"):
+            raise PermissionError("recurso_fora_do_plano: marketing_instagram")
+        return CONTEUDOS
+    if nome == "nexo_publicados":
+        return PUBLICADOS
+    if nome == "nexo_planos_publicos":
+        return PLANOS_PUB
+    if nome == "nexo_aceitar_convites":
+        return {"aceitos": 0}
+    if nome == "nexo_membros":
+        return {"membros": [{"user_id": "u1", "email": "dono@cliente.com", "papel": "dono"}, {"user_id": "u2", "email": "<b>x</b>@cliente.com", "papel": "editor"}],
+                "convites": [{"id": "cv1", "email": "futuro@cliente.com", "papel": "leitor"}], "limite_usuarios": 5}
+    if nome == "nexo_convidar":
+        return {"ok": True, "situacao": "convite"}
+    if nome in ("nexo_atividades", "nexo_ideias", "nexo_links", "nexo_categorias_lead", "nexo_integracoes"):
         return []
     return {}
 
@@ -613,6 +632,125 @@ class CopiaAoAbrir(unittest.TestCase):
             e["instagram"], e["campanhas"] = antes[0], antes[1]
             if antes[0] is None:
                 e.pop("instagram", None)
+
+
+class ArquivoDePublicados(unittest.TestCase):
+    """Aprovar: publicados saem da fila e ficam no arquivo."""
+
+    def tearDown(self):
+        CONTEUDOS.clear(); PUBLICADOS.clear()
+
+    def test_publicados_vao_para_o_arquivo(self):
+        base = {"formato": "post", "origem": "agente", "midias": [], "legenda": "Legenda"}
+        CONTEUDOS.extend([
+            {**base, "id": "c1", "pauta": "Peça esperando", "status": "revisar", "agendado_para": "2026-11-20T21:00:00Z"},
+            {**base, "id": "c2", "pauta": "Peça publicada antiga", "status": "publicado", "agendado_para": "2026-11-10T21:00:00Z", "permalink": "https://www.instagram.com/p/abc/"},
+            {**base, "id": "c3", "pauta": "Peça publicada nova", "status": "publicado", "agendado_para": "2026-11-15T21:00:00Z"},
+        ])
+        PUBLICADOS.extend(x for x in CONTEUDOS if x["status"] == "publicado")   # o arquivo completo vem de nexo_publicados
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
+            sec = '[data-sec="aprovar"]'
+            fila = pg.eval_on_selector_all(sec + " article h3", "hs => hs.map(h => h.textContent)")
+            self.assertEqual(fila, ["Peça esperando"], "publicadas não ficam na fila")
+            pg.click(sec + ' [data-vista="arquivo"]'); pg.wait_for_timeout(200)
+            arq = pg.eval_on_selector_all(sec + " article h3", "hs => hs.map(h => h.textContent)")
+            self.assertEqual(arq, ["Peça publicada nova", "Peça publicada antiga"], "arquivo do mais recente para o mais antigo")
+            self.assertIsNotNone(pg.query_selector(sec + ' a[href="https://www.instagram.com/p/abc/"]'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class Conta(unittest.TestCase):
+    """Criar conta, esqueci a senha, equipe e arquivo completo."""
+
+    def tearDown(self):
+        PLANOS_PUB.clear(); PUBLICADOS.clear(); CONTEUDOS.clear(); FALHAR.clear()
+
+    def test_login_tem_esqueci_e_criar_conta(self):
+        for url in ("/index.html", "/prospect/"):
+            p = Pagina(logado=False)
+            try:
+                pg = p.abrir(url, 1500)
+                self.assertTrue(pg.is_visible("[data-esqueci]"), url)
+                self.assertTrue(pg.is_visible("[data-criar]"), url)
+                pg.click("[data-esqueci]")
+                self.assertTrue(pg.is_visible(".ct-janela input[type=email]"))
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
+
+    def test_cadastro_fechado_sem_plano_publico(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/prospect/", 1500)
+            pg.click("[data-criar]"); pg.wait_for_timeout(400)
+            self.assertIn("ainda não está aberto", pg.inner_text(".ct-janela"))
+        finally:
+            p.fechar()
+
+    def test_cadastro_guarda_dados_e_pede_confirmacao(self):
+        PLANOS_PUB.append({"chave": "inicial", "nome": "Inicial", "descricao": "Prospect", "preco_centavos": 9700, "recursos": ["prospect"], "dias_teste": 3})
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click("[data-criar]"); pg.wait_for_timeout(400)
+            self.assertIn("R$ 97,00/mês", pg.inner_text(".ct-janela").replace(" ", " "))
+            pg.fill(".ct-janela [name=responsavel]", "Ana"); pg.fill(".ct-janela [name=empresa]", "Clínica Sorriso")
+            pg.fill(".ct-janela [name=whatsapp]", "41999990000"); pg.fill(".ct-janela [name=email]", "ana@clinica.com")
+            pg.fill(".ct-janela [name=senha]", "senha-de-teste-123")
+            pg.click(".ct-janela [type=submit]"); pg.wait_for_timeout(800)
+            self.assertIn("Quase lá", pg.inner_text(".ct-janela"))
+            pend = pg.evaluate("JSON.parse(localStorage.getItem('nexo.cadastro.pendente'))")
+            self.assertEqual(pend, {"empresa": "Clínica Sorriso", "responsavel": "Ana", "whatsapp": "41999990000", "plano": "inicial"})
+            self.assertNotIn("senha", str(pend), "a senha nunca fica guardada no aparelho")
+        finally:
+            p.fechar()
+
+    def test_master_abre_equipe_e_convida(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
+            pg.click('[data-m-equipe="emp-v"]'); pg.wait_for_timeout(500)
+            txt = pg.inner_text(".ct-janela")
+            self.assertIn("dono@cliente.com", txt); self.assertIn("futuro@cliente.com", txt)
+            self.assertEqual(pg.evaluate("document.querySelectorAll('.ct-janela b b').length"), 0, "e-mail com HTML não vira negrito")
+            pg.on("dialog", lambda d: d.accept())
+            pg.fill(".ct-janela [name=email]", "novo@cliente.com"); pg.select_option(".ct-janela [name=papel]", "leitor")
+            pg.click(".ct-janela [type=submit]"); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_convidar"][-1]
+            self.assertEqual(args, {"p_empresa": "emp-v", "p_email": "novo@cliente.com", "p_papel": "leitor"})
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_arquivo_completo_vem_de_nexo_publicados(self):
+        base = {"formato": "post", "origem": "agente", "midias": [], "status": "publicado"}
+        PUBLICADOS.extend([{**base, "id": f"p{i}", "pauta": f"Antiga {i}", "agendado_para": f"2026-10-{10 + i}T21:00:00Z"} for i in range(5)])
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
+            pg.click('[data-sec="aprovar"] [data-vista="arquivo"]'); pg.wait_for_timeout(500)
+            self.assertIn("nexo_publicados", p.chamadas)
+            self.assertEqual(len(pg.query_selector_all('[data-sec="aprovar"] article')), 5)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_system_abre_mesmo_com_marketing_fora_do_plano(self):
+        FALHAR["nexo_conteudos"] = True
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            self.assertTrue(pg.is_visible('[data-sec="equipe"]'), "o painel abre normalmente")
+            self.assertEqual([e for e in p.erros if "console" not in e], [])
+        finally:
+            p.fechar()
 
 
 if __name__ == "__main__":
