@@ -10,8 +10,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
-<link rel="stylesheet" href="../assets/plataforma.css?v=20261117a">
-<script src="../assets/aparencia.js?v=20261117a"></script>
+<link rel="stylesheet" href="../assets/plataforma.css?v=20261117b">
+<link rel="stylesheet" href="../assets/links.css?v=20261117b">
+<script src="../assets/aparencia.js?v=20261117b"></script>
 <style>
 /* ============================================================ design system: tokens */
 :root{
@@ -289,6 +290,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../assets/links.js?v=20261117b"></script>
 <script>
 "use strict";
 /* ============================================================ base */
@@ -457,6 +459,7 @@ function vInicio(el) {
   el.innerHTML = `
     <div class="page-h"><div class="row" style="gap:14px;flex-wrap:nowrap">${ursa(48, "oi")}<div><h1>Olá${nome ? ", " + esc(nome) : ""}</h1><p>${new Date().toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long" })} · ${ativas.length} campanha(s) ativa(s)</p></div></div>
       <div class="row"><a class="btn" href="#/campanhas">${ic("camp")}Campanhas</a><a class="btn pri" href="#/crm">${ic("crm")}Abrir CRM</a></div></div>
+    <div id="pLinks"></div>
     ${vazio ? `<div class="card"><div class="empty">${ursa(72)}<h2>Comece em 3 passos</h2>
       <ol><li>Abra <b>Campanhas</b> e revise os filtros da campanha que você quer usar.</li><li>Clique em <b>Ativar</b> e depois em <b>Pedir pesquisa</b>.</li><li>Na rodada seguinte (06:10, 12:10 ou 18:10) as empresas aparecem aqui e no CRM, com a evidência e a mensagem pronta.</li></ol>
       <a class="btn pri" href="#/campanhas">Ir para Campanhas</a></div></div>` : ""}
@@ -489,6 +492,14 @@ function vInicio(el) {
       <div class="card"><div class="card-h"><h2>Leads por nicho</h2></div>${barras((i.por_nicho || []).map(x => [x.nome, x.n]))}</div>
       <div class="card"><div class="card-h"><h2>Leads por país</h2></div>${barras(Object.entries(i.por_pais || {}).map(([k, v]) => [k === "BR" ? "Brasil" : k === "US" ? "Estados Unidos" : k, v]))}</div></div>` : ""}`;
   $$("[data-emp]", el).forEach(x => x.onclick = () => abrirFicha(x.dataset.emp));
+  // Mandar link ou contato (assets/links.js): o Ricardo cola o link e o robô faz o resto.
+  if (typeof linksCaixa === "function") linksCaixa($("#pLinks", el), {
+    rpc, agente: S.agente, esc, avisar: toast, msgErro, quando, pode: !["leitor"].includes(S.papel),
+    abrir: async p => {
+      if (p.destino !== "prospect") { location.href = "../"; return; }   // lead do Várzea: fica na aba Leads do NEXO System
+      if (!S.empresas.some(x => x.id === p.resultado_id)) { try { await carregarTudo(); } catch {} }
+      abrirFicha(p.resultado_id);
+    } });
 }
 function barras(itens) {
   if (!itens.length) return `<div class="muted peq">Sem dados ainda.</div>`;

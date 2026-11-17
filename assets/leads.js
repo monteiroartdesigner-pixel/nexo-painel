@@ -48,6 +48,7 @@ function leadsTela(el) {
   const propostas = (ldCategorias || []).filter(c => c.status === "proposta");
   el.innerHTML = `
     <div class="ld">
+      <div id="ldLinks"></div>
       ${propostas.length ? `<section class="ld-props"><b>A equipe propôs ${propostas.length === 1 ? "uma categoria nova" : propostas.length + " categorias novas"}</b>
         <span class="muted peq">Aprovando, ela passa a valer para os próximos leads.</span>
         ${propostas.map(c => `<div class="ld-prop" data-slug="${esc(c.slug)}"><div style="min-width:0"><b>${esc(c.nome)}</b>
@@ -77,6 +78,15 @@ function leadsTela(el) {
   $("#ldq", el).oninput = e => { ldEstado.q = e.target.value; ldEstado.mostrar = 30; ldPintar(el); };
   const s = $("#lds", el); if (s) s.onchange = e => { ldEstado.s = e.target.value; ldPintar(el); };
   ldPintar(el);
+  // Mandar link ou contato (assets/links.js): o Ricardo cola o link e o robô faz o resto.
+  if (typeof linksCaixa === "function") linksCaixa($("#ldLinks", el), {
+    rpc, agente: st.agente, esc, avisar: aviso, msgErro, quando, pode: podeEditar(),
+    abrir: async p => {
+      if (p.destino === "prospect") { location.href = "prospect/"; return; }   // empresa: fica no NEXO Prospect
+      let l = st.leads.find(x => x.id === p.resultado_id);
+      if (!l) { try { await carregar(); } catch {} l = st.leads.find(x => x.id === p.resultado_id); }
+      if (l) ldFicha(l, el); else aviso("O lead ainda não apareceu. Recarregue a página em instantes.", true);
+    } });
 }
 
 function ldPintar(el) {
