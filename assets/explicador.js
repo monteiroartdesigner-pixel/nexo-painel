@@ -1,10 +1,9 @@
 "use strict";
 // ============================================================================
 // VÍDEO EXPLICATIVO DA EQUIPE NEXO (tela de login, pedido do Ricardo em 17/11/2026).
-// As mesmas 13 cenas da página narrada no claude.ai. Narração:
-//   1) a gravação da voz do Claude, se existir: assets/explicador/audio/cena_00.mp3 … cena_12.mp3;
-//   2) senão, a voz em português do próprio navegador (speechSynthesis);
-//   3) sem voz nenhuma, as cenas passam sozinhas com legenda.
+// As mesmas 13 cenas da página narrada no claude.ai. Narração: só a gravação da voz do Claude
+// (assets/explicador/audio/cena_00.mp3 … cena_12.mp3). Sem ela, as cenas passam com legenda.
+// A voz do navegador saiu (Ricardo, 17/11: "não quero essa narração").
 // Só fatos do que está construído. Narração: "a onça" + nome (regra do Ricardo).
 // ============================================================================
 
@@ -71,7 +70,7 @@ function explicadorMontar(el, opcoes = {}) {
         <div class="exp-info"><div class="exp-eb">${c.eb}</div><h3>${c.h}</h3>${c.vis}</div></article>`).join("")}
       <div class="exp-leg" aria-live="polite"><span></span></div>
       <div class="exp-barra"><i></i></div>
-      <button class="exp-play" type="button" aria-label="Assistir com narração"><span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>Assistir com narração</span></button>
+      <button class="exp-play" type="button" aria-label="Assistir a apresentação"><span><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>Assistir</span></button>
     </section>
     <div class="exp-ctls">
       <button class="exp-ctl" type="button" data-exp="ant" aria-label="Cena anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -141,9 +140,7 @@ function explicadorMontar(el, opcoes = {}) {
       if (temAudio) {
         audio = new Audio(EXP_AUDIO(j)); audio.onended = () => { timer = setTimeout(seguir, 350); };
         audio.play().catch(() => { tocando = false; botao(); });
-      } else if (window.speechSynthesis) {
-        falarNavegador(EXP_CENAS[j].fala, minha, seguir);
-      } else {
+      } else {   // sem a gravação da voz do Claude: as cenas passam com legenda (o Ricardo não quer a voz do navegador)
         timer = setTimeout(seguir, Math.max(5, EXP_CENAS[j].fala.split(/\s+/).length / 2.6) * 1000);
       }
     };
@@ -165,7 +162,6 @@ function explicadorMontar(el, opcoes = {}) {
   q('[data-exp="ant"]').onclick = () => irPara(atual - 1);
   q('[data-exp="prox"]').onclick = () => irPara(atual + 1);
   q(".exp-caps").onclick = e => { const b = e.target.closest("[data-cap]"); if (b) irPara(+b.dataset.cap); };
-  if (window.speechSynthesis) speechSynthesis.getVoices();   // carrega a lista de vozes antes do primeiro clique
   mostrar(0); botao();
   // quem entra no sistema não precisa da narração tocando por trás
   return { parar: () => { sessao++; parar(); tocando = false; pausado = false; botao(); } };
