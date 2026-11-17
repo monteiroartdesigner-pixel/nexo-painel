@@ -36,7 +36,8 @@ const EQUIPE = [
 const PESSOA = Object.fromEntries(EQUIPE.map(p => [p.id, p]));
 
 // ---------------------------------------------------------------- desenho (artes da equipe NEXO Marketing)
-const ARTE = p => p.arte || `assets/equipe/${p.id}.webp`, ROSTO = p => p.rosto || `assets/equipe/${p.id}-rosto.webp`;
+const ART_V = "?v=20261117";   // artes em alta resolução e sem fundo (17/11)
+const ARTE = p => p.arte || `assets/equipe/${p.id}.webp${ART_V}`, ROSTO = p => p.rosto || `assets/equipe/${p.id}-rosto.webp${ART_V}`;
 const rosto = (p, cls = "") => `<img class="rosto ${cls}" src="${ROSTO(p)}" alt="" loading="lazy" decoding="async">`;
 const CORES_CONF = ["#f2b632", "#3CC4E6", "#4cc27a", "#ff7a6e", "#8b3fd1", "#ffd76e"];
 const confete = () => CORES_CONF.map((c, i) => `<i style="left:${20 + i * 12}%;background:${c};--dx:${(i % 2 ? 1 : -1) * (10 + i * 6)}px;animation-delay:${i * 60}ms"></i>`).join("");
