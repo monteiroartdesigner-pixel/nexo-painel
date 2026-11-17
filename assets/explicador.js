@@ -62,7 +62,8 @@ function explicadorMontar(el, opcoes = {}) {
   const img = n => `<img src="${EXP_IMG(n)}" alt="" width="352" height="440" loading="lazy" decoding="async">`;
   el.classList.add("exp");
   el.innerHTML = `
-    <div class="exp-topo"><span class="ey">NEXO · Design &amp; Automação</span><h2>Conheça a equipe que trabalha por você</h2></div>
+    <div class="exp-topo"><span class="ey">NEXO · Design &amp; Automação</span><h2>Equipe NEXO em Ação</h2>
+      <p>O que a equipe de onças faz pela sua prospecção e pelo seu marketing, em 13 cenas.</p></div>
     <section class="exp-palco" aria-label="Vídeo explicativo da equipe NEXO">
       ${EXP_CENAS.map((c, i) => `<article class="exp-cena${c.abre ? " abre" : ""}" data-i="${i}" aria-hidden="true">
         ${c.abre ? `<div class="exp-time">${["papo", "rabisco", "vitrine", "faro", "pintada", "lupa"].map(img).join("")}</div>`
@@ -79,7 +80,8 @@ function explicadorMontar(el, opcoes = {}) {
       <span class="exp-cont">Cena 1 de ${N}</span>
       <span class="exp-esp"></span>
       ${opcoes.irPara ? `<a class="exp-ir" href="${opcoes.irPara}">Ir para o login <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 5v14M6 13l6 6 6-6"/></svg></a>` : ""}
-    </div>`;
+    </div>
+    <nav class="exp-caps" aria-label="Capítulos">${EXP_CENAS.map((c, i) => `<button type="button" class="exp-cap" data-cap="${i}"><b>${String(i + 1).padStart(2, "0")}</b>${c.tit}</button>`).join("")}</nav>`;
 
   const q = s => el.querySelector(s), qa = s => [...el.querySelectorAll(s)];
   const leg = q(".exp-leg span"), barra = q(".exp-barra i"), btPlay = q('[data-exp="play"]'), grande = q(".exp-play");
@@ -91,6 +93,7 @@ function explicadorMontar(el, opcoes = {}) {
     leg.textContent = EXP_CENAS[atual].fala;
     barra.style.width = ((atual + 1) / N * 100) + "%";
     q(".exp-cont").textContent = `Cena ${atual + 1} de ${N}`;
+    qa(".exp-cap").forEach(b => b.classList.toggle("on", +b.dataset.cap === atual));
   };
   const botao = () => {
     const lbl = tocando && !pausado ? "Pausar" : pausado ? "Continuar" : (atual >= N - 1 ? "Assistir de novo" : "Assistir");
@@ -161,6 +164,7 @@ function explicadorMontar(el, opcoes = {}) {
   grande.onclick = () => tocarDe(atual);
   q('[data-exp="ant"]').onclick = () => irPara(atual - 1);
   q('[data-exp="prox"]').onclick = () => irPara(atual + 1);
+  q(".exp-caps").onclick = e => { const b = e.target.closest("[data-cap]"); if (b) irPara(+b.dataset.cap); };
   if (window.speechSynthesis) speechSynthesis.getVoices();   // carrega a lista de vozes antes do primeiro clique
   mostrar(0); botao();
   // quem entra no sistema não precisa da narração tocando por trás
