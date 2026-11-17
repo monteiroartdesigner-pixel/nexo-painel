@@ -1,0 +1,57 @@
+"use strict";
+// ============================================================================
+// PLANO DA EMPRESA · o que o cliente vê depende do plano (NEXO SaaS, 18/11/2026).
+// Lê public.nexo_situacao(empresa). Recurso fora do plano: a função NÃO aparece; no lugar fica
+// o convite para ativar ("Disponível no plano X"). Teste acabado, vencida ou suspensa: faixa no topo.
+// Sem assinatura (ou banco sem a Etapa 3) = tudo liberado, como era antes.
+// Isto é a tela. A trava no banco (nexo.exigir_recurso nas funções pagas) vem numa etapa própria.
+// Comum ao System e ao Prospect. Usa sb e esc de assets/base.js.
+// ============================================================================
+
+const PLANO_DE = { prospect: "Inicial", marketing_instagram: "Profissional", marketing_google: "Profissional",
+  prospect_ia: "Completo", suporte_ia: "Completo", automacoes: "Completo" };
+const RECURSO_NOME = { prospect: "NEXO Prospect", marketing_instagram: "Marketing no Instagram", marketing_google: "Marketing no Google",
+  prospect_ia: "Pesquisa automática com IA", suporte_ia: "Suporte com IA", automacoes: "Automações" };
+const PL = { sits: {} };   // situação por empresa
+
+async function planoCarregar(empresaId) {
+  if (!empresaId || !sb) return null;
+  try { const { data, error } = await sb.rpc("nexo_situacao", { p_empresa: empresaId }); PL.sits[empresaId] = error ? null : data; }
+  catch { PL.sits[empresaId] = null; }
+  return PL.sits[empresaId];
+}
+
+// true = pode mostrar. Sem situação conhecida, sem assinatura ou Master: libera.
+function planoTem(recurso, empresaId) {
+  const s = PL.sits[empresaId];
+  if (!s || !s.tem_assinatura) return true;
+  if (!["total", "aviso"].includes(s.acesso)) return false;
+  return (s.recursos || []).includes(recurso);
+}
+
+const PL_CONTATO = "https://ig.me/m/nexo.rm";
+function planoBloqueio(recurso, empresaId) {
+  const s = PL.sits[empresaId] || {}, inativo = s.tem_assinatura && !["total", "aviso"].includes(s.acesso);
+  const titulo = inativo ? (s.status === "teste_vencido" ? "Seu teste grátis acabou" : s.acesso === "bloqueado" ? "Assinatura cancelada" : "Assinatura inativa")
+                         : `${RECURSO_NOME[recurso] || "Este recurso"} no plano ${PLANO_DE[recurso] || "superior"}`;
+  const texto = inativo ? "Seus dados continuam guardados. Ative um plano para voltar a usar esta área."
+                        : `Seu plano atual (${s.plano_nome || "—"}) não inclui esta função. Ative o plano ${PLANO_DE[recurso] || "superior"} e ela aparece aqui na hora.`;
+  return `<div class="plano-trava"><div class="pt-icone" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+    <div class="pt-txt"><span class="pt-selo">${inativo ? "Plano" : `Disponível no plano ${esc(PLANO_DE[recurso] || "superior")}`}</span>
+      <h2>${esc(titulo)}</h2><p>${esc(texto)}</p>
+      <a class="btn prim pri" href="${PL_CONTATO}" target="_blank" rel="noopener">Falar com a NEXO para ativar</a></div></div>`;
+}
+
+// Faixa no topo quando o plano pede atenção (teste acabando ou acabado, vencida, suspensa).
+function planoFaixa(empresaId, alvo) {
+  document.querySelector(".plano-faixa")?.remove();
+  const s = PL.sits[empresaId]; if (!s || !s.tem_assinatura || !alvo) return;
+  let msg = "", tom = "warn";
+  if (s.status === "teste" && s.dias_teste_restantes != null && s.dias_teste_restantes <= 3)
+    msg = `Teste grátis do plano ${s.plano_nome}: ${s.dias_teste_restantes === 0 ? "termina hoje" : `faltam ${s.dias_teste_restantes} dia(s)`}.`;
+  else if (s.acesso === "aviso") msg = "Sua assinatura venceu. Regularize para não perder o acesso.";
+  else if (s.status === "teste_vencido") { msg = "Seu teste grátis acabou. Ative um plano para continuar usando."; tom = "bad"; }
+  else if (["leitura", "bloqueado"].includes(s.acesso)) { msg = "Sua assinatura está inativa. Ative um plano para voltar a usar."; tom = "bad"; }
+  if (!msg) return;
+  alvo.insertAdjacentHTML("afterbegin", `<div class="plano-faixa ${tom}" role="status"><span>${esc(msg)}</span><a href="${PL_CONTATO}" target="_blank" rel="noopener">Falar com a NEXO</a></div>`);
+}

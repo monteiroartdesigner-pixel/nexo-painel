@@ -162,3 +162,15 @@ function apBotoesPaleta() {
   });
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apBotoesPaleta); else apBotoesPaleta();
+
+// Assinatura "Desenvolvido por NEXO | Gestão e Sistemas": sempre na base da tela (painéis e login).
+function apAssinatura() {
+  const html = `<a class="assinatura-nexo" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener" aria-label="Desenvolvido por NEXO, Gestão e Sistemas. Abre o Instagram da NEXO em nova aba">
+    <img src="${AP_BASE}nexo-marca.webp" alt="" width="52" height="40" loading="lazy" decoding="async">
+    <span class="an-txt"><small>Desenvolvido por</small><span class="an-nome"><strong>NEXO</strong><i aria-hidden="true"></i><em>Gestão e Sistemas</em></span></span></a>`;
+  ["#telaApp", "#telaLogin"].forEach(sel => {
+    const alvo = document.querySelector(sel);
+    if (alvo && !alvo.querySelector(":scope > .assinatura-nexo")) alvo.insertAdjacentHTML("beforeend", html);
+  });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apAssinatura); else apAssinatura();

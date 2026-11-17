@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="../assets/leads.css?v=20261118a">
 <link rel="stylesheet" href="../assets/leads-prospect.css?v=20261118a">
 <link rel="stylesheet" href="../assets/explicador.css?v=20261117e">
-<script src="../assets/aparencia.js?v=20261118b"></script>
+<script src="../assets/aparencia.js?v=20261118c"></script>
 <style>
 /* ============================================================ design system: tokens */
 :root{
@@ -255,7 +255,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
   .hide-m{display:none!important}
 }
 </style>
-<link rel="stylesheet" href="../assets/visual.css?v=20261118b">
+<link rel="stylesheet" href="../assets/visual.css?v=20261118f">
 </head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -299,6 +299,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="../assets/base.js?v=20261118a"></script>
 <script src="../assets/links.js?v=20261117c"></script>
 <script src="../assets/leads.js?v=20261118a"></script>
+<script src="../assets/plano.js?v=20261118e"></script>
 <script src="../assets/explicador.js?v=20261117f"></script>
 <script>
 "use strict";
@@ -404,13 +405,19 @@ const MOD_LEADS = ["leads", "Leads Instagram", "ig", "Leads IG"]; // 4º item: n
 function rotaAtual() { const r = (location.hash.replace(/^#\/?/, "") || "inicio").split("?")[0]; return MODS.some(m => m[0] === r) ? r : "inicio"; }
 function pintarNav() {
   const r = rotaAtual(), pend = S.tarefas.filter(t => !t.feita && t.vence_em <= hoje()).length;
-  const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""}>${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}</a>`;
+  const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""} class="${modTrancado(k) ? "trancado" : ""}">${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}</a>`;
   $("#nav").innerHTML = MODS.map(item).join(""); $("#bottom").innerHTML = MODS.map(m => item([m[0], m[3] || m[1], m[2]])).join("");
 }
 window.addEventListener("hashchange", () => { pintarNav(); render(); window.scrollTo(0, 0); });
+// Plano (assets/plano.js): o Prospect inteiro pede o recurso "prospect"; os Leads do Instagram são da empresa da Onça.
+const PRO_RECURSO = { inicio: "prospect", crm: "prospect", tarefas: "prospect", campanhas: "prospect", leads: "marketing_instagram" };
+const empresaDoModulo = k => k === "leads" ? st.empresaId : S.empresaId;
+const modTrancado = k => !!PRO_RECURSO[k] && !planoTem(PRO_RECURSO[k], empresaDoModulo(k));
 function render() {
   const r = rotaAtual(), el = $("#main");
-  ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, leads: vLeads, ajuda: vAjuda })[r](el);
+  if (modTrancado(r)) el.innerHTML = planoBloqueio(PRO_RECURSO[r], empresaDoModulo(r));
+  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, leads: vLeads, ajuda: vAjuda })[r](el);
+  planoFaixa(S.empresaId, el);
   document.title = `${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
 }
 
@@ -448,12 +455,19 @@ function marcarDuplicados() {
 const campDe = (e, id) => (e.campanhas || []).find(x => !id || x.id === id) || {};
 const melhorPrio = e => (e.campanhas || []).map(c => c.prioridade).sort((a, b) => ["alta", "media", "baixa"].indexOf(a) - ["alta", "media", "baixa"].indexOf(b))[0];
 const tarefaDe = e => S.tarefas.filter(t => !t.feita && t.empresa === e.id).sort((a, b) => a.vence_em < b.vence_em ? -1 : 1)[0];
+// "Pediu retorno": tarefa com data cujo título começa com RETORNO. O CRM destaca o lead até a tarefa ser concluída.
+const RETORNO = "Retorno pedido pelo lead";
+const retornoDe = e => S.tarefas.filter(t => !t.feita && t.empresa === e.id && String(t.titulo || "").startsWith(RETORNO)).sort((a, b) => a.vence_em < b.vence_em ? -1 : 1)[0];
+const tomRetorno = r => r.vence_em < hoje() ? "bad" : r.vence_em === hoje() ? "warn" : "info";
+const rotRetorno = r => r.vence_em < hoje() ? `Retorno atrasado · ${dataBR(r.vence_em).slice(0, 5)}` : r.vence_em === hoje() ? "Retornar hoje" : `Retornar ${dataBR(r.vence_em).slice(0, 5)}`;
 // Classificação flexível: a equipe ficou em dúvida e perguntou antes de escrever a mensagem.
 const duvidaDe = e => { const c = e.classificacao || (e.dados && e.dados.classificacao); return c && c.pergunta && !c.resposta ? c : null; };
 function proximoPasso(e) {
   const t = tarefaDe(e), k = campDe(e), contato = e.whatsapp || e.email || e.instagram;
   const dv = duvidaDe(e);
   if (dv && !["perdido", "nao_contatar", "cliente"].includes(e.status)) return { t: "Responder a dúvida da equipe", d: dv.pergunta, tom: "warn" };
+  const rt = retornoDe(e);
+  if (rt) return { t: rt.vence_em <= hoje() ? "Ele pediu retorno: fale hoje" : "Ele pediu retorno", d: `${rt.titulo.slice(RETORNO.length).replace(/^:\s*/, "") || "Combinado com o lead"} · ${dataBR(rt.vence_em)}`, tom: rt.vence_em <= hoje() ? "warn" : "pri" };
   if (t) return { t: t.vence_em < hoje() ? "Tarefa atrasada" : t.vence_em === hoje() ? "Tarefa para hoje" : "Próxima tarefa", d: `${t.titulo} · ${dataBR(t.vence_em)}`, tom: t.vence_em <= hoje() ? "warn" : "" };
   if (["perdido", "nao_contatar", "cliente"].includes(e.status)) return { t: e.status === "cliente" ? "Cliente" : "Encerrado", d: e.status === "cliente" ? "Acompanhe a entrega e peça indicação." : "Nenhuma ação pendente.", tom: "" };
   if (["novo", "qualificado", "abordar"].includes(e.status)) return contato ? { t: "Fazer a primeira abordagem", d: k.mensagem_pt || k.mensagem_en || k.oportunidade ? "Abra a ficha: a mensagem sugerida está lá para revisar e enviar." : "Escreva uma mensagem curta citando o que você viu.", tom: "pri" } : { t: "Achar um contato", d: "A empresa ainda não tem contato comercial público.", tom: "" };
@@ -566,17 +580,20 @@ function corpoCrm() {
   S.crm.vista === "kanban" ? kanban(el, l) : tabela(el, l);
 }
 function cardLead(e) {
-  const t = tarefaDe(e), p = melhorPrio(e);
-  return `<div class="kc" draggable="true" data-id="${e.id}" tabindex="0">
+  const t = tarefaDe(e), p = melhorPrio(e), rt = retornoDe(e);
+  return `<div class="kc${rt ? " retorno " + tomRetorno(rt) : ""}" draggable="true" data-id="${e.id}" tabindex="0">
+    ${rt ? `<div class="ret-faixa" title="${esc(rt.titulo)} · ${dataBR(rt.vence_em)}">${ic("cal")}<b>${esc(rotRetorno(rt))}</b></div>` : ""}
     <div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><span class="nm">${esc(e.nome)}</span><span class="score ${scoreCls(e.pontuacao)}">${e.pontuacao ?? "–"}</span></div>
     <div class="meta">${esc([e.segmento, e.cidade].filter(Boolean).join(" · "))}</div>
     <div class="meta">${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : ""}${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${e._dup ? `<span class="badge warn" title="Parecida com: ${esc(e._dup.join(", "))}">possível duplicado</span>` : ""}${duvidaDe(e) ? `<span class="badge warn" title="${esc(duvidaDe(e).pergunta)}">dúvida para você</span>` : ""}</div>
-    ${t ? `<div class="meta"><span class="badge ${t.vence_em < hoje() ? "bad" : t.vence_em === hoje() ? "warn" : ""}">${ic("cal")}${dataBR(t.vence_em)}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo)}</span></div>` : ""}
+    ${t && t !== rt ? `<div class="meta"><span class="badge ${t.vence_em < hoje() ? "bad" : t.vence_em === hoje() ? "warn" : ""}">${ic("cal")}${dataBR(t.vence_em)}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo)}</span></div>` : ""}
   </div>`;
 }
 function kanban(el, l) {
   const cols = [...FUNIL, "perdido"];
-  el.innerHTML = `<div class="kanban">${cols.map(s => { const itens = l.filter(e => s === "perdido" ? ["perdido", "nao_contatar"].includes(e.status) : e.status === s); return `
+  // Quem pediu retorno sobe para o topo da coluna (o mais urgente primeiro); o resto mantém a ordem.
+  const urg = e => retornoDe(e)?.vence_em || "9999";
+  el.innerHTML = `<div class="kanban">${cols.map(s => { const itens = l.filter(e => s === "perdido" ? ["perdido", "nao_contatar"].includes(e.status) : e.status === s).map((e, i) => [e, i]).sort((a, b) => urg(a[0]) < urg(b[0]) ? -1 : urg(a[0]) > urg(b[0]) ? 1 : a[1] - b[1]).map(x => x[0]); return `
     <section class="col" data-col="${s}" aria-label="${ST[s][0]}"><div class="col-h"><span class="dot" style="color:${{ cliente: "var(--ok)", perdido: "var(--bad)", proposta: "var(--warn)", respondeu: "var(--warn)" }[s] || "var(--primary)"}"></span>${ST[s][0]}<span class="n">${itens.length}</span></div>
       <div class="col-b">${itens.map(cardLead).join("") || `<div class="muted peq" style="text-align:center;padding:14px 6px">Arraste um lead para cá</div>`}</div></section>`; }).join("")}</div>`;
   $$(".kc", el).forEach(c => {
@@ -602,7 +619,7 @@ function tabela(el, l) {
       <td class="hide-m"><span class="row muted" style="gap:6px">${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${urlSegura(e.site) ? ic("web") : ""}</span></td>
       <td class="t2">${esc([e.cidade, e.pais].filter(Boolean).join(", "))}</td>
       <td class="hide-m t2">${esc((e.campanhas || []).map(c => c.nome).join(", "))}</td>
-      <td>${t ? `<span class="badge ${t.vence_em < hoje() ? "bad" : t.vence_em === hoje() ? "warn" : ""}">${dataBR(t.vence_em)}</span> <span class="peq t2">${esc(t.titulo)}</span>` : `<span class="peq muted">${esc(proximoPasso(e).t)}</span>`}</td></tr>`; }).join("")}</tbody></table></div>`;
+      <td>${retornoDe(e) ? `<span class="badge ${tomRetorno(retornoDe(e))}">${ic("cal")}${esc(rotRetorno(retornoDe(e)))}</span> <span class="peq t2">pediu retorno</span>` : t ? `<span class="badge ${t.vence_em < hoje() ? "bad" : t.vence_em === hoje() ? "warn" : ""}">${dataBR(t.vence_em)}</span> <span class="peq t2">${esc(t.titulo)}</span>` : `<span class="peq muted">${esc(proximoPasso(e).t)}</span>`}</td></tr>`; }).join("")}</tbody></table></div>`;
   $$("[data-ord]", el).forEach(th => th.onclick = () => { const k = th.dataset.ord; f.dir = f.ordem === k ? -f.dir : (k === "pontuacao" ? -1 : 1); f.ordem = k; tabela(el, filtrados()); });
   $$("tr[data-id]", el).forEach(tr => tr.onclick = () => abrirFicha(tr.dataset.id));
 }
@@ -651,7 +668,7 @@ function pintarFicha(f) {
         <div class="row">${(dv.opcoes || []).map(o => `<button class="btn sm" data-resp="${esc(o)}" ${pode ? "" : "disabled"}>${esc(o)}</button>`).join("")}
           <input class="input" data-outro placeholder="Outra resposta…" maxlength="160" style="flex:1 1 160px;min-height:30px;height:30px" ${pode ? "" : "disabled"}>
           <button class="btn sm pri" data-enviar ${pode ? "" : "disabled"}>Responder</button></div></div>`; })()}
-      ${pode ? `<div class="row">${[["abordagem", "Registrar contato", "wa"], ["resposta", "Resposta", "mail"], ["proposta", "Proposta", "edit"], ["contrato", "Contrato", "target"], ["nota", "Anotação", "edit"]].map(([t, n, i]) => `<button class="btn sm" data-reg="${t}">${ic(i)}${n}</button>`).join("")}</div>` : ""}
+      ${pode ? `<div class="row">${[["retorno", "Pediu retorno", "cal"], ["abordagem", "Registrar contato", "wa"], ["resposta", "Resposta", "mail"], ["proposta", "Proposta", "edit"], ["contrato", "Contrato", "target"], ["nota", "Anotação", "edit"]].map(([t, n, i]) => `<button class="btn sm" data-reg="${t}">${ic(i)}${n}</button>`).join("")}</div>` : ""}
       <div class="tabs" role="tablist">${[["visao", "Oportunidade"], ["tarefas", `Tarefas (${(f.tarefas || []).filter(t => !t.feita).length})`], ["historico", "Histórico"]].map(([k, n]) => `<button role="tab" data-aba="${k}" aria-selected="${fichaAba === k}">${n}</button>`).join("")}</div>
       <div id="fAba"></div>
       ${f._semCrm ? `<div class="alert warn">${ic("alert")}<div>Histórico e tarefas aparecem depois da atualização do banco (migração do CRM).</div></div>` : ""}
@@ -659,7 +676,7 @@ function pintarFicha(f) {
   $("[data-x]", d).onclick = fecharGaveta;
   const fs = $("#fSt", d); if (fs) fs.onchange = async () => { await mudarStatus(e.id, fs.value); };
   $$("[data-aba]", d).forEach(b => b.onclick = () => { fichaAba = b.dataset.aba; pintarFicha(f); });
-  $$("[data-reg]", d).forEach(b => b.onclick = () => modalRegistro(f, b.dataset.reg));
+  $$("[data-reg]", d).forEach(b => b.onclick = () => b.dataset.reg === "retorno" ? modalRetorno(f) : modalRegistro(f, b.dataset.reg));
   const responder = async resp => {
     resp = String(resp || "").trim(); if (!resp) { toast("Escolha uma opção ou escreva a resposta.", true); return; }
     try { await rpc("nexo_prospect_confirmar", { p_empresa: e.id, p_resposta: resp }); toast("Respondido. A equipe escreve a mensagem na próxima rodada."); await recarregarFicha(e.id); }
@@ -774,6 +791,32 @@ async function recarregarFicha(id) {
   try { f = await rpc("nexo_prospect_ficha", { p_empresa: id }); }
   catch { const e0 = S.empresas.find(x => x.id === id); f = { empresa: e0, campanhas: e0?.campanhas || [], historico: [], tarefas: [], _semCrm: true }; }
   if (f.empresa) pintarFicha(f); if (["inicio", "crm", "tarefas"].includes(rotaAtual())) render();
+}
+// O lead pediu para você voltar a falar com ele numa data: vira tarefa de retorno e o CRM destaca o lead até ela ser concluída.
+function modalRetorno(f) {
+  const e = f.empresa, k = f.campanhas?.[0] || {};
+  if (S.faltaCrm) { toast("O retorno precisa da atualização do banco (migração do CRM).", true); return; }
+  abrirModal(`<div class="modal-h"><h2>Pediu retorno</h2><p class="muted" style="margin:6px 0 0">${esc(e.nome)} · Marque o dia combinado. O lead fica em destaque no CRM até você concluir o retorno.</p></div>
+    <form class="modal-b" id="mf">
+      <label class="field"><span>Retornar em</span><input class="input" type="date" id="retData" value="${somaDias(1)}" min="${hoje()}" required></label>
+      <div class="row" style="gap:6px">${[["Amanhã", 1], ["Em 3 dias", 3], ["Semana que vem", 7], ["Em 15 dias", 15]].map(([n, d]) => `<button type="button" class="chip" data-dias="${d}">${n}</button>`).join("")}</div>
+      <label class="field"><span>O que foi combinado (opcional)</span><input class="input" id="retObs" maxlength="140" placeholder="Ex.: ligar depois das 14h, quer ver o orçamento com o sócio"></label>
+      <label class="row peq"><input type="checkbox" id="retHist" checked> Registrar no histórico como resposta do lead (o status passa para Respondeu)</label>
+    </form>
+    <div class="modal-f"><button class="btn ghost" data-fechar>Cancelar</button><button class="btn pri" id="mSalvar">${ic("cal")}Marcar retorno</button></div>`, m => {
+    $$("[data-dias]", m).forEach(b => b.onclick = () => { $("#retData", m).value = somaDias(Number(b.dataset.dias)); });
+    $("#mSalvar", m).onclick = async () => {
+      const form = $("#mf", m); if (!form.reportValidity()) return;
+      const data = $("#retData", m).value, obs = $("#retObs", m).value.trim();
+      $("#mSalvar", m).disabled = true;
+      try {
+        if ($("#retHist", m).checked) await rpc("nexo_prospect_registrar", { p_empresa: e.id, p_campanha: k.id || null, p_tipo: "resposta", p_canal: null,
+          p_texto: `Pediu retorno para ${dataBR(data)}${obs ? ". " + obs : ""}`, p_valor_centavos: null, p_moeda: null });
+        await rpc("nexo_prospect_salvar_tarefa", { p_empresa: e.id, p_id: null, p_titulo: (obs ? `${RETORNO}: ${obs}` : RETORNO).slice(0, 200), p_vence_em: data, p_campanha: k.id || null });
+        fecharModal(); toast(`Retorno marcado para ${dataBR(data)}.`); await recarregarFicha(e.id);
+      } catch (err) { $("#mSalvar", m).disabled = false; toast(msgErro(err), true); }
+    };
+  });
 }
 function modalRegistro(f, tipo) {
   const e = f.empresa, k = f.campanhas?.[0] || {}, moeda = k.moeda || (e.pais === "US" ? "USD" : "BRL");
@@ -897,7 +940,8 @@ function assistente(c0) {
         <label class="field" style="flex:1 1 110px"><span>Preço mínimo</span><input class="input" type="number" min="0" id="aMin" value="${c.preco_min_centavos != null ? c.preco_min_centavos / 100 : ""}"></label>
         <label class="field" style="flex:1 1 110px"><span>Preço máximo</span><input class="input" type="number" min="0" id="aMax" value="${c.preco_max_centavos != null ? c.preco_max_centavos / 100 : ""}"></label></div>
       <small class="muted">Sem faixa, o robô não sugere preço.</small>
-      <div class="field"><span>Execução</span><div class="chips">${[["manual", "Manual (eu peço)"], ["automatico", "Automática (na agenda)"]].map(([k, n]) => `<button type="button" class="chip" data-modo="${k}" data-grupo="modo" aria-pressed="${c.modo === k}">${n}</button>`).join("")}</div></div>
+      <div class="field"><span>Execução</span><div class="chips">${[["manual", "Manual (eu peço)"], ["automatico", "Automática (na agenda)"]].map(([k, n]) => { const tr = k === "automatico" && !planoTem("prospect_ia", S.empresaId) && c.modo !== "automatico";
+        return `<button type="button" class="chip" data-modo="${k}" data-grupo="modo" aria-pressed="${c.modo === k}" ${tr ? `disabled title="Disponível no plano ${PLANO_DE.prospect_ia}"` : ""}>${n}${tr ? ` · plano ${PLANO_DE.prospect_ia}` : ""}</button>`; }).join("")}</div></div>
       <div id="aAgenda" class="stack" ${c.modo === "automatico" ? "" : "hidden"}><div class="chips">${DIAS.map(([d, n]) => `<button type="button" class="chip" data-dia="${d}" aria-pressed="${(c.dias_semana || []).includes(d)}">${n}</button>`).join("")}</div>
         <div class="chips">${TURNOS.map(([t, n]) => `<button type="button" class="chip" data-turno="${t}" aria-pressed="${(c.turnos || []).includes(t)}">${n}</button>`).join("")}</div>
         <small class="muted">3 rodadas seguidas sem empresa nova param a campanha até você editar os filtros.</small></div>
@@ -970,9 +1014,10 @@ async function iniciar() {
   $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
   $("#quem").textContent = S.email;
   if (!emp) { $("#main").innerHTML = `<div class="card"><div class="empty"><h2>Sem acesso ao NEXO Prospect</h2><p class="muted" style="margin:0">O login ${esc(S.email)} não tem papel na NEXO Inteligência e Automação. Peça acesso ao administrador.</p></div></div>`; return; }
-  S.agente = emp.agentes.find(a => a.slug === "prospect").id; S.papel = emp.papel;
+  S.agente = emp.agentes.find(a => a.slug === "prospect").id; S.papel = emp.papel; S.empresaId = emp.id;
   const empV = (ctx.empresas || []).find(e => (e.agentes || []).some(a => a.slug === "onca"));
-  if (empV) { st.agente = empV.agentes.find(a => a.slug === "onca").id; st.papel = empV.papel; st.marca = empV.nome; if (!MODS.includes(MOD_LEADS)) MODS.splice(MODS.length - 1, 0, MOD_LEADS); }
+  if (empV) { st.agente = empV.agentes.find(a => a.slug === "onca").id; st.papel = empV.papel; st.marca = empV.nome; st.empresaId = empV.id; if (!MODS.includes(MOD_LEADS)) MODS.splice(MODS.length - 1, 0, MOD_LEADS); }
+  await Promise.all([planoCarregar(S.empresaId), empV ? planoCarregar(empV.id) : null]);
   rpc("nexo_resumo", { p_agente: S.agente }).then(r => { S.logo = r?.identidade?.logo_painel || null; aplicarLogo(); }).catch(() => aplicarLogo());
   try { S.crm.vista = localStorage.getItem("prospect.vista") || "kanban"; } catch {}
   $("#main").innerHTML = `<div class="sk" style="height:34px;width:260px"></div><div class="grid g-kpi">${"<div class='sk' style='height:92px'></div>".repeat(5)}</div><div class="sk" style="height:280px"></div>`;

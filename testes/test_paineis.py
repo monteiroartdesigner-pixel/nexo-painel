@@ -30,13 +30,13 @@ AG_ONCA, AG_PROSP = "00000000-0000-4000-a000-00000000f101", "00000000-0000-4000-
 
 
 # ---------------------------------------------------------------- dados inventados
-def contexto(com_onca=True):
+def contexto(com_onca=True, master=False):
     empresas = [{"id": "emp-p", "nome": "NEXO Inteligência (teste)", "slug": "nexo-inteligencia", "status": "ativa",
                  "papel": "dono", "agentes": [{"id": AG_PROSP, "nome": "Prospect", "slug": "prospect", "nivel": 1, "ativo": True}]}]
     if com_onca:
         empresas.insert(0, {"id": "emp-v", "nome": "NEXO VÁRZEA (teste)", "slug": "nexo-varzea", "status": "ativa",
                             "papel": "dono", "agentes": [{"id": AG_ONCA, "nome": "Onça", "slug": "onca", "nivel": 2, "ativo": True}]})
-    return {"email": "teste@exemplo.com", "plataforma": False, "empresas": empresas}
+    return {"email": "teste@exemplo.com", "plataforma": master, "empresas": empresas}
 
 
 LEADS = [
@@ -54,9 +54,40 @@ EMPRESAS_P = [
 ]
 
 
-def rpc_falso(nome, args, com_onca=True):
+TAREFAS = []   # cada teste que precisa de tarefa preenche e limpa
+SITUACAO = {}  # situação do plano por empresa (vazio = sem assinatura = tudo liberado)
+
+SIT_INTERNO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "status_gravado": "ativa", "plano": "interno",
+               "plano_nome": "Interno", "recursos": ["prospect"], "limites": {}, "teste_ate": None, "periodo_ate": None, "carencia_dias": 5}
+MASTER_EMPRESAS = [
+    {"id": "emp-v", "nome": "NEXO VÁRZEA (teste)", "slug": "nexo-varzea", "status": "ativa", "origem": "interna", "membros": 1, "agentes": 1,
+     "situacao": SIT_INTERNO},
+    {"id": "emp-c", "nome": "<img src=x onerror=alert(1)> Clínica", "slug": "clinica", "status": "ativa", "origem": "master", "membros": 0,
+     "agentes": 0, "situacao": {**SIT_INTERNO, "plano": "inicial", "plano_nome": "Inicial", "status": "teste", "status_gravado": "teste",
+                                 "dias_teste_restantes": 2, "teste_ate": "2026-11-20T02:59:00Z"}},
+]
+MASTER_PLANOS = [
+    {"chave": "interno", "nome": "Interno", "descricao": "Casa", "preco_centavos": 0, "recursos": ["prospect"], "limites": {}, "dias_teste": 0,
+     "publico": False, "ativo": True, "ordem": 0, "empresas": 1},
+    {"chave": "inicial", "nome": "Inicial", "descricao": "Prospect", "preco_centavos": None, "recursos": ["prospect"],
+     "limites": {"usuarios": 2}, "dias_teste": 3, "publico": False, "ativo": True, "ordem": 1, "empresas": 1},
+]
+
+
+def rpc_falso(nome, args, com_onca=True, master=False):
     if nome == "nexo_contexto":
-        return contexto(com_onca)
+        return contexto(com_onca, master)
+    if nome.startswith("nexo_master_") and not master:
+        raise PermissionError("sem_permissao")
+    if nome == "nexo_master_indicadores":
+        return {"empresas": 2, "empresas_por_origem": {"interna": 1, "master": 1}, "assinaturas_por_status": {"ativa": 1, "teste": 1},
+                "receita_mensal_centavos": 0, "testes_acabando": 1, "faturas_abertas_centavos": 0, "usuarios": 1}
+    if nome == "nexo_master_empresas":
+        return MASTER_EMPRESAS
+    if nome == "nexo_master_planos":
+        return MASTER_PLANOS
+    if nome.startswith("nexo_master_salvar_"):
+        return {"ok": True}
     if nome == "nexo_resumo":
         return {"papel": "dono", "controle": {}, "conteudos": {}, "leads": {"total": len(LEADS)}, "identidade": {},
                 "agente": {"nome": "Onça", "nivel_autonomia": 2},
@@ -76,8 +107,11 @@ def rpc_falso(nome, args, com_onca=True):
         e = EMPRESAS_P[0]
         return {"empresa": e, "campanhas": [{**e["campanhas"][0], "oportunidade": "Teste", "evidencias": [{"o_que": "Evidência", "onde": LINK_RUIM}]}],
                 "historico": [], "tarefas": []}
-    if nome in ("nexo_conteudos", "nexo_atividades", "nexo_ideias", "nexo_links", "nexo_categorias_lead", "nexo_integracoes",
-                "nexo_prospect_tarefas"):
+    if nome == "nexo_prospect_tarefas":
+        return TAREFAS
+    if nome == "nexo_situacao":
+        return SITUACAO.get(args.get("p_empresa"), {"tem_assinatura": False, "acesso": "total"})
+    if nome in ("nexo_conteudos", "nexo_atividades", "nexo_ideias", "nexo_links", "nexo_categorias_lead", "nexo_integracoes"):
         return []
     return {}
 
@@ -104,7 +138,7 @@ def tearDownModule():
 class Pagina:
     """Abre uma página com o Supabase falso e junta todos os erros de JavaScript."""
 
-    def __init__(self, logado=True, com_onca=True, local=None):
+    def __init__(self, logado=True, com_onca=True, local=None, master=False):
         self.ctx = NAV.new_context(viewport={"width": 1280, "height": 900})
         self.erros = []
         if logado:
@@ -115,13 +149,19 @@ class Pagina:
         if local:
             self.ctx.add_init_script("(() => { const d = %s; for (const k in d) localStorage.setItem(k, d[k]); })()" % json.dumps(local))
         self.chamadas = []
+        self.args = []
 
         def supa(route, req):
             m = re.search(r"/rest/v1/rpc/(\w+)", req.url)
             if m:
                 args = json.loads(req.post_data or "{}")
                 self.chamadas.append(m.group(1))
-                return route.fulfill(status=200, content_type="application/json", body=json.dumps(rpc_falso(m.group(1), args, com_onca)))
+                self.args.append((m.group(1), args))
+                try:
+                    corpo = rpc_falso(m.group(1), args, com_onca, master)
+                except PermissionError as e:
+                    return route.fulfill(status=403, content_type="application/json", body=json.dumps({"code": "42501", "message": str(e)}))
+                return route.fulfill(status=200, content_type="application/json", body=json.dumps(corpo))
             return route.fulfill(status=200, content_type="application/json", body="{}")
 
         self.ctx.route(SUPA + "/**", supa)
@@ -210,7 +250,7 @@ class System(unittest.TestCase):
         p = Pagina()
         try:
             pg = p.abrir("/", 1500)
-            abas = pg.eval_on_selector_all(".menu [data-aba]", "bs => bs.map(b => b.dataset.aba)")
+            abas = pg.eval_on_selector_all(".menu [data-aba]", "bs => bs.filter(b => b.offsetParent).map(b => b.dataset.aba)")   # o Master fica escondido para cliente
             self.assertGreaterEqual(len(abas), 8)
             self.assertNotIn("leads", abas)
             for aba in abas:
@@ -344,6 +384,202 @@ class Aparencia(unittest.TestCase):
                 self.assertNotIn("rosto", src)
             quebradas = pg.evaluate("[...document.querySelectorAll('.est .onca')].filter(i => i.complete && !i.naturalWidth).length")
             self.assertEqual(quebradas, 0)
+        finally:
+            p.fechar()
+
+    def test_assinatura_nexo_sempre_na_base(self):
+        for url, logado in (("/index.html", True), ("/prospect/", True), ("/index.html", False), ("/prospect/", False)):
+            p = Pagina(logado=logado)
+            try:
+                pg = p.abrir(url, 1500)
+                vis = pg.evaluate("[...document.querySelectorAll('.assinatura-nexo')].filter(a => a.offsetParent).map(a => a.innerText.replace(/\s+/g, ' ').trim())")
+                self.assertEqual(len(vis), 1, f"{url} logado={logado}: uma assinatura visível")
+                self.assertRegex(vis[0], r"(?i)desenvolvido por nexo gest(ã|a)o e sistemas")
+            finally:
+                p.fechar()
+
+
+class Master(unittest.TestCase):
+    """Etapa 4: a aba Master só para o administrador da plataforma."""
+
+    def abrir_master(self, p):
+        pg = p.abrir("/index.html", 1500)
+        pg.click('.menu [data-aba="master"]')
+        pg.wait_for_timeout(600)
+        return pg
+
+    def test_cliente_comum_nao_ve_o_master(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            self.assertFalse(pg.is_visible('.menu [data-aba="master"]'))
+            self.assertNotIn("nexo_master_empresas", p.chamadas)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_aba_master_salva_no_aparelho_nao_abre_para_cliente(self):
+        p = Pagina(local={"nexo.aba": "master"})
+        try:
+            pg = p.abrir("/index.html", 1500)
+            self.assertTrue(pg.is_visible('[data-sec="equipe"]'))
+            self.assertFalse(pg.is_visible('[data-sec="master"]'))
+        finally:
+            p.fechar()
+
+    def test_master_mostra_indicadores_empresas_e_planos(self):
+        p = Pagina(master=True)
+        try:
+            pg = self.abrir_master(p)
+            sec = pg.inner_text('[data-sec="master"]')
+            for txt in ("Master", "Empresas", "Planos", "NEXO VÁRZEA (teste)", "Teste grátis", "a definir"):
+                self.assertIn(txt, sec)
+            self.assertEqual(pg.evaluate("document.querySelectorAll('[data-sec=master] img[src=x]').length"), 0, "nome com HTML não vira imagem")
+            self.assertEqual(len(pg.query_selector_all(".m-emp")), 2)
+            self.assertEqual(len(pg.query_selector_all("form.m-plano")), 2)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_master_salva_plano_com_preco_em_centavos(self):
+        p = Pagina(master=True)
+        try:
+            pg = self.abrir_master(p)
+            f = 'form[data-m-salvar-plano="inicial"]'
+            pg.fill(f + " [name=preco]", "97,50")
+            pg.fill(f + " [name=lim_usuarios]", "")
+            pg.check(f + " input[value=marketing_instagram]")
+            pg.click(f + " [type=submit]")
+            pg.wait_for_timeout(500)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_plano"][-1]
+            self.assertEqual(args["p_chave"], "inicial")
+            self.assertEqual(args["p_dados"]["preco_centavos"], 9750)
+            self.assertEqual(args["p_dados"]["recursos"], ["prospect", "marketing_instagram"])
+            self.assertNotIn("usuarios", args["p_dados"]["limites"], "limite vazio = sem limite")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_master_cria_empresa_e_define_plano(self):
+        p = Pagina(master=True)
+        try:
+            pg = self.abrir_master(p)
+            pg.click("#mNova")
+            pg.fill(".m-janela [name=nome]", "Clínica Sorriso")
+            pg.fill(".m-janela [name=slug]", "clinica-sorriso")
+            pg.fill(".m-janela [name=whatsapp]", "(41) 99999-0000")
+            pg.click(".m-janela [type=submit]")
+            pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_empresa"][-1]
+            self.assertIsNone(args["p_id"])
+            self.assertEqual(args["p_dados"]["slug"], "clinica-sorriso")
+            pg.click('[data-m-plano="emp-c"]')
+            pg.select_option(".m-janela [name=status]", "ativa")
+            pg.fill(".m-janela [name=periodo_ate]", "2026-12-18")
+            pg.click(".m-janela [type=submit]")
+            pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_assinatura"][-1]
+            self.assertEqual(args["p_empresa"], "emp-c")
+            self.assertEqual(args["p_dados"]["status"], "ativa")
+            self.assertTrue(args["p_dados"]["periodo_ate"].startswith("2026-12-19T02:59"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class Retorno(unittest.TestCase):
+    """Lead que pediu retorno: data marcada e destaque no CRM."""
+
+    def tearDown(self):
+        TAREFAS.clear()
+
+    def test_card_de_quem_pediu_retorno_fica_em_destaque(self):
+        import datetime
+        ontem = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+        TAREFAS.append({"id": "t1", "titulo": "Retorno pedido pelo lead: ligar depois das 14h", "vence_em": ontem, "feita": False,
+                        "empresa": "e1", "empresa_nome": "Clínica Teste", "empresa_status": "qualificado"})
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/crm", 1800)
+            card = pg.query_selector('.kc[data-id="e1"]')
+            self.assertIsNotNone(card)
+            self.assertIn("retorno", card.get_attribute("class"))
+            self.assertIn("bad", card.get_attribute("class"), "retorno atrasado fica vermelho")
+            self.assertIn("Retorno atrasado", card.inner_text())
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_ficha_marca_retorno_com_data(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/crm", 1800)
+            pg.click('.kc[data-id="e1"]')
+            pg.wait_for_timeout(600)
+            pg.click('[data-reg="retorno"]')
+            pg.click('[data-dias="7"]')
+            pg.fill("#retObs", "quer ver com o sócio")
+            pg.click("#mSalvar")
+            pg.wait_for_timeout(700)
+            reg = [a for n, a in p.args if n == "nexo_prospect_registrar"][-1]
+            tar = [a for n, a in p.args if n == "nexo_prospect_salvar_tarefa"][-1]
+            self.assertEqual(reg["p_tipo"], "resposta")
+            self.assertIn("Pediu retorno para", reg["p_texto"])
+            self.assertEqual(tar["p_titulo"], "Retorno pedido pelo lead: quer ver com o sócio")
+            import datetime
+            self.assertEqual(tar["p_vence_em"], (datetime.date.today() + datetime.timedelta(days=7)).isoformat())
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class PlanoDaEmpresa(unittest.TestCase):
+    """O que não está no plano não aparece; no lugar fica o convite para ativar."""
+
+    INICIAL = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "plano": "inicial", "plano_nome": "Inicial",
+               "recursos": ["prospect"], "limites": {}}
+
+    def tearDown(self):
+        SITUACAO.clear()
+
+    def test_sem_assinatura_tudo_liberado(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            self.assertEqual(pg.evaluate("document.querySelectorAll('.trancado').length"), 0)
+            pg = p.abrir("/prospect/", 1500)
+            self.assertEqual(pg.evaluate("document.querySelectorAll('.trancado').length"), 0)
+            self.assertIsNone(pg.query_selector(".plano-trava"))
+        finally:
+            p.fechar()
+
+    def test_plano_inicial_tranca_marketing_e_ia(self):
+        SITUACAO.update({"emp-v": self.INICIAL, "emp-p": self.INICIAL})
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            self.assertIn("trancado", pg.get_attribute('.menu [data-aba="ideias"]', "class"))
+            pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(300)
+            txt = pg.inner_text('[data-sec="ideias"]')
+            self.assertIn("disponível no plano profissional", txt.lower())
+            self.assertNotIn("nexo_ideias", [n for n, a in p.args][-1:], "a função trancada não é carregada")
+            pg = p.abrir("/prospect/#/leads", 1500)
+            self.assertIsNotNone(pg.query_selector(".plano-trava"), "Leads IG fora do plano Inicial")
+            pg = p.abrir("/prospect/#/crm", 1500)
+            self.assertIsNone(pg.query_selector(".plano-trava"), "CRM está no plano Inicial")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_teste_vencido_tranca_e_mostra_faixa(self):
+        SITUACAO.update({"emp-p": {**self.INICIAL, "status": "teste_vencido", "acesso": "leitura"}})
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/crm", 1500)
+            self.assertIn("Seu teste grátis acabou", pg.inner_text("#main"))
+            self.assertIsNotNone(pg.query_selector(".plano-faixa.bad"))
+            self.assertIsNone(pg.query_selector(".kanban"), "o CRM não aparece")
+            self.assertEqual(p.erros, [])
         finally:
             p.fechar()
 

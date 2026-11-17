@@ -1,0 +1,38 @@
+/* Master da plataforma NEXO (assets/master.js). Usa os tokens do System e da camada visual. */
+[data-sec="master"]{display:flex;flex-direction:column;gap:16px}
+[data-sec="master"].oculto{display:none}
+.m-topo{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.m-kpis .kpi{display:flex;flex-direction:column;gap:4px}
+.m-kpis .kpi-n{font-family:var(--ft);font-size:24px}
+
+.m-lista{display:flex;flex-direction:column;gap:8px}
+.m-emp{display:grid;grid-template-columns:42px minmax(0,1fr) auto auto;align-items:center;gap:12px;padding:12px;border-radius:14px;
+  background:var(--card);border:1px solid var(--fina)}
+.m-emp-av{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font:800 14px var(--ft);color:var(--onca-forte,var(--onca));
+  background:color-mix(in srgb,var(--onca) 14%,transparent);border:1px solid color-mix(in srgb,var(--onca) 30%,transparent)}
+.m-emp-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.m-emp-txt b,.m-emp-txt span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.m-planos{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
+.m-plano{display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:16px;background:var(--card);border:1px solid var(--fina);margin:0}
+.m-plano-nome{font-family:var(--ft);font-size:17px}
+.m-duas{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.m-campo{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--muted);min-width:0}
+.m-campo input,.m-campo select{width:100%;background:var(--dark);border:1px solid var(--borda);border-radius:10px;padding:9px 11px;color:var(--fg);font:inherit;font-size:14px;min-height:40px}
+.m-campo input:focus,.m-campo select:focus{outline:none;border-color:var(--onca);box-shadow:0 0 0 3px color-mix(in srgb,var(--onca) 22%,transparent)}
+.m-campo input:disabled{opacity:.55}
+.m-rec{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.m-rec legend{margin-bottom:6px}
+.m-chk{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border-radius:999px;border:1px solid var(--borda);font-size:12.5px;cursor:pointer;user-select:none}
+.m-chk:has(input:checked){border-color:var(--onca);background:color-mix(in srgb,var(--onca) 14%,transparent)}
+.m-chk input{accent-color:var(--onca);margin:0}
+.m-janela{gap:14px}
+[data-tema="claro"] .m-campo input,[data-tema="claro"] .m-campo select{background:#fff}
+[data-tema="cafe"] .m-emp,[data-tema="cafe"] .m-plano{background:#fff;border:2px solid #16224D}
+[data-tema="cafe"] .m-campo input,[data-tema="cafe"] .m-campo select{background:#fff;border:2px solid rgba(22,34,77,.4);color:#16224D}
+
+@media (max-width:700px){
+  .m-emp{grid-template-columns:42px minmax(0,1fr) auto}
+  .m-emp > .linha{grid-column:1/-1;justify-content:flex-end}
+  .m-duas{grid-template-columns:1fr}
+}

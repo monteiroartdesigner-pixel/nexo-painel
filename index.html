@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/temas.css?v=20261117c">
 <link rel="stylesheet" href="assets/ideias.css?v=20261117c">
 <link rel="stylesheet" href="assets/explicador.css?v=20261117e">
-<script src="assets/aparencia.js?v=20261118b"></script>
+<script src="assets/aparencia.js?v=20261118c"></script>
 <link rel="icon" href="assets/nexo-marca.webp">
 <style>
 :root{
@@ -152,7 +152,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="assets/visual.css?v=20261118b">
+<link rel="stylesheet" href="assets/visual.css?v=20261118f">
+<link rel="stylesheet" href="assets/master.css?v=20261118c">
 </head>
 <body>
 
@@ -206,6 +207,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
       <button data-aba="funcoes">Funções</button>
       <button data-aba="conhecimento">Conhecimento</button>
       <button data-aba="integracoes">Integrações</button>
+      <span class="grupo m-so-master oculto">Plataforma</span>
+      <button data-aba="master" class="m-so-master oculto">Master</button>
       <span class="grupo">Suporte</span>
       <button data-aba="ajuda">Ajuda</button>
     </nav>
@@ -228,6 +231,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   <section data-sec="integracoes" class="oculto" aria-label="Integrações"></section>
   <section data-sec="atividade" class="oculto" aria-label="Atividade"></section>
   <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
+  <section data-sec="master" class="oculto" aria-label="Master da plataforma"></section>
   </main>
 </div>
 
@@ -236,6 +240,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script src="assets/base.js?v=20261118a"></script>
 <script src="assets/equipe.js?v=20261118b"></script>
+<script src="assets/master.js?v=20261118c"></script>
+<script src="assets/plano.js?v=20261118e"></script>
 <script src="assets/ideias.js?v=20261117c"></script>
 <script src="assets/explicador.js?v=20261117f"></script>
 <script>
@@ -319,6 +325,7 @@ const ICONES_MENU = { ideias: "M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7
   funcoes: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
   conhecimento: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5",
   integracoes: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  master: "M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5zM9 12l2 2 4-4",
   ajuda: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5M12 17.5h.01" };
 $$(".menu button").forEach(b => { const d = ICONES_MENU[b.dataset.aba]; if (d) b.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`); });
 
@@ -353,7 +360,9 @@ async function iniciar() {
   $("#selAgente").value = st.agente;
   $("#selAgente").onchange = () => { st.agente = $("#selAgente").value; try { localStorage.setItem("nexo.agente", st.agente); } catch {} carregar(); };
   $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
+  $$(".m-so-master").forEach(x => x.classList.toggle("oculto", !st.ctx.plataforma));   // só o Master vê (o banco confere de novo)
   let aba = "equipe"; try { aba = localStorage.getItem("nexo.aba") || "equipe"; } catch {}
+  if (aba === "master" && !st.ctx.plataforma) aba = "equipe";
   if (!document.querySelector(`.menu [data-aba="${aba}"]`)) aba = "equipe"; // aba que não existe mais (ex.: a antiga "prospect") volta para a Equipe
   // Volta do "Entrar com Facebook": mostra o resultado e limpa o endereço.
   const volta = new URLSearchParams(location.search);
@@ -371,6 +380,11 @@ async function carregar() {
   try {
     const [r, c, l] = await Promise.all([rpc("nexo_resumo", { p_agente: st.agente }), rpc("nexo_conteudos", { p_agente: st.agente }), rpc("nexo_leads", { p_agente: st.agente })]);
     st.resumo = r; st.conteudos = c || []; st.leads = l || [];
+    // Plano da empresa do agente: o que não está no plano fica trancado (assets/plano.js).
+    st.empresaId = (st.ctx.empresas || []).find(e => (e.agentes || []).some(a => a.id === st.agente))?.id || null;
+    await planoCarregar(st.empresaId);
+    planoFaixa(st.empresaId, $(".conteudo"));
+    $$(".menu button[data-aba]").forEach(b => { const rec = SYS_RECURSO[b.dataset.aba]; b.classList.toggle("trancado", !!rec && !planoTem(rec, st.empresaId)); });
     const ident = r.identidade || {};
     $("#nomeEmpresa").textContent = r.empresa?.nome || "NEXO System";
     $("#nomeAgente").textContent = ident.nome_exibicao || r.agente?.nome || "Agente";
@@ -380,9 +394,13 @@ async function carregar() {
     desenhar();
   } catch (e) { aviso(msgErro(e), true); }
 }
+// Abas que dependem de um recurso pago. As outras (equipe, início, agente, ajuda...) ficam sempre.
+const SYS_RECURSO = { ideias: "marketing_instagram", aprovar: "marketing_instagram" };
 function desenhar() {
   if (!st.resumo) return;
-  ({ equipe, ideias, inicio, aprovar, agente, funcoes, conhecimento, integracoes, atividade, ajuda })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+  const rec = SYS_RECURSO[st.aba];
+  if (rec && !planoTem(rec, st.empresaId)) { $(`[data-sec="${st.aba}"]`).innerHTML = planoBloqueio(rec, st.empresaId); return; }
+  ({ equipe, ideias, inicio, aprovar, agente, funcoes, conhecimento, integracoes, atividade, ajuda, master })[st.aba]?.($(`[data-sec="${st.aba}"]`));
 }
 
 // ---------------------------------------------------------------- INÍCIO
