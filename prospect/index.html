@@ -231,6 +231,11 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 .auto-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
 .auto-k{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .auto-k span{font-size:12px;color:var(--muted)} .auto-k b{font-size:22px} .auto-k small{font-size:11.5px;color:var(--muted)}
+.rd-lista{display:flex;flex-direction:column;gap:6px}
+.rd-l{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid var(--border)}
+.rd-l.bad{border-color:color-mix(in srgb,var(--bad) 60%,transparent)}
+.rd-master{display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-radius:12px;border:1px dashed var(--border)}
+.rd-master.alerta{border-style:solid;border-color:color-mix(in srgb,var(--bad) 60%,transparent)}
 .auto-prox{display:flex;gap:10px;align-items:flex-start;background:var(--primary-soft);border-radius:12px;padding:10px 12px}
 .auto-det summary{cursor:pointer;font-weight:600;color:var(--text-2)}
 .analise{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2)}
@@ -464,6 +469,7 @@ async function carregarTudo() {
     rpc("nexo_prospect_indicadores", { p_agente: S.agente, p_campanha: null }).catch(() => null)]);
   S.campanhas = camp || []; S.empresas = emp || []; S.indic = ind;
   try { S.oper = await rpc("nexo_prospect_operacao", { p_agente: S.agente }); } catch { S.oper = null; }
+  try { S.rodadas = await rpc("nexo_rodada_status", { p_agente: S.agente }); } catch { S.rodadas = null; }   // migração 20261119210000
   try { S.tarefas = await rpc("nexo_prospect_tarefas", { p_agente: S.agente, p_filtro: "todas" }) || []; S.faltaCrm = false; }
   catch (e) { S.tarefas = []; S.faltaCrm = true; }
   marcarDuplicados(); pintarNav();
@@ -531,6 +537,7 @@ function vInicio(el) {
         <div class="peq muted" style="margin-top:12px">Abordagens, respostas, propostas e contratos contam o que você registra na ficha de cada lead.</div></div>
     </div>
     ${quadroAutomacao()}
+    ${quadroRodadas()}
     ${S.indic ? `<div class="grid g-kpi">
       ${kpi("Leads em Clientes", i.empresas || 0, `${i.com_contato || 0} com contato`, "crm")}
       ${kpi("Qualificados", i.qualificadas || 0, "nota 45 ou mais", "check")}
@@ -547,6 +554,7 @@ function vInicio(el) {
       <div class="card"><div class="card-h"><h2>Leads por nicho</h2></div>${barras((i.por_nicho || []).map(x => [x.nome, x.n]))}</div>
       <div class="card"><div class="card-h"><h2>Leads por país</h2></div>${barras(Object.entries(i.por_pais || {}).map(([k, v]) => [k === "BR" ? "Brasil" : k === "US" ? "Estados Unidos" : k, v]))}</div></div>` : ""}`;
   $$("[data-emp]", el).forEach(x => x.onclick = () => abrirFicha(x.dataset.emp));
+  $$("[data-rodada]", el).forEach(b => b.onclick = () => pedirRodada(b.dataset.rodada, b));
   // Mandar link ou contato (assets/links.js): o Ricardo cola o link e o robô faz o resto.
   if (typeof linksCaixa === "function") linksCaixa($("#pLinks", el), {
     rpc, agente: S.agente, esc, avisar: toast, msgErro, quando, pode: !["leitor"].includes(S.papel),
@@ -745,6 +753,46 @@ function proximaRodadaProspect() {
     if (n > sp && dia <= 6) return { quando: new Date(+n + dif), turno: t, dia };
   }
   return null;
+}
+// Rodadas das 06:10, 12:10 e 18:10: mostra se a entrega chegou e quando (pedido do Ricardo, 18/11/2026).
+// O master tem os botões "Gravar agora" (traz o que a equipe já entregou) e "Rodar a busca agora" (rodada extra).
+function quadroRodadas() {
+  const r = S.rodadas; if (!r) return "";
+  const hora = d => new Date(d).toLocaleString("pt-BR", { timeZone: FUSO, hour: "2-digit", minute: "2-digit" });
+  const dia = d => { const x = new Date(d).toLocaleDateString("pt-BR", { timeZone: FUSO }), hoje = new Date().toLocaleDateString("pt-BR", { timeZone: FUSO });
+    return x === hoje ? "hoje" : new Date(d).toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "short", day: "2-digit" }); };
+  const linha = x => {
+    const [rot, cls] = { gravada: ["Chegou", "ok"], aguardando: ["Pesquisando", "info"], atrasada: ["Não chegou", "bad"] }[x.estado] || [x.estado, ""];
+    const det = x.estado === "gravada"
+      ? `Gravada às ${hora(x.gravado_em)} · ${pl(x.empresas_novas, "empresa nova", "empresas novas")} para você${r.master && x.leads_novos != null ? ` · ${pl(x.leads_novos, "lead", "leads")} do Várzea` : ""}`
+      : x.estado === "aguardando" ? "A equipe está pesquisando. A entrega chega em até 40 minutos."
+      : `Passou do horário e a entrega não foi gravada.${r.master ? " Use os botões abaixo." : " A NEXO já foi avisada."}`;
+    return `<div class="rd-l ${cls}"><b class="tnum">${hora(x.horario)}</b><span class="muted peq">${dia(x.horario)}</span>
+      <span class="badge ${cls}"><span class="dot"></span>${rot}</span><span class="peq t2" style="flex:1 1 220px;min-width:0">${det}</span></div>`;
+  };
+  const atrasada = (r.rodadas || []).some(x => x.estado === "atrasada");
+  return `<section class="card stack"><div class="card-h" style="margin:0"><h2>Rodadas da equipe</h2><span class="muted peq">06:10 · 12:10 · 18:10</span></div>
+    <div class="rd-lista">${(r.rodadas || []).map(linha).join("") || `<div class="muted peq">Nenhuma rodada ainda.</div>`}</div>
+    ${r.master ? `<div class="rd-master${atrasada ? " alerta" : ""}"><div class="peq"><b>Master:</b> se uma rodada não chegou, grave o que a equipe já entregou. Se não houve entrega, peça uma rodada extra.</div>
+      <div class="row"><button class="btn sm" data-rodada="gravar" title="Traz para o painel o que a equipe já entregou">${ic("check")}Gravar agora</button>
+        <button class="btn sm" data-rodada="buscar" title="Faz uma rodada de busca fora dos 3 horários">${ic("bolt")}Rodar a busca agora</button></div>
+      ${(r.pedidos || []).length ? `<div class="peq muted">Pedidos recentes: ${r.pedidos.map(p => `${p.acao === "rodada_gravar_pedida" ? "gravar" : "buscar"} às ${hora(p.em)}`).join(" · ")}</div>` : ""}</div>` : ""}
+  </section>`;
+}
+async function pedirRodada(acao, b) {
+  b.disabled = true;
+  try {
+    const sessao = (await sb.auth.getSession()).data.session;
+    if (!sessao) throw new Error("Entre de novo no painel.");
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/nexo-rodada`, { method: "POST",
+      headers: { Authorization: "Bearer " + sessao.access_token, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ acao }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.erro || "Não deu para disparar agora.");
+    toast(!d.disparado ? `Já está rodando (${d.motivo}).` : acao === "gravar" ? "Gravação disparada. Os leads aparecem em uns 3 minutos." : "Rodada extra pedida. A equipe começa em uns 2 minutos e entrega em uns 15.");
+    try { S.rodadas = await rpc("nexo_rodada_status", { p_agente: S.agente }); } catch {}
+  } catch (e) { toast(e.message || "Falhou.", true); }
+  finally { b.disabled = false; }
 }
 function quadroAutomacao() {
   const o = S.oper;

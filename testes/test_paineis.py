@@ -542,6 +542,46 @@ class Master(unittest.TestCase):
             p.fechar()
 
 
+class RodadasDaEquipe(unittest.TestCase):
+    """Vendas mostra se a rodada das 06:10/12:10/18:10 chegou; o master tem os botões (18/11/2026)."""
+    ST = {"rodadas": [
+        {"horario": "2026-11-18T21:10:00Z", "estado": "atrasada", "gravado_em": None, "empresas_novas": 0, "leads_novos": None},
+        {"horario": "2026-11-18T15:10:00Z", "estado": "gravada", "gravado_em": "2026-11-18T16:27:00Z", "empresas_novas": 8, "leads_novos": 7}],
+        "pedidos": []}
+
+    def abrir(self, master):
+        global rpc_falso
+        orig, st = rpc_falso, {**self.ST, "master": master}
+
+        def com_rodadas(nome, args, *a, **k):
+            return st if nome == "nexo_rodada_status" else orig(nome, args, *a, **k)
+        rpc_falso = com_rodadas
+        self.addCleanup(lambda: globals().__setitem__("rpc_falso", orig))
+        p = Pagina()
+        self.addCleanup(p.fechar)
+        pedidos = []
+        p.page.on("request", lambda r: "/functions/v1/nexo-rodada" in r.url and pedidos.append(r.post_data))
+        pg = p.abrir("/prospect/", 1800)
+        return p, pg, pedidos
+
+    def test_cliente_ve_a_rodada_sem_os_botoes(self):
+        p, pg, _ = self.abrir(False)
+        txt = pg.inner_text(".rd-lista")
+        self.assertIn("Não chegou", txt)
+        self.assertIn("8 empresas novas para você", txt)
+        self.assertNotIn("do Várzea", txt)   # leads da casa só o master vê
+        self.assertEqual(pg.eval_on_selector_all("[data-rodada]", "x => x.length"), 0)
+        self.assertEqual(p.erros, [])
+
+    def test_master_dispara_gravar_agora(self):
+        p, pg, pedidos = self.abrir(True)
+        self.assertIn("7 leads do Várzea", pg.inner_text(".rd-lista"))
+        pg.click('[data-rodada="gravar"]'); pg.wait_for_timeout(500)
+        self.assertEqual(len(pedidos), 1)
+        self.assertEqual(json.loads(pedidos[0]), {"acao": "gravar"})
+        self.assertEqual(p.erros, [])
+
+
 class AnexosPedirPeca(unittest.TestCase):
     """Pedir peça com fotos e vídeos (assets/anexos.js, 19/11/2026)."""
 
