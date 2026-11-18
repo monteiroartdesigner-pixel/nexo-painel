@@ -74,17 +74,43 @@ function ctNovaSenha() {
   });
 }
 
+// ---------------------------------------------------------------- conta de quem foi convidado (não cria empresa)
+// O acesso entra sozinho no primeiro login, pelo convite feito para este e-mail (nexo_aceitar_convites).
+function ctContaConvidado(emailInicial) {
+  ctJanela("Criar sua conta", `<form class="ct-form" data-f>
+      <p class="ct-txt">Recebeu um convite para a equipe de uma empresa no NEXO? Crie a sua conta <b>com o mesmo e-mail do convite</b>. O acesso aparece no primeiro login.</p>
+      <label class="ct-campo"><span>Seu nome</span><input name="nome" autocomplete="name" required maxlength="120"></label>
+      <label class="ct-campo"><span>E-mail do convite</span><input type="email" name="email" autocomplete="username" required value="${esc(emailInicial || "")}"></label>
+      <label class="ct-campo"><span>Crie uma senha (mínimo 8 caracteres)</span><input type="password" name="senha" autocomplete="new-password" minlength="8" required></label>
+      <button class="btn prim pri" type="submit">Criar minha conta</button><p class="ct-nota" data-nota></p></form>`, (j) => {
+    const f = j.querySelector("[data-f]");
+    f.onsubmit = async ev => {
+      ev.preventDefault(); const b = f.querySelector("[type=submit]"); b.disabled = true;
+      const email = f.email.value.trim();
+      ctGravar(CT_PENDENTE, null);   // conta de convidado nunca cria empresa
+      const { data, error } = await sb.auth.signUp({ email, password: f.senha.value,
+        options: { emailRedirectTo: ctVolta(), data: { full_name: f.nome.value.trim() } } });
+      f.senha.value = ""; b.disabled = false;
+      if (error) { ctNota(j, ctMsg(error), true); return; }
+      if (data.session) { history.replaceState(null, "", ctVolta()); location.reload(); return; }
+      f.innerHTML = `<p class="ct-txt"><b>Quase lá!</b> Mandamos um link de confirmação para <b>${esc(email)}</b>. Abra o link e entre aqui com o seu e-mail e senha: o acesso à equipe aparece na hora.</p>`;
+    };
+  });
+}
+
 // ---------------------------------------------------------------- criar conta com teste grátis
 async function ctCriarConta() {
   let planos = [];
   try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { planos = []; }
   if (!planos.length) {
-    ctJanela("Criar conta", `<p class="ct-txt">O cadastro com teste grátis ainda não está aberto. Fale com a NEXO para começar.</p>
-      <a class="btn prim pri" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener">Falar com a NEXO</a>`);
+    ctJanela("Criar conta", `<p class="ct-txt">O cadastro de empresas com teste grátis ainda não está aberto. Fale com a NEXO para começar.</p>
+      <a class="btn prim pri" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener">Falar com a NEXO</a>
+      <button type="button" class="ct-link" data-convidado>Recebi um convite de uma empresa</button>`, j => { j.querySelector("[data-convidado]").onclick = () => ctContaConvidado(); });
     return;
   }
   ctJanela("Teste grátis do NEXO", `<form class="ct-form" data-f>
-      <p class="ct-txt">Crie a conta da sua empresa. Sem cartão: o teste começa agora e você decide depois.</p>
+      <p class="ct-txt">Crie a conta da sua empresa. Sem cartão: o teste começa agora e você decide depois.
+        <button type="button" class="ct-link" data-convidado>Recebi um convite de uma empresa</button></p>
       <fieldset class="ct-planos"><legend>Plano</legend>${planos.map((p, i) => `<label class="ct-plano"><input type="radio" name="plano" value="${esc(p.chave)}" ${i === 0 ? "checked" : ""}>
         <span><b>${esc(p.nome)}</b><small>${esc(p.descricao || "")}</small><small>${p.dias_teste} dia(s) grátis · depois ${esc(ctReais(p.preco_centavos))}</small></span></label>`).join("")}</fieldset>
       <div class="ct-duas"><label class="ct-campo"><span>Seu nome</span><input name="responsavel" autocomplete="name" required maxlength="120"></label>
@@ -94,6 +120,7 @@ async function ctCriarConta() {
       <label class="ct-campo"><span>Senha (mínimo 8 caracteres)</span><input type="password" name="senha" autocomplete="new-password" minlength="8" required></label>
       <button class="btn prim pri" type="submit">Criar conta e começar o teste</button><p class="ct-nota" data-nota></p></form>`, (j) => {
     const f = j.querySelector("[data-f]");
+    j.querySelector("[data-convidado]").onclick = () => ctContaConvidado(f.email.value.trim());
     f.onsubmit = async ev => {
       ev.preventDefault(); const b = f.querySelector("[type=submit]"); b.disabled = true;
       const dados = { empresa: f.empresa.value.trim(), responsavel: f.responsavel.value.trim(), whatsapp: f.whatsapp.value.trim(), plano: f.plano.value };
@@ -130,6 +157,16 @@ function contaLigarLogin(form, campoEmail) {
     <button type="button" class="ct-link" data-criar>Criar conta com teste grátis</button></div>`);
   form.querySelector("[data-esqueci]").onclick = () => ctEsqueci(campoEmail?.value);
   form.querySelector("[data-criar]").onclick = ctCriarConta;
+  // Link do convite (?convite=email): abre direto a conta de convidado, com o e-mail preenchido.
+  const conv = new URLSearchParams(location.search).get("convite");
+  if (conv) setTimeout(() => ctContaConvidado(conv), 300);
+}
+
+// Mensagem pronta do convite, com o link que abre a conta de convidado.
+function ctTextoConvite(email, nomeEmpresa) {
+  const link = `${ctVolta()}?convite=${encodeURIComponent(email)}`;
+  return { link, texto: `Olá! Você foi convidado para a equipe ${nomeEmpresa || "da empresa"} no NEXO.\n\n` +
+    `1. Abra o link: ${link}\n2. Crie a sua conta com este e-mail: ${email}\n3. Confirme pelo e-mail que vai chegar e entre: o acesso já aparece.` };
 }
 // Volta do e-mail de "esqueci minha senha": o Supabase avisa PASSWORD_RECOVERY.
 if (typeof sb !== "undefined" && sb) sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") setTimeout(ctNovaSenha, 200); });
@@ -145,8 +182,11 @@ async function abrirEquipe(empresaId, nomeEmpresa) {
     <p class="ct-txt">${usados} de ${lim ?? "∞"} usuário(s) do plano. Quem já tem conta entra na hora; quem não tem recebe o acesso ao criar a conta com o mesmo e-mail.</p>
     <div class="ct-lista">${d.membros.map(m => `<div class="ct-membro"><div><b>${esc(m.email)}</b><small>${esc(CT_PAPEL[m.papel] || m.papel)}</small></div>
         ${m.papel === "dono" ? "" : `<button class="btn nao" type="button" data-tirar="${esc(m.user_id)}">Tirar acesso</button>`}</div>`).join("")}
-      ${d.convites.map(c => `<div class="ct-membro ct-pend"><div><b>${esc(c.email)}</b><small>${esc(CT_PAPEL[c.papel] || c.papel)} · convite esperando a pessoa criar a conta</small></div>
-        <button class="btn" type="button" data-cancelar="${esc(c.id)}">Cancelar convite</button></div>`).join("")}</div>
+      ${d.convites.map(c => { const t = ctTextoConvite(c.email, nomeEmpresa); return `<div class="ct-membro ct-pend"><div><b>${esc(c.email)}</b><small>${esc(CT_PAPEL[c.papel] || c.papel)} · convite esperando a pessoa criar a conta. O NEXO não manda e-mail sozinho: envie o convite abaixo.</small>
+          <div class="ct-envio"><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t.texto)}">WhatsApp</a>
+            <a class="btn" href="mailto:${esc(c.email)}?subject=${encodeURIComponent("Convite para a equipe " + (nomeEmpresa || "") + " no NEXO")}&body=${encodeURIComponent(t.texto)}">E-mail</a>
+            <button class="btn" type="button" data-copiar-convite="${esc(c.email)}">Copiar</button></div></div>
+        <button class="btn" type="button" data-cancelar="${esc(c.id)}">Cancelar convite</button></div>`; }).join("")}</div>
     <form class="ct-form ct-convite" data-f><div class="ct-duas"><label class="ct-campo"><span>Convidar por e-mail</span><input type="email" name="email" required placeholder="nome@empresa.com"></label>
       <label class="ct-campo"><span>Papel</span><select name="papel"><option value="editor">Editor (trabalha no dia a dia)</option><option value="leitor">Leitor (só vê)</option><option value="admin">Administrador</option></select></label></div>
       <button class="btn prim pri" type="submit">Convidar</button><p class="ct-nota" data-nota></p></form>`, (j) => {
@@ -154,12 +194,19 @@ async function abrirEquipe(empresaId, nomeEmpresa) {
     j.querySelector("[data-f]").onsubmit = async ev => {
       ev.preventDefault(); const f = ev.target, b = f.querySelector("[type=submit]"); b.disabled = true;
       try { const r = await ctRpc("nexo_convidar", { p_empresa: empresaId, p_email: f.email.value.trim(), p_papel: f.papel.value });
-        refazer(); setTimeout(() => alert(r.situacao === "incluido" ? "Pronto: essa pessoa já tem acesso." : "Convite criado. Avise a pessoa para criar a conta com esse e-mail."), 100); }
+        refazer(); setTimeout(() => alert(r.situacao === "incluido" ? "Pronto: essa pessoa já tem acesso."
+          : "Convite criado. O NEXO não manda e-mail sozinho: use os botões WhatsApp, E-mail ou Copiar ao lado do convite para avisar a pessoa."), 100); }
       catch (e) { b.disabled = false; ctNota(j, ctMsg(e), true); }
     };
     j.querySelectorAll("[data-tirar]").forEach(b => b.onclick = async () => {
       if (!confirm("Tirar o acesso dessa pessoa a esta empresa?")) return;
       try { await ctRpc("nexo_remover_acesso", { p_empresa: empresaId, p_user: b.dataset.tirar, p_convite: null }); refazer(); } catch (e) { ctNota(j, ctMsg(e), true); }
+    });
+    j.querySelectorAll("[data-copiar-convite]").forEach(b => b.onclick = async () => {
+      const { texto } = ctTextoConvite(b.dataset.copiarConvite, nomeEmpresa);
+      try { await navigator.clipboard.writeText(texto); b.textContent = "✓ Copiado"; }
+      catch { ctNota(j, "O navegador bloqueou a cópia. Use os botões WhatsApp ou E-mail.", true); }
+      setTimeout(() => { b.textContent = "Copiar"; }, 2500);
     });
     j.querySelectorAll("[data-cancelar]").forEach(b => b.onclick = async () => {
       try { await ctRpc("nexo_remover_acesso", { p_empresa: empresaId, p_user: null, p_convite: b.dataset.cancelar }); refazer(); } catch (e) { ctNota(j, ctMsg(e), true); }

@@ -225,3 +225,6 @@
 .ct-membro div{display:flex;flex-direction:column;gap:2px;min-width:0} .ct-membro b{overflow:hidden;text-overflow:ellipsis}
 .ct-membro small{color:var(--muted);font-size:12px} .ct-pend{border-style:dashed}
 @media (max-width:560px){.ct-duas{grid-template-columns:1fr}}
+.ct-membro .ct-envio{display:flex;flex-direction:row;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ct-membro .ct-envio .btn{text-decoration:none;padding:6px 12px;font-size:12.5px;min-height:32px;height:auto}
+.ct-membro.ct-pend{align-items:flex-start}

@@ -753,5 +753,47 @@ class Conta(unittest.TestCase):
             p.fechar()
 
 
+class ConviteSemEmail(unittest.TestCase):
+    """O NEXO não manda e-mail de convite: o dono envia pelo WhatsApp ou e-mail dele, e o link abre a conta de convidado."""
+
+    def test_convite_pendente_tem_whatsapp_email_e_copiar(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
+            pg.click('[data-m-equipe="emp-v"]'); pg.wait_for_timeout(500)
+            wa = pg.get_attribute('.ct-pend a[href^="https://wa.me/"]', "href")
+            mail = pg.get_attribute('.ct-pend a[href^="mailto:"]', "href")
+            self.assertIn("convite%3Dfuturo%2540cliente.com", wa, "o link do convite leva o e-mail")
+            self.assertTrue(mail.startswith("mailto:futuro@cliente.com?subject="))
+            self.assertIsNotNone(pg.query_selector('.ct-pend [data-copiar-convite="futuro@cliente.com"]'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_link_do_convite_abre_conta_de_convidado(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/prospect/?convite=ana%40cliente.com", 1800)
+            self.assertIn("Criar sua conta", pg.inner_text(".ct-janela"))
+            self.assertEqual(pg.input_value(".ct-janela [name=email]"), "ana@cliente.com")
+            pg.fill(".ct-janela [name=nome]", "Ana"); pg.fill(".ct-janela [name=senha]", "senha-de-teste-123")
+            pg.click(".ct-janela [type=submit]"); pg.wait_for_timeout(800)
+            self.assertIn("Quase lá", pg.inner_text(".ct-janela"))
+            self.assertIsNone(pg.evaluate("localStorage.getItem('nexo.cadastro.pendente')"), "convidado não cria empresa")
+        finally:
+            p.fechar()
+
+    def test_cadastro_fechado_ainda_deixa_convidado_criar_conta(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click("[data-criar]"); pg.wait_for_timeout(400)
+            pg.click(".ct-janela [data-convidado]"); pg.wait_for_timeout(300)
+            self.assertIn("Criar sua conta", pg.inner_text(".ct-janela"))
+        finally:
+            p.fechar()
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
