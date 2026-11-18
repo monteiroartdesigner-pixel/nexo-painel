@@ -160,6 +160,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 </style>
 <link rel="stylesheet" href="assets/visual.css?v=20261118k">
 <link rel="stylesheet" href="assets/master.css?v=20261118c">
+<link rel="stylesheet" href="assets/suporte.css?v=20261119a">
 </head>
 <body>
 
@@ -246,11 +247,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script src="assets/base.js?v=20261118k"></script>
 <script src="assets/equipe.js?v=20261118k"></script>
-<script src="assets/master.js?v=20261118k"></script>
+<script src="assets/master.js?v=20261119a"></script>
 <script src="assets/plano.js?v=20261118k"></script>
 <script src="assets/conta.js?v=20261118k"></script>
 <script src="assets/ideias.js?v=20261118k"></script>
 <script src="assets/explicador.js?v=20261118k"></script>
+<script src="assets/suporte.js?v=20261119a"></script>
 <script>
 "use strict";
 // Supabase (sb), $, $$, esc, urlSegura, hrefSeguro e FUSO vêm de assets/base.js (comum ao System e ao Prospect).
@@ -373,6 +375,9 @@ async function iniciar() {
   if (!data.session) return mostrarLogin();
   await contaPosLogin();   // aceita convites e termina um cadastro que esperava a confirmação do e-mail (assets/conta.js)
   try { st.ctx = await rpc("nexo_contexto"); } catch (e) { aviso(msgErro(e), true); return mostrarLogin(); }
+  Suporte.iniciar({ produto: "System", onca: { nome: "Pintada", img: "assets/equipe/gestora-rosto.webp" }, rpc,
+    empresa: () => (($("#nomeEmpresa").textContent || "").split(" · ")[0] || "").replace(/^NEXO( System)?$/, ""),
+    abas: $$(".menu [data-aba]").map(b => b.dataset.aba), ir: abrirAba });
   const todosAgentes = st.ctx.empresas.flatMap(e => e.agentes.map(a => ({ ...a, empresa: e.nome, papel: e.papel })));
   st.prospect = todosAgentes.find(a => a.slug === "prospect") || null;
   const agentes = todosAgentes.filter(a => a.slug !== "prospect");

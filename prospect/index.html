@@ -257,6 +257,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 }
 </style>
 <link rel="stylesheet" href="../assets/visual.css?v=20261118k">
+<link rel="stylesheet" href="../assets/suporte.css?v=20261119a">
 </head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -304,6 +305,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="../assets/plano.js?v=20261118k"></script>
 <script src="../assets/conta.js?v=20261118k"></script>
 <script src="../assets/explicador.js?v=20261118k"></script>
+<script src="../assets/suporte.js?v=20261119a"></script>
 <script>
 "use strict";
 /* ============================================================ base */
@@ -1041,6 +1043,8 @@ async function iniciar() {
   $("#quem").textContent = S.email;
   if (!emp) { $("#main").innerHTML = `<div class="card"><div class="empty"><h2>Sem acesso ao NEXO Prospect</h2><p class="muted" style="margin:0">O login ${esc(S.email)} não tem papel na NEXO Inteligência e Automação. Peça acesso ao administrador.</p></div></div>`; return; }
   S.agente = emp.agentes.find(a => a.slug === "prospect").id; S.papel = emp.papel; S.empresaId = emp.id;
+  Suporte.iniciar({ produto: "Prospect", onca: { nome: "Faro", img: "../assets/equipe/faro-rosto.webp" }, rpc, nome: () => S.nome,
+    empresa: () => emp.nome, abas: ["inicio", "crm", "tarefas", "campanhas", "ajuda"], ir: k => { location.hash = "#/" + k; } });
   if (["plataforma", "dono", "admin"].includes(emp.papel)) { const be = $("#btnEquipeP"); be.classList.remove("oculto"); be.onclick = () => abrirEquipe(emp.id, emp.nome); }
   const empV = (ctx.empresas || []).find(e => (e.agentes || []).some(a => a.slug === "onca"));
   if (empV) { st.agente = empV.agentes.find(a => a.slug === "onca").id; st.papel = empV.papel; st.marca = empV.nome; st.empresaId = empV.id; if (!MODS.includes(MOD_LEADS)) MODS.splice(MODS.length - 1, 0, MOD_LEADS); }

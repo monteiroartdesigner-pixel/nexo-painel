@@ -59,6 +59,7 @@ CONTEUDOS = []  # peças do System (Aprovar)
 PUBLICADOS = []  # arquivo completo (nexo_publicados)
 PLANOS_PUB = []  # planos no cadastro público
 FALHAR = {}      # funções que o banco recusa neste teste
+SUPORTE = {"whatsapp": "5541998460993"}  # nexo_suporte (o Master troca)
 SITUACAO = {}  # situação do plano por empresa (vazio = sem assinatura = tudo liberado)
 
 SIT_INTERNO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "status_gravado": "ativa", "plano": "interno",
@@ -121,6 +122,8 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return CONTEUDOS
     if nome == "nexo_publicados":
         return PUBLICADOS
+    if nome == "nexo_suporte":
+        return SUPORTE
     if nome == "nexo_planos_publicos":
         return PLANOS_PUB
     if nome == "nexo_aceitar_convites":
@@ -660,6 +663,67 @@ class ArquivoDePublicados(unittest.TestCase):
             arq = pg.eval_on_selector_all(sec + " article h3", "hs => hs.map(h => h.textContent)")
             self.assertEqual(arq, ["Peça publicada nova", "Peça publicada antiga"], "arquivo do mais recente para o mais antigo")
             self.assertIsNotNone(pg.query_selector(sec + ' a[href="https://www.instagram.com/p/abc/"]'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class Suporte(unittest.TestCase):
+    """Suporte flutuante: responde pelas respostas prontas e leva ao WhatsApp que o Master troca."""
+
+    def tearDown(self):
+        SUPORTE.clear(); SUPORTE["whatsapp"] = "5541998460993"
+
+    def test_system_responde_e_leva_ao_whatsapp(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click("#spAbrir"); pg.wait_for_timeout(300)
+            self.assertIn("onça Pintada", pg.inner_text("#spConversa"))
+            pg.fill("#spTxt", "como faço para aprovar uma peça?"); pg.press("#spTxt", "Enter"); pg.wait_for_timeout(200)
+            ultima = pg.eval_on_selector_all(".sp-msg.ela", "ms => ms[ms.length - 1].innerText")
+            self.assertIn("Publicar", ultima)
+            pg.click(".sp-msg.ela:last-child .sp-ir"); pg.wait_for_timeout(300)
+            self.assertEqual(pg.inner_text("#tituloAba"), "Aprovar", "o botão leva para a aba certa")
+            self.assertTrue(pg.is_hidden("#spPainel"))
+            pg.click("#spAbrir"); pg.fill("#spTxt", "xyzw qwerty"); pg.press("#spTxt", "Enter"); pg.wait_for_timeout(200)
+            self.assertIn("não sei", pg.eval_on_selector_all(".sp-msg.ela", "ms => ms[ms.length - 1].innerText"))
+            self.assertIsNotNone(pg.query_selector('.sp-msg.ela:last-child a.sp-zap[href^="https://wa.me/5541998460993"]'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_sem_numero_o_botao_do_whatsapp_some(self):
+        SUPORTE["whatsapp"] = ""
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click("#spAbrir"); pg.fill("#spTxt", "xyzw"); pg.press("#spTxt", "Enter"); pg.wait_for_timeout(200)
+            self.assertIsNone(pg.query_selector(".sp-zap"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_prospect_tem_a_faro(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/", 2000)
+            pg.click("#spAbrir"); pg.wait_for_timeout(300)
+            self.assertIn("onça Faro", pg.inner_text("#spConversa"))
+            pg.click("#spSug button >> nth=1"); pg.wait_for_timeout(200)
+            self.assertIn("quem envia é você", pg.eval_on_selector_all(".sp-msg.ela", "ms => ms[ms.length - 1].innerText"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_master_troca_o_numero(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(500)
+            self.assertIn("(41) 99846-0993", pg.inner_text('[data-sec="master"]'))
+            pg.click("#mSuporte"); pg.fill('input[name="whatsapp"]', "41 91234-5678"); pg.click('.m-janela [type="submit"]'); pg.wait_for_timeout(400)
+            self.assertIn(("nexo_master_salvar_suporte", {"p_whatsapp": "41 91234-5678"}), p.args)
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()

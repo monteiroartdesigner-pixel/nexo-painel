@@ -8,6 +8,7 @@
 
 // Mensagens de erro do Master (entram na lista do painel na primeira abertura: ERROS é criado depois deste arquivo).
 const M_ERROS = {
+  whatsapp_invalido: "Use DDD + número, ex.: 41 99846-0993.",
   empresa_invalida: "Informe o nome e o endereço curto (letras minúsculas, números e hífen).",
   plano_invalido: "Escolha um plano que existe.",
   chave_invalida: "A chave do plano usa só letras minúsculas, números e _.",
@@ -37,7 +38,9 @@ const deData = v => v ? new Date(`${v}T23:59:00-03:00`).toISOString() : null;
 
 async function mCarregar() {
   const [ind, emp, pl] = await Promise.all([rpc("nexo_master_indicadores"), rpc("nexo_master_empresas"), rpc("nexo_master_planos")]);
-  Object.assign(mst, { ind, empresas: emp || [], planos: pl || [], carregado: true });
+  // Suporte: sem a migração 20261119090000 a função não existe e o cartão avisa (o resto do Master segue).
+  const sup = await rpc("nexo_suporte").catch(() => null);
+  Object.assign(mst, { ind, empresas: emp || [], planos: pl || [], suporte: sup, carregado: true });
 }
 
 async function master(el) {
@@ -67,11 +70,13 @@ async function master(el) {
     </div>
     <div class="card"><div class="linha entre"><h2>Empresas</h2><span class="muted peq">${mst.empresas.length}</span></div>
       <div class="m-lista">${mst.empresas.map(mLinhaEmpresa).join("") || `<div class="vazio">Nenhuma empresa ainda.</div>`}</div></div>
+    ${mCartaoSuporte(mst.suporte)}
     <div class="card"><div class="linha entre"><h2>Planos</h2><span class="muted peq">preço vazio = a definir</span></div>
       <p class="muted peq" style="margin:0">Os limites são de exemplo. Ajuste e salve: vale na hora para todas as empresas do plano. Limite vazio = sem limite.</p>
       <div class="m-planos">${mst.planos.map(mCartaoPlano).join("")}</div></div>`;
   $("#mRecarregar").onclick = async () => { mst.carregado = false; master(el); };
   $("#mNova").onclick = () => mEditarEmpresa(null);
+  const bs = $("#mSuporte"); if (bs) bs.onclick = mEditarSuporte;
   el.querySelectorAll("[data-m-editar]").forEach(b => b.onclick = () => mEditarEmpresa(mst.empresas.find(e => e.id === b.dataset.mEditar)));
   el.querySelectorAll("[data-m-equipe]").forEach(b => b.onclick = () => abrirEquipe(b.dataset.mEquipe, mst.empresas.find(e => e.id === b.dataset.mEquipe)?.nome));
   el.querySelectorAll("[data-m-plano]").forEach(b => b.onclick = () => mEditarAssinatura(mst.empresas.find(e => e.id === b.dataset.mPlano)));
@@ -154,6 +159,22 @@ function mJanela(titulo, corpo, aoSalvar) {
   };
   document.addEventListener("keydown", tecla); document.body.appendChild(fundo);
   f.querySelector("input,select")?.focus();
+}
+
+// WhatsApp de suporte (botão "Chamar no WhatsApp" do System e do Prospect). Troca vale na hora para todo mundo.
+const mFone = n => { const d = String(n || "").replace(/^55/, ""); return d.length >= 10 ? `(${d.slice(0, 2)}) ${d.slice(2, -4)}-${d.slice(-4)}` : d; };
+function mCartaoSuporte(s) {
+  if (!s) return `<div class="card"><h2>Suporte</h2><div class="aviso peq">Falta aplicar a migração do suporte no Supabase para trocar o número por aqui.</div></div>`;
+  return `<div class="card"><div class="linha entre"><div><h2>Suporte</h2>
+      <p class="muted peq" style="margin:4px 0 0">WhatsApp do botão "Chamar no WhatsApp" do System e do Prospect.</p></div>
+      <button class="btn" id="mSuporte">Trocar número</button></div>
+    <div class="m-sup">${s.whatsapp ? `<b>${esc(mFone(s.whatsapp))}</b> <a href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">testar</a>` : `<span class="muted">Sem número: o botão do WhatsApp fica escondido.</span>`}</div></div>`;
+}
+function mEditarSuporte() {
+  mJanela("WhatsApp de suporte", `
+    <label class="m-campo"><span>DDD + número</span><input name="whatsapp" inputmode="tel" maxlength="20" required value="${esc(mFone(mst.suporte?.whatsapp))}" placeholder="41 99846-0993"></label>
+    <p class="muted peq" style="margin:0">Vale na hora para todas as empresas. A troca fica registrada na Atividade.</p>`,
+    async f => { await rpc("nexo_master_salvar_suporte", { p_whatsapp: f.elements.whatsapp.value }); aviso("Número do suporte salvo."); });
 }
 
 function mEditarEmpresa(e) {

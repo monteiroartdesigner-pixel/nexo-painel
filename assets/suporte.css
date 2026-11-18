@@ -1,0 +1,36 @@
+/* Suporte do painel (assets/suporte.js): botão flutuante + conversa curta + WhatsApp. Vale no System e no Prospect. */
+#suporte{--sp-bg:var(--panel,#0c1a33);--sp-borda:var(--borda,rgba(43,140,235,.4));--sp-ouro:var(--onca,#f2b632);--sp-zap:#25d366;
+  position:fixed;right:18px;bottom:18px;z-index:60;font:500 14px/1.5 Inter,system-ui,sans-serif;color:var(--fg,#e8eefc)}
+.sp-abrir{display:flex;align-items:center;gap:8px;padding:6px 16px 6px 6px;border-radius:999px;border:1px solid var(--sp-borda);
+  background:var(--sp-bg);color:inherit;font:700 14px Inter,system-ui,sans-serif;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.sp-abrir img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#1b2b4a}
+.sp-abrir:hover{border-color:var(--sp-ouro)}
+.sp-abrir:focus-visible,.sp-painel button:focus-visible,.sp-painel a:focus-visible,.sp-form input:focus-visible{outline:2px solid var(--sp-ouro);outline-offset:2px}
+.sp-painel{position:absolute;right:0;bottom:56px;width:min(380px,calc(100vw - 32px));max-height:min(560px,calc(100dvh - 120px));
+  display:flex;flex-direction:column;border:1px solid var(--sp-borda);border-radius:16px;background:var(--sp-bg);box-shadow:0 14px 40px rgba(0,0,0,.45);overflow:hidden}
+.sp-painel[hidden]{display:none}
+.sp-topo{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--sp-borda)}
+.sp-topo img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:#1b2b4a}
+.sp-topo div{display:flex;flex-direction:column;flex:1;min-width:0}.sp-topo span{font-size:12px;opacity:.7}
+.sp-fechar{width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:inherit;font-size:22px;cursor:pointer}
+.sp-fechar:hover{background:rgba(255,255,255,.08)}
+.sp-conversa{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;min-height:120px}
+.sp-msg{max-width:90%;padding:9px 12px;border-radius:12px;font-size:13.5px}
+.sp-msg.ela{align-self:flex-start;background:rgba(255,255,255,.06);border-top-left-radius:4px}
+.sp-msg.eu{align-self:flex-end;background:color-mix(in srgb,var(--sp-ouro) 22%,transparent);border-top-right-radius:4px}
+.sp-acoes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:8px}
+.sp-ainda{font-size:12px;opacity:.7}
+.sp-ir{padding:5px 10px;border-radius:8px;border:1px solid var(--sp-borda);background:transparent;color:inherit;font:600 12.5px Inter,sans-serif;cursor:pointer}
+.sp-zap{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--sp-zap);color:#062b14;font:700 12.5px Inter,sans-serif;text-decoration:none}
+.sp-zap:hover{filter:brightness(1.08)}
+.sp-sem{font-size:12px;opacity:.7}
+.sp-sug{display:flex;gap:6px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:none}
+.sp-sug button{flex:none;padding:6px 10px;border-radius:999px;border:1px solid var(--sp-borda);background:transparent;color:inherit;font:500 12.5px Inter,sans-serif;cursor:pointer;white-space:nowrap}
+.sp-sug button:hover{border-color:var(--sp-ouro)}
+.sp-form{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--sp-borda)}
+.sp-form input{flex:1;min-width:0;padding:9px 12px;border-radius:10px;border:1px solid var(--sp-borda);background:rgba(0,0,0,.2);color:inherit;font:500 16px Inter,sans-serif}
+.sp-enviar{padding:9px 14px;border-radius:10px;border:0;background:var(--sp-ouro);color:#1a1200;font:700 13px Inter,sans-serif;cursor:pointer}
+.sp-rodape{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:0 14px 12px;font-size:12px;opacity:.9}
+.sp-rodape:empty{display:none}
+@media (max-width:760px){#suporte{right:12px;bottom:calc(76px + env(safe-area-inset-bottom))}.sp-abrir span{display:none}.sp-abrir{padding:5px}}
+@media (prefers-reduced-motion:no-preference){.sp-painel{animation:spEntra .16s ease-out}@keyframes spEntra{from{opacity:0;transform:translateY(6px)}}}
