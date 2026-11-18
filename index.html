@@ -82,7 +82,7 @@ h3{margin:0;font-size:15.5px;font-weight:700}
 .mono{font-family:var(--mono);font-size:12px}
 .linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .entre{justify-content:space-between}
-.passos{list-style:none;padding:0;margin:4px 0;display:flex;flex-direction:column;gap:8px}.passos li{display:flex;gap:8px;align-items:flex-start}.grade .card.largo{grid-column:1/-1}
+.passos{list-style:none;padding:0;margin:4px 0;display:flex;flex-direction:column;gap:8px}.passos li{display:flex;gap:8px;align-items:flex-start;min-width:0}.passos li>span:last-child{min-width:0;overflow-wrap:anywhere}.grade .card.largo{grid-column:1/-1}
 .pill{font-family:var(--mono);font-size:11.5px;border-radius:999px;padding:3px 9px;border:1.5px solid currentColor;white-space:nowrap}
 .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .info{color:var(--cyan)} .onca{color:var(--onca)}
 .aviso{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--panel));padding:12px 14px;border-radius:10px}
@@ -158,7 +158,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="assets/visual.css?v=20261119w">
+<link rel="stylesheet" href="assets/visual.css?v=20261119x">
 <link rel="stylesheet" href="assets/master.css?v=20261119q">
 <link rel="stylesheet" href="assets/suporte.css?v=20261119a">
 </head>
@@ -839,7 +839,9 @@ function passosHtml(x, lista = PASSOS_IG) {
   const ps = new Map(((x.checagem || {}).passos || []).map(p => [p.chave, p]));
   if (!ps.size) return `<div class="muted peq">O agente ainda não testou esta conexão passo a passo.</div>`;
   return `<ol class="passos">${PASSOS_IG_.map(([k, t, como]) => {
-    const p = ps.get(k) || { ok: null, detalhe: "não testado" };
+    let p = ps.get(k) || { ok: null, detalhe: "não testado" };
+    // Perfil da Empresa ainda sem liberação: frase curta no lugar do erro técnico do Google (que estourava o cartão).
+    if (k === "perfil_empresa" && p.ok === null && /aguardando|quota/i.test(p.detalhe || "")) p = { ...p, detalhe: "aguardando o Google liberar o acesso (pedido enviado)" };
     const [ic, cls] = p.ok === true ? ["✔", "ok"] : p.ok === false ? ["✘", "bad"] : ["·", "muted"];
     return `<li><span class="pill ${cls}" aria-label="${p.ok === true ? "ok" : p.ok === false ? "falhou" : "sem teste"}">${ic}</span>
       <span><b>${t}</b><br><span class="peq ${p.ok === false ? "bad" : "muted"}">${esc(p.detalhe || "")}</span>

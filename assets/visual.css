@@ -372,3 +372,6 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 .app > .legal-links{grid-column:2}
 .legal-links a{color:var(--muted);text-decoration:none}.legal-links a:hover{color:var(--fg);text-decoration:underline}
 @media (max-width:900px){.app > .legal-links{grid-column:1}.app:has(.bottom) > .legal-links{margin-bottom:calc(84px + env(safe-area-inset-bottom,0px))}}
+
+/* Cartões de conexão: nada de texto saindo do cartão (19/11/2026) */
+[data-sec="integracoes"] .card{min-width:0;overflow-wrap:anywhere}
