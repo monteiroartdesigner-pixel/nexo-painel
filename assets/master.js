@@ -31,7 +31,11 @@ const M_STATUS = { teste: "Teste grátis", teste_vencido: "Teste acabou", ativa:
 // Filtros da lista de empresas: quem paga, quem testa, quem é vitalício, quem não paga e quem pediu troca.
 const M_FILTROS = [["todas", "Todas", () => true], ["pagando", "Pagando", s => s.status === "ativa"], ["teste", "Em teste", s => s.status === "teste"],
   ["vitalicia", "Vitalício", s => s.status === "vitalicia"], ["sem_pagar", "Sem pagar", s => ["teste_vencido", "vencida", "suspensa", "cancelada"].includes(s.status)],
-  ["pedidos", "Pediram troca", s => !!s.plano_pedido]];
+  ["pedidos", "Pediram troca", s => !!s.plano_pedido], ["excluidas", "Excluídas", () => true]];
+// Excluída (18/11/2026) só aparece no filtro "Excluídas"; nos outros, não.
+const mNoFiltro = (k, e) => k === "excluidas" ? e.status === "excluida"
+  : e.status !== "excluida" && (M_FILTROS.find(x => x[0] === k) || M_FILTROS[0])[2](e.situacao || {});
+const M_CASA = ["nexo-varzea", "nexo-inteligencia"];
 const M_ORIGEM = { interna: "Da casa", master: "Criada por você", cadastro: "Cadastro público" };
 const mst = { ind: null, empresas: [], planos: [], usuarios: null, filtro: "todas", carregado: false };
 
@@ -77,8 +81,8 @@ async function master(el) {
       ${mKpi("Pediram troca", mst.empresas.filter(e => e.situacao?.plano_pedido).length, "esperando você confirmar")}
     </div>
     <div class="card"><div class="linha entre"><h2>Empresas</h2><span class="muted peq">${mst.empresas.length}</span></div>
-      <div class="m-filtros" role="group" aria-label="Filtrar empresas">${M_FILTROS.map(([k, n, f]) => `<button type="button" class="m-filtro" data-m-filtro="${k}" aria-pressed="${mst.filtro === k}">${esc(n)} <b>${mst.empresas.filter(e => f(e.situacao || {})).length}</b></button>`).join("")}</div>
-      <div class="m-lista">${mst.empresas.filter(e => (M_FILTROS.find(x => x[0] === mst.filtro) || M_FILTROS[0])[2](e.situacao || {})).map(mLinhaEmpresa).join("") || `<div class="vazio">Nenhuma empresa neste filtro.</div>`}</div></div>
+      <div class="m-filtros" role="group" aria-label="Filtrar empresas">${M_FILTROS.map(([k, n]) => `<button type="button" class="m-filtro" data-m-filtro="${k}" aria-pressed="${mst.filtro === k}">${esc(n)} <b>${mst.empresas.filter(e => mNoFiltro(k, e)).length}</b></button>`).join("")}</div>
+      <div class="m-lista">${mst.empresas.filter(e => mNoFiltro(mst.filtro, e)).map(mLinhaEmpresa).join("") || `<div class="vazio">Nenhuma empresa neste filtro.</div>`}</div></div>
     ${mCartaoUsuarios(mst.usuarios)}
     ${mCartaoSuporte(mst.suporte)}
     <div class="card"><div class="linha entre"><h2>Planos</h2><div class="linha"><span class="muted peq">preço vazio = a definir</span><button class="btn" id="mNovoPlano">Novo plano</button></div></div>
@@ -92,6 +96,8 @@ async function master(el) {
   el.querySelectorAll("[data-m-equipe]").forEach(b => b.onclick = () => abrirEquipe(b.dataset.mEquipe, mst.empresas.find(e => e.id === b.dataset.mEquipe)?.nome));
   el.querySelectorAll("[data-m-plano]").forEach(b => b.onclick = () => mEditarAssinatura(mst.empresas.find(e => e.id === b.dataset.mPlano)));
   el.querySelectorAll("[data-m-filtro]").forEach(b => b.onclick = () => { mst.filtro = b.dataset.mFiltro; master(el); });
+  el.querySelectorAll("[data-m-excluir]").forEach(b => b.onclick = () => mExcluirCliente(mst.empresas.find(e => e.id === b.dataset.mExcluir)));
+  el.querySelectorAll("[data-m-restaurar]").forEach(b => b.onclick = () => mRestaurarCliente(mst.empresas.find(e => e.id === b.dataset.mRestaurar)));
   el.querySelectorAll("form[data-m-salvar-plano]").forEach(f => f.onsubmit = ev => { ev.preventDefault(); mSalvarPlano(f, el); });
 }
 
@@ -109,8 +115,12 @@ function mLinhaEmpresa(e) {
       ${e.dono_email ? `<span class="muted peq">Dono: ${esc(e.dono_email)}</span>` : ""}
       <span class="peq">${plano}${extra}</span>
       ${s.plano_pedido ? `<span class="pill warn m-pedido">Pediu o plano ${esc(mst.planos.find(p => p.chave === s.plano_pedido)?.nome || s.plano_pedido)} em ${dataCurta(s.pedido_em)}</span>` : ""}</div>
-    <span class="pill ${ac[1]}">${esc(ac[0])}</span>
-    <div class="linha"><button class="btn" data-m-equipe="${e.id}">Equipe</button><button class="btn" data-m-plano="${e.id}">Plano</button><button class="btn" data-m-editar="${e.id}">Editar</button></div>
+    ${e.status === "excluida"
+      ? `<span class="pill bad">Excluída${e.excluida_em ? " em " + dataCurta(e.excluida_em) : ""}</span>
+    <div class="linha"><button class="btn" data-m-restaurar="${e.id}" title="Devolve o acesso, os usuários e o plano como estavam">Restaurar</button></div>`
+      : `<span class="pill ${ac[1]}">${esc(ac[0])}</span>
+    <div class="linha"><button class="btn" data-m-equipe="${e.id}">Equipe</button><button class="btn" data-m-plano="${e.id}">Plano</button><button class="btn" data-m-editar="${e.id}">Editar</button>
+      ${e.origem === "interna" || M_CASA.includes(e.slug) ? "" : `<button class="btn nao" data-m-excluir="${e.id}" title="Tira o acesso do cliente e para a pesquisa. Dá para restaurar depois">Excluir</button>`}</div>`}
   </div>`;
 }
 
@@ -154,13 +164,13 @@ async function mSalvarPlano(f, el) {
 }
 
 // ---------------------------------------------------------------- janelas
-function mJanela(titulo, corpo, aoSalvar) {
+function mJanela(titulo, corpo, aoSalvar, rotulo = "Salvar", classe = "prim") {
   document.querySelector(".ap-fundo")?.remove();
   const fundo = document.createElement("div"); fundo.className = "ap-fundo";
   fundo.innerHTML = `<form class="ap m-janela" role="dialog" aria-modal="true" aria-label="${esc(titulo)}">
     <div class="linha entre"><h2 style="margin:0">${esc(titulo)}</h2><button class="btn" type="button" data-fechar aria-label="Fechar">✕</button></div>
     ${corpo}
-    <div class="linha" style="justify-content:flex-end"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn prim" type="submit">Salvar</button></div></form>`;
+    <div class="linha" style="justify-content:flex-end"><button class="btn" type="button" data-fechar>Cancelar</button><button class="btn ${classe}" type="submit">${esc(rotulo)}</button></div></form>`;
   const fechar = () => { fundo.remove(); document.removeEventListener("keydown", tecla); };
   const tecla = ev => { if (ev.key === "Escape") fechar(); };
   fundo.onclick = ev => { if (ev.target === fundo) fechar(); };
@@ -272,4 +282,26 @@ function mCartaoUsuarios(us) {
         <span class="peq">${u.master ? `<span class="pill ok">Master</span> ` : ""}${(u.empresas || []).map(x => `${esc(x.nome)} · ${esc(M_PAPEL[x.papel] || x.papel)}`).join(" · ") || "sem empresa"}</span></div>
       <div class="m-us-lado peq muted">${u.confirmado ? "" : `<span class="pill warn">e-mail não confirmado</span><br>`}Último acesso: ${esc(quando(u.ultimo_login))}</div>
     </div>`).join("") || `<div class="vazio">Ninguém ainda.</div>`}</div></div>`;
+}
+
+// ---------------------------------------------------------------- excluir e restaurar cliente (18/11/2026)
+// Excluir não apaga dados: tira o acesso na hora, para a pesquisa e cancela a cobrança. "Restaurar" devolve tudo.
+function mExcluirCliente(e) {
+  if (!e) return;
+  mJanela(`Excluir ${e.nome}`, `
+    <div class="aviso"><b>O que acontece:</b> todos os usuários deste cliente perdem o acesso na hora, a pesquisa automática para e a cobrança é cancelada.
+      Os dados ficam guardados e você pode <b>restaurar</b> pelo filtro "Excluídas".</div>
+    <label class="m-campo"><span>Para confirmar, digite o nome do cliente: <b>${esc(e.nome)}</b></span>
+      <input name="confirmacao" autocomplete="off" required></label>`,
+    async f => {
+      const nome = f.elements.confirmacao.value.trim();
+      if (nome !== e.nome.trim()) throw new Error("O nome não confere. Digite exatamente como aparece.");
+      await rpc("nexo_master_excluir_cliente", { p_empresa: e.id, p_confirmacao: nome });
+      aviso(`${e.nome} foi excluído. Para desfazer, use o filtro Excluídas.`);
+    }, "Excluir cliente", "nao");
+}
+function mRestaurarCliente(e) {
+  if (!e) return;
+  mJanela(`Restaurar ${e.nome}`, `<p style="margin:0">Os usuários voltam a entrar com o mesmo papel, a pesquisa volta a rodar e o plano volta ao que era antes da exclusão.</p>`,
+    async () => { await rpc("nexo_master_restaurar_cliente", { p_empresa: e.id }); aviso(`${e.nome} foi restaurado.`); }, "Restaurar");
 }

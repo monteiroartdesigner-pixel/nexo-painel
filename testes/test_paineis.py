@@ -447,6 +447,42 @@ class Master(unittest.TestCase):
         pg.wait_for_timeout(600)
         return pg
 
+    def test_excluir_cliente_pede_o_nome_e_nao_aparece_na_casa(self):
+        p = Pagina(master=True)
+        try:
+            pg = self.abrir_master(p)
+            self.assertEqual(pg.eval_on_selector_all('[data-m-excluir="emp-v"]', "x => x.length"), 0, "a casa não tem Excluir")
+            pg.click('[data-m-excluir="emp-c"]'); pg.wait_for_timeout(200)
+            pg.fill('.m-janela input[name="confirmacao"]', "outro nome")
+            pg.click('.m-janela [type=submit]'); pg.wait_for_timeout(300)
+            self.assertNotIn("nexo_master_excluir_cliente", p.chamadas, "nome errado não chama o banco")
+            nome = next(e["nome"] for e in MASTER_EMPRESAS if e["id"] == "emp-c")
+            pg.fill('.m-janela input[name="confirmacao"]', nome)
+            pg.click('.m-janela [type=submit]'); pg.wait_for_timeout(500)
+            args = [a for n, a in p.args if n == "nexo_master_excluir_cliente"]
+            self.assertEqual(args, [{"p_empresa": "emp-c", "p_confirmacao": nome}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_excluida_so_no_filtro_e_com_restaurar(self):
+        MASTER_EMPRESAS.append({**MASTER_EMPRESAS[1], "id": "emp-x", "nome": "Padaria Excluída", "status": "excluida",
+                                "excluida_em": "2026-11-18T22:00:00Z", "membros": 0})
+        p = Pagina(master=True)
+        try:
+            pg = self.abrir_master(p)
+            self.assertNotIn("Padaria Excluída", pg.inner_text(".m-lista"), "fora do filtro Excluídas não aparece")
+            pg.click('[data-m-filtro="excluidas"]'); pg.wait_for_timeout(400)
+            self.assertIn("Padaria Excluída", pg.inner_text(".m-lista"))
+            self.assertIn("Excluída em", pg.inner_text(".m-lista"))
+            pg.click('[data-m-restaurar="emp-x"]'); pg.wait_for_timeout(200)
+            pg.click('.m-janela [type=submit]'); pg.wait_for_timeout(500)
+            self.assertEqual([a for n, a in p.args if n == "nexo_master_restaurar_cliente"], [{"p_empresa": "emp-x"}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+            MASTER_EMPRESAS.pop()
+
     def test_cliente_comum_nao_ve_o_master(self):
         p = Pagina()
         try:
