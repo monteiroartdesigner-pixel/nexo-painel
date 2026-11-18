@@ -136,7 +136,9 @@
 .app > .assinatura-nexo{grid-column:2}
 .assinatura-nexo:hover{opacity:1;text-decoration:none}
 .assinatura-nexo:focus-visible{outline:2px solid var(--onca);outline-offset:3px}
-.assinatura-nexo img{height:34px;width:auto;object-fit:contain;border-radius:8px}
+.assinatura-nexo img{height:40px;width:auto;max-width:min(300px,80vw);object-fit:contain}
+/* A arte original é branca: nos temas claros ela ganha um fundo azul-noite. */
+[data-tema="claro"] .assinatura-nexo,[data-tema="cafe"] .assinatura-nexo{background:#0f2446;opacity:.92}
 .an-txt{display:grid;gap:4px;line-height:1}
 .an-txt small{font:600 9.5px/1 var(--ft,"Syne",sans-serif);letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
 .an-nome{display:inline-flex;align-items:center;gap:9px;font:800 14px/1 var(--ft,"Syne",sans-serif);letter-spacing:.14em;text-transform:uppercase;white-space:nowrap}
@@ -336,3 +338,15 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 :root:not([data-tema="cafe"]):not([data-tema="claro"]) :is(h1,h2,h3,.kpi-n){color:#fef5e8}
 :root:not([data-tema="cafe"]) .eyebrow{font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 @media (max-width:640px){:root:not([data-tema="cafe"]) h1{font-size:24px}}
+
+/* Meu plano (assets/meuplano.js) */
+.mp-atual{display:flex;flex-direction:row;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.mp-atual h2{margin:4px 0 0}
+.mp-eb{font:700 11.5px var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--onca)}
+.mp-lado{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.mp-preco{font:800 24px var(--f)}.mp-preco span{font:500 13px var(--f);color:var(--muted)}
+.mp-pedido{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.mp-grade{margin:12px 0}
+.ct-v-plano.mp-este{border-color:var(--onca);box-shadow:0 0 0 1px var(--onca) inset}
+.mp-selo{justify-content:center;width:100%;margin-top:4px;opacity:.75;cursor:default}
+@media (max-width:560px){.mp-lado{align-items:flex-start}}

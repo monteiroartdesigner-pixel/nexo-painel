@@ -36,3 +36,17 @@
   .m-emp > .linha{grid-column:1/-1;justify-content:flex-end}
   .m-duas{grid-template-columns:1fr}
 }
+
+/* Filtros de empresas e lista de usuários (19/11/2026) */
+.m-filtros{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.m-filtro{font:600 13px var(--f);color:var(--muted);background:transparent;border:1px solid var(--borda,var(--border));border-radius:999px;padding:6px 12px;cursor:pointer}
+.m-filtro b{color:var(--fg);margin-left:4px}
+.m-filtro[aria-pressed="true"]{color:var(--fg);border-color:var(--onca);background:rgba(242,182,50,.10)}
+.m-pedido{align-self:flex-start;margin-top:4px}
+.m-usuarios{display:flex;flex-direction:column}
+.m-us{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--fina,var(--border))}
+.m-us:first-child{border-top:0}
+.m-us-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.m-us-txt b{overflow-wrap:anywhere}
+.m-us-lado{text-align:right;flex-shrink:0}
+@media (max-width:560px){.m-us{flex-direction:column}.m-us-lado{text-align:left}}

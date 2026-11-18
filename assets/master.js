@@ -27,9 +27,13 @@ const M_RECURSOS = [
 ];
 const M_LIMITES = [["usuarios", "Usuários"], ["campanhas_ativas", "Buscas ativas"], ["empresas_mes", "Empresas pesquisadas por mês"], ["pesquisas_mes", "Pesquisas com IA por mês"]];
 const M_ACESSO = { total: ["Liberado", "ok"], aviso: ["Vencida, em carência", "warn"], leitura: ["Só leitura", "bad"], bloqueado: ["Bloqueado", "bad"] };
-const M_STATUS = { teste: "Teste grátis", teste_vencido: "Teste acabou", ativa: "Ativa", vencida: "Vencida", suspensa: "Suspensa", cancelada: "Cancelada" };
+const M_STATUS = { teste: "Teste grátis", teste_vencido: "Teste acabou", ativa: "Ativa", vencida: "Vencida", suspensa: "Suspensa", cancelada: "Cancelada", vitalicia: "Vitalício" };
+// Filtros da lista de empresas: quem paga, quem testa, quem é vitalício, quem não paga e quem pediu troca.
+const M_FILTROS = [["todas", "Todas", () => true], ["pagando", "Pagando", s => s.status === "ativa"], ["teste", "Em teste", s => s.status === "teste"],
+  ["vitalicia", "Vitalício", s => s.status === "vitalicia"], ["sem_pagar", "Sem pagar", s => ["teste_vencido", "vencida", "suspensa", "cancelada"].includes(s.status)],
+  ["pedidos", "Pediram troca", s => !!s.plano_pedido]];
 const M_ORIGEM = { interna: "Da casa", master: "Criada por você", cadastro: "Cadastro público" };
-const mst = { ind: null, empresas: [], planos: [], carregado: false };
+const mst = { ind: null, empresas: [], planos: [], usuarios: null, filtro: "todas", carregado: false };
 
 const reais = c => c == null ? "a definir" : (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataCurta = iso => iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: FUSO, day: "2-digit", month: "2-digit", year: "numeric" }) : "";
@@ -40,7 +44,9 @@ async function mCarregar() {
   const [ind, emp, pl] = await Promise.all([rpc("nexo_master_indicadores"), rpc("nexo_master_empresas"), rpc("nexo_master_planos")]);
   // Suporte: sem a migração 20261119090000 a função não existe e o cartão avisa (o resto do Master segue).
   const sup = await rpc("nexo_suporte").catch(() => null);
-  Object.assign(mst, { ind, empresas: emp || [], planos: pl || [], suporte: sup, carregado: true });
+  // Usuários: sem a migração 20261119140000 a função não existe e o cartão avisa.
+  const us = await rpc("nexo_master_usuarios").catch(() => null);
+  Object.assign(mst, { ind, empresas: emp || [], planos: pl || [], suporte: sup, usuarios: us, carregado: true });
 }
 
 async function master(el) {
@@ -67,9 +73,13 @@ async function master(el) {
       ${mKpi("Receita mensal", reais(i.receita_mensal_centavos || 0), "assinaturas ativas, sem o Interno")}
       ${mKpi("Faturas em aberto", reais(i.faturas_abertas_centavos || 0), "cobrança automática em breve")}
       ${mKpi("Usuários", i.usuarios ?? 0, "com acesso a alguma empresa")}
+      ${mKpi("Vitalícios", porSt.vitalicia || 0, "acesso sem cobrança")}
+      ${mKpi("Pediram troca", mst.empresas.filter(e => e.situacao?.plano_pedido).length, "esperando você confirmar")}
     </div>
     <div class="card"><div class="linha entre"><h2>Empresas</h2><span class="muted peq">${mst.empresas.length}</span></div>
-      <div class="m-lista">${mst.empresas.map(mLinhaEmpresa).join("") || `<div class="vazio">Nenhuma empresa ainda.</div>`}</div></div>
+      <div class="m-filtros" role="group" aria-label="Filtrar empresas">${M_FILTROS.map(([k, n, f]) => `<button type="button" class="m-filtro" data-m-filtro="${k}" aria-pressed="${mst.filtro === k}">${esc(n)} <b>${mst.empresas.filter(e => f(e.situacao || {})).length}</b></button>`).join("")}</div>
+      <div class="m-lista">${mst.empresas.filter(e => (M_FILTROS.find(x => x[0] === mst.filtro) || M_FILTROS[0])[2](e.situacao || {})).map(mLinhaEmpresa).join("") || `<div class="vazio">Nenhuma empresa neste filtro.</div>`}</div></div>
+    ${mCartaoUsuarios(mst.usuarios)}
     ${mCartaoSuporte(mst.suporte)}
     <div class="card"><div class="linha entre"><h2>Planos</h2><span class="muted peq">preço vazio = a definir</span></div>
       <p class="muted peq" style="margin:0">Os limites são de exemplo. Ajuste e salve: vale na hora para todas as empresas do plano. Limite vazio = sem limite.</p>
@@ -80,6 +90,7 @@ async function master(el) {
   el.querySelectorAll("[data-m-editar]").forEach(b => b.onclick = () => mEditarEmpresa(mst.empresas.find(e => e.id === b.dataset.mEditar)));
   el.querySelectorAll("[data-m-equipe]").forEach(b => b.onclick = () => abrirEquipe(b.dataset.mEquipe, mst.empresas.find(e => e.id === b.dataset.mEquipe)?.nome));
   el.querySelectorAll("[data-m-plano]").forEach(b => b.onclick = () => mEditarAssinatura(mst.empresas.find(e => e.id === b.dataset.mPlano)));
+  el.querySelectorAll("[data-m-filtro]").forEach(b => b.onclick = () => { mst.filtro = b.dataset.mFiltro; master(el); });
   el.querySelectorAll("form[data-m-salvar-plano]").forEach(f => f.onsubmit = ev => { ev.preventDefault(); mSalvarPlano(f, el); });
 }
 
@@ -89,12 +100,14 @@ function mLinhaEmpresa(e) {
   const s = e.situacao || {}, ac = M_ACESSO[s.acesso] || ["—", ""];
   const plano = s.tem_assinatura ? `${esc(s.plano_nome || s.plano)} · ${esc(M_STATUS[s.status] || s.status)}` : "Sem plano";
   const extra = s.status === "teste" && s.dias_teste_restantes != null ? ` · ${pl(s.dias_teste_restantes, "dia de teste", "dias de teste")}`
-              : s.periodo_ate ? ` · até ${dataCurta(s.periodo_ate)}` : "";
+              : s.status === "vitalicia" ? " · sem vencimento" : s.periodo_ate ? ` · até ${dataCurta(s.periodo_ate)}` : "";
   return `<div class="m-emp">
     <div class="m-emp-av">${esc((e.nome || "?").split(/\s+/).map(p => p[0]).slice(0, 2).join("").toUpperCase())}</div>
     <div class="m-emp-txt"><b>${esc(e.nome)}</b>
       <span class="muted peq">${esc(M_ORIGEM[e.origem] || e.origem || "")} · ${pl(e.membros, "usuário", "usuários")} · ${pl(e.agentes, "agente", "agentes")}${e.status !== "ativa" ? ` · empresa ${esc(e.status)}` : ""}</span>
-      <span class="peq">${plano}${extra}</span></div>
+      ${e.dono_email ? `<span class="muted peq">Dono: ${esc(e.dono_email)}</span>` : ""}
+      <span class="peq">${plano}${extra}</span>
+      ${s.plano_pedido ? `<span class="pill warn m-pedido">Pediu o plano ${esc(mst.planos.find(p => p.chave === s.plano_pedido)?.nome || s.plano_pedido)} em ${dataCurta(s.pedido_em)}</span>` : ""}</div>
     <span class="pill ${ac[1]}">${esc(ac[0])}</span>
     <div class="linha"><button class="btn" data-m-equipe="${e.id}">Equipe</button><button class="btn" data-m-plano="${e.id}">Plano</button><button class="btn" data-m-editar="${e.id}">Editar</button></div>
   </div>`;
@@ -200,8 +213,8 @@ function mEditarAssinatura(e) {
   const status = s.status_gravado || (s.tem_assinatura ? s.status : "teste");
   mJanela(`Plano · ${e.nome}`, `
     <div class="m-duas">
-      <label class="m-campo"><span>Plano</span><select name="plano">${mst.planos.map(p => `<option value="${esc(p.chave)}" ${p.chave === (s.plano || "inicial") ? "selected" : ""}>${esc(p.nome)} · ${esc(p.chave === "interno" ? "cortesia" : reais(p.preco_centavos))}</option>`).join("")}</select></label>
-      <label class="m-campo"><span>Status</span><select name="status">${["teste", "ativa", "vencida", "suspensa", "cancelada"].map(x => `<option value="${x}" ${x === status ? "selected" : ""}>${M_STATUS[x]}</option>`).join("")}</select></label>
+      <label class="m-campo"><span>Plano</span><select name="plano">${mst.planos.map(p => `<option value="${esc(p.chave)}" ${p.chave === (s.plano_pedido || s.plano || "inicial") ? "selected" : ""}>${esc(p.nome)} · ${esc(p.chave === "interno" ? "cortesia" : reais(p.preco_centavos))}</option>`).join("")}</select></label>
+      <label class="m-campo"><span>Status</span><select name="status">${["teste", "ativa", "vitalicia", "vencida", "suspensa", "cancelada"].map(x => `<option value="${x}" ${x === status ? "selected" : ""}>${M_STATUS[x]}</option>`).join("")}</select></label>
     </div>
     <div class="m-duas">
       <label class="m-campo"><span>Teste grátis até</span><input type="date" name="teste_ate" value="${paraData(s.teste_ate)}"></label>
@@ -211,14 +224,31 @@ function mEditarAssinatura(e) {
       <label class="m-campo"><span>Dias de carência depois de vencer</span><input type="number" name="carencia_dias" min="0" max="60" value="${s.carencia_dias ?? 5}"></label>
       <label class="m-campo"><span>Observação</span><input name="observacao" maxlength="200" value=""></label>
     </div>
-    <p class="muted peq" style="margin:0">Teste sem data começa agora e dura os dias de teste do plano. Interno é cortesia: sem cobrança e sem limite.</p>`,
+    ${s.plano_pedido ? `<div class="aviso peq">A empresa pediu o plano <b>${esc(mst.planos.find(p => p.chave === s.plano_pedido)?.nome || s.plano_pedido)}</b> em ${dataCurta(s.pedido_em)}. Ele já vem marcado acima: salve para confirmar.
+      <label class="m-chk" style="margin-top:6px"><input type="checkbox" name="recusar"><span>Recusar o pedido (mantém o plano atual)</span></label></div>` : ""}
+    <p class="muted peq" style="margin:0">Teste sem data começa agora e dura os dias de teste do plano. <b>Vitalício</b>: acesso liberado para sempre, sem cobrança e sem data de vencimento. Interno é cortesia da casa.</p>`,
     async f => {
       const d = { plano: f.elements.plano.value, status: f.elements.status.value, carencia_dias: Number(f.elements.carencia_dias.value || 0) };
       if (f.elements.teste_ate.value || s.teste_ate) d.teste_ate = deData(f.elements.teste_ate.value);
       if (f.elements.periodo_ate.value || s.periodo_ate) d.periodo_ate = deData(f.elements.periodo_ate.value);
       if (f.elements.observacao.value.trim()) d.observacao = f.elements.observacao.value.trim();
       if (d.status === "teste" && !f.elements.teste_ate.value) delete d.teste_ate;   // o banco calcula
+      if (f.elements.recusar?.checked) { d.plano = s.plano; d.limpar_pedido = true; }
+      if (d.status === "vitalicia" && s.status_gravado !== "vitalicia" && !confirm(`Liberar acesso vitalício para ${e.nome}? Fica sem cobrança e sem vencimento.`)) throw new Error("Cancelado.");
       await rpc("nexo_master_salvar_assinatura", { p_empresa: e.id, p_dados: d });
       aviso("Plano da empresa salvo.");
     });
+}
+
+// Usuários da plataforma: quem tem acesso, a empresa e o papel de cada um e o último acesso.
+const M_PAPEL = { dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor" };
+function mCartaoUsuarios(us) {
+  if (!us) return `<div class="card"><h2>Usuários</h2><div class="aviso peq">A lista de usuários aparece depois da migração 20261119140000_nexo_meu_plano.sql.</div></div>`;
+  const quando = iso => iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: FUSO, day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "nunca entrou";
+  return `<div class="card"><div class="linha entre"><h2>Usuários</h2><span class="muted peq">${pl(us.length, "pessoa", "pessoas")}</span></div>
+    <div class="m-usuarios">${us.map(u => `<div class="m-us">
+      <div class="m-us-txt"><b>${esc(u.nome || u.email)}</b>${u.nome ? `<span class="muted peq">${esc(u.email)}</span>` : ""}
+        <span class="peq">${u.master ? `<span class="pill ok">Master</span> ` : ""}${(u.empresas || []).map(x => `${esc(x.nome)} · ${esc(M_PAPEL[x.papel] || x.papel)}`).join(" · ") || "sem empresa"}</span></div>
+      <div class="m-us-lado peq muted">${u.confirmado ? "" : `<span class="pill warn">e-mail não confirmado</span><br>`}Último acesso: ${esc(quando(u.ultimo_login))}</div>
+    </div>`).join("") || `<div class="vazio">Ninguém ainda.</div>`}</div></div>`;
 }

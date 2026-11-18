@@ -11,12 +11,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
-<link rel="stylesheet" href="assets/plataforma.css?v=20261117c">
+<link rel="stylesheet" href="assets/plataforma.css?v=20261119r">
 <link rel="stylesheet" href="assets/equipe.css?v=20261117c">
 <link rel="stylesheet" href="assets/temas.css?v=20261117c">
 <link rel="stylesheet" href="assets/ideias.css?v=20261117c">
 <link rel="stylesheet" href="assets/explicador.css?v=20261117e">
-<script src="assets/aparencia.js?v=20261118c"></script>
+<script src="assets/aparencia.js?v=20261119r"></script>
 <link rel="icon" href="assets/nexo-marca.webp">
 <style>
 :root{
@@ -158,8 +158,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="assets/visual.css?v=20261119e">
-<link rel="stylesheet" href="assets/master.css?v=20261118c">
+<link rel="stylesheet" href="assets/visual.css?v=20261119r">
+<link rel="stylesheet" href="assets/master.css?v=20261119q">
 <link rel="stylesheet" href="assets/suporte.css?v=20261119a">
 </head>
 <body>
@@ -218,6 +218,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
       <button data-aba="master" class="m-so-master oculto">Master</button>
       <span class="grupo">Suporte</span>
       <button data-aba="ajuda">Ajuda</button>
+      <button data-aba="plano">Meu plano</button>
     </nav>
     <div class="lado-pe">
       <button class="sair" id="btnSair" type="button" data-sair>Sair</button>
@@ -238,6 +239,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   <section data-sec="integracoes" class="oculto" aria-label="Contas conectadas"></section>
   <section data-sec="atividade" class="oculto" aria-label="Histórico"></section>
   <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
+  <section data-sec="plano" class="oculto" aria-label="Meu plano"></section>
   <section data-sec="master" class="oculto" aria-label="Master da plataforma"></section>
   </main>
 </div>
@@ -247,12 +249,13 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script src="assets/base.js?v=20261118k"></script>
 <script src="assets/equipe.js?v=20261119n"></script>
-<script src="assets/master.js?v=20261119n"></script>
+<script src="assets/master.js?v=20261119q"></script>
 <script src="assets/plano.js?v=20261119n"></script>
 <script src="assets/conta.js?v=20261119c"></script>
 <script src="assets/ideias.js?v=20261119n"></script>
 <script src="assets/explicador.js?v=20261119p"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
+<script src="assets/meuplano.js?v=20261119q"></script>
 <script>
 "use strict";
 // Supabase (sb), $, $$, esc, urlSegura, hrefSeguro e FUSO vêm de assets/base.js (comum ao System e ao Prospect).
@@ -336,6 +339,7 @@ const ICONES_MENU = { ideias: "M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7
   conhecimento: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5",
   integracoes: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
   master: "M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5zM9 12l2 2 4-4",
+  plano: "M3 6h18v13H3zM3 10h18M7 15h4",
   ajuda: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5M12 17.5h.01" };
 $$(".menu button").forEach(b => { const d = ICONES_MENU[b.dataset.aba]; if (d) b.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`); });
 
@@ -356,6 +360,7 @@ const TITULO_ABA = {
   integracoes: ["Contas conectadas", "Contas conectadas: Instagram, Google e as próximas."],
   master: ["Master", "Empresas clientes, planos e assinaturas."],
   ajuda: ["Ajuda", "Como usar o painel e quem tem acesso."],
+  plano: ["Meu plano", "O seu plano de hoje e os outros planos da NEXO Prospect."],
 };
 function abrirAba(aba) {
   // Os leads moram no NEXO Prospect desde 18/11/2026 (um lugar só para leads).
@@ -433,7 +438,7 @@ function desenhar() {
   if (!st.resumo) return;
   const rec = SYS_RECURSO[st.aba];
   if (rec && !planoTem(rec, st.empresaId)) { $(`[data-sec="${st.aba}"]`).innerHTML = planoBloqueio(rec, st.empresaId); return; }
-  ({ equipe, ideias, inicio, aprovar, agente, funcoes, conhecimento, integracoes, atividade, ajuda, master })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+  ({ equipe, ideias, inicio, aprovar, agente, funcoes, conhecimento, integracoes, atividade, ajuda, master, plano: meuPlano })[st.aba]?.($(`[data-sec="${st.aba}"]`));
 }
 
 // ---------------------------------------------------------------- INÍCIO

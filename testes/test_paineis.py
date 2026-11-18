@@ -61,6 +61,15 @@ PLANOS_PUB = []  # planos no cadastro público
 FALHAR = {}      # funções que o banco recusa neste teste
 SUPORTE = {"whatsapp": "5541998460993"}  # nexo_suporte (o Master troca)
 SITUACAO = {}  # situação do plano por empresa (vazio = sem assinatura = tudo liberado)
+PLANOS_CLIENTE = [
+    {"chave": "inicial", "nome": "Inicial", "descricao": "Vendas", "preco_centavos": 20000, "recursos": ["prospect"], "dias_teste": 3},
+    {"chave": "profissional", "nome": "Profissional", "descricao": "Inicial + Marketing", "preco_centavos": 40000, "recursos": ["prospect"], "dias_teste": 3},
+    {"chave": "completo", "nome": "Completo", "descricao": "<b>Tudo</b>", "preco_centavos": 80000, "recursos": ["prospect"], "dias_teste": 3}]
+MEU_PLANO = {}   # nexo_meu_plano: cada teste monta
+MASTER_USUARIOS = [
+    {"id": "u1", "email": "dono@cliente.com", "nome": "<img src=x onerror=alert(2)>Ana", "ultimo_login": "2026-11-19T12:00:00Z", "confirmado": True,
+     "master": False, "empresas": [{"id": "emp-c", "nome": "Clínica", "papel": "dono"}]},
+    {"id": "u9", "email": "ricardo@nexo.com", "nome": None, "ultimo_login": None, "confirmado": False, "master": True, "empresas": []}]
 
 SIT_INTERNO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "status_gravado": "ativa", "plano": "interno",
                "plano_nome": "Interno", "recursos": ["prospect"], "limites": {}, "teste_ate": None, "periodo_ate": None, "carencia_dias": 5}
@@ -91,6 +100,12 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return MASTER_EMPRESAS
     if nome == "nexo_master_planos":
         return MASTER_PLANOS
+    if nome == "nexo_master_usuarios":
+        return MASTER_USUARIOS
+    if nome == "nexo_meu_plano":
+        return MEU_PLANO
+    if nome == "nexo_pedir_plano":
+        return {}
     if nome.startswith("nexo_master_salvar_"):
         return {"ok": True}
     if nome == "nexo_resumo":
@@ -414,9 +429,11 @@ class Aparencia(unittest.TestCase):
             p = Pagina(logado=logado)
             try:
                 pg = p.abrir(url, 1500)
-                vis = pg.evaluate("[...document.querySelectorAll('.assinatura-nexo')].filter(a => a.offsetParent).map(a => a.innerText.replace(/\s+/g, ' ').trim())")
+                vis = pg.evaluate("[...document.querySelectorAll('.assinatura-nexo')].filter(a => a.offsetParent).map(a => [a.getAttribute('aria-label'), a.querySelector('img').getAttribute('src'), a.querySelector('img').naturalWidth])")
                 self.assertEqual(len(vis), 1, f"{url} logado={logado}: uma assinatura visível")
-                self.assertRegex(vis[0], r"(?i)desenvolvido por nexo gest(ã|a)o e sistemas")
+                self.assertRegex(vis[0][0], r"(?i)desenvolvido por nexo, gest(ã|a)o e sistemas")
+                self.assertTrue(vis[0][1].endswith("nexo-assinatura.webp"), "a arte original da assinatura")
+                self.assertGreater(vis[0][2], 0, "a imagem da assinatura carrega")
             finally:
                 p.fechar()
 
@@ -509,6 +526,90 @@ class Master(unittest.TestCase):
         finally:
             p.fechar()
 
+
+class MeuPlano(unittest.TestCase):
+    """Aba Meu plano (Marketing) e o Master com pedidos, vitalício e usuários (19/11/2026)."""
+
+    def tearDown(self):
+        MEU_PLANO.clear()
+
+    def abrir_plano(self, p):
+        pg = p.abrir("/index.html", 1500)
+        pg.click('.menu [data-aba="plano"]'); pg.wait_for_timeout(500)
+        return pg
+
+    def test_cliente_ve_os_planos_e_pede_troca(self):
+        MEU_PLANO.update({"pode_pedir": True, "planos": PLANOS_CLIENTE, "situacao": {"tem_assinatura": True, "acesso": "total", "status": "teste",
+                          "plano": "inicial", "plano_nome": "Inicial", "preco_centavos": 20000, "dias_teste_restantes": 2, "teste_ate": "2026-11-21T13:00:00Z"}})
+        p = Pagina()
+        try:
+            pg = self.abrir_plano(p)
+            sec = '[data-sec="plano"]'
+            self.assertIn("Inicial", pg.inner_text(sec + " .mp-atual"))
+            self.assertIn("faltam 2 dias", pg.inner_text(sec + " .mp-atual"))
+            self.assertEqual(pg.eval_on_selector_all(sec + " .ct-v-plano h3", "hs => hs.map(h => h.textContent)"), ["Inicial", "Profissional", "Completo"])
+            self.assertIn("Seu plano atual", pg.inner_text(sec + " .mp-este"))
+            self.assertIsNone(pg.query_selector(sec + " .ct-v-desc b"), "descrição do plano sai como texto, nunca como HTML")
+            pg.on("dialog", lambda d: d.accept())
+            pg.click(sec + ' [data-mp-plano="completo"]'); pg.wait_for_timeout(500)
+            args = [a for n, a in p.args if n == "nexo_pedir_plano"][-1]
+            self.assertEqual(args, {"p_empresa": "emp-v", "p_plano": "completo"})
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_leitor_so_ve_e_vitalicio_aparece(self):
+        MEU_PLANO.update({"pode_pedir": False, "planos": PLANOS_CLIENTE, "situacao": {"tem_assinatura": True, "acesso": "total", "status": "vitalicia",
+                          "plano": "completo", "plano_nome": "Completo", "preco_centavos": 80000}})
+        p = Pagina()
+        try:
+            pg = self.abrir_plano(p)
+            txt = pg.inner_text('[data-sec="plano"]')
+            self.assertIn("Vitalício", txt)
+            self.assertIn("sem mensalidade", txt)
+            self.assertIn("Só o dono ou um administrador", txt)
+            self.assertIsNone(pg.query_selector("[data-mp-plano]"), "quem não é dono nem admin não pede troca")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_sem_a_migracao_avisa(self):
+        p = Pagina()
+        try:
+            p.ctx.route("**/rest/v1/rpc/nexo_meu_plano", lambda r: r.fulfill(status=404, content_type="application/json",
+                        body='{"code":"PGRST202","message":"Could not find the function public.nexo_meu_plano"}'))
+            pg = self.abrir_plano(p)
+            self.assertIn("20261119140000", pg.inner_text('[data-sec="plano"]'))
+        finally:
+            p.fechar()
+
+    def test_master_filtra_pedidos_libera_vitalicio_e_ve_usuarios(self):
+        MASTER_EMPRESAS.append({"id": "emp-x", "nome": "Loja Pedido", "slug": "loja", "status": "ativa", "origem": "cadastro", "membros": 1, "agentes": 0,
+                                "dono_email": "loja@cliente.com", "situacao": {**SIT_INTERNO, "plano": "inicial", "plano_nome": "Inicial", "status": "teste",
+                                "status_gravado": "teste", "plano_pedido": "inicial", "pedido_em": "2026-11-19T12:00:00Z"}})
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
+            pg.click('[data-m-filtro="pedidos"]'); pg.wait_for_timeout(300)
+            nomes = pg.eval_on_selector_all(".m-lista .m-emp-txt b", "bs => bs.map(b => b.textContent)")
+            self.assertEqual(nomes, ["Loja Pedido"])
+            self.assertIn("Dono: loja@cliente.com", pg.inner_text(".m-lista"))
+            self.assertIn("Pediu o plano Inicial", pg.inner_text(".m-lista"))
+            usu = pg.inner_text(".m-usuarios")
+            self.assertIn("dono@cliente.com", usu); self.assertIn("nunca entrou", usu); self.assertIn("e-mail não confirmado", usu)
+            self.assertIsNone(pg.query_selector(".m-usuarios img"), "nome do usuário sai como texto")
+            pg.click('[data-m-filtro="todas"]'); pg.wait_for_timeout(300)
+            pg.on("dialog", lambda d: d.accept())
+            pg.click('[data-m-plano="emp-c"]')
+            pg.select_option(".m-janela [name=status]", "vitalicia")
+            pg.click(".m-janela [type=submit]"); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_assinatura"][-1]
+            self.assertEqual((args["p_empresa"], args["p_dados"]["status"]), ("emp-c", "vitalicia"))
+            self.assertEqual(p.erros, [])
+        finally:
+            MASTER_EMPRESAS.pop()
+            p.fechar()
 
 class Retorno(unittest.TestCase):
     """Lead que pediu retorno: data marcada e destaque no CRM."""
