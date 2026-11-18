@@ -366,3 +366,9 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 .plano-faixa.urgente{position:sticky;top:0;z-index:40;background:#d93a3a;border-color:#d93a3a;color:#fff;font-weight:600;
   box-shadow:0 10px 24px -14px rgba(217,58,58,.9)}
 .plano-faixa.urgente a{background:#fff;color:#b51f1f;text-decoration:none;padding:6px 14px;border-radius:999px;font-weight:800;white-space:nowrap}
+
+/* Links de Privacidade e Termos embaixo da assinatura (19/11/2026) */
+.legal-links{grid-column:1/-1;justify-self:center;display:flex;gap:8px;margin:-14px auto 22px;font-size:12.5px;color:var(--muted)}
+.app > .legal-links{grid-column:2}
+.legal-links a{color:var(--muted);text-decoration:none}.legal-links a:hover{color:var(--fg);text-decoration:underline}
+@media (max-width:900px){.app > .legal-links{grid-column:1}.app:has(.bottom) > .legal-links{margin-bottom:calc(84px + env(safe-area-inset-bottom,0px))}}

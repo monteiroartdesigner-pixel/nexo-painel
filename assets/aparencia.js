@@ -169,7 +169,8 @@ function apAssinatura() {
     <img src="${AP_BASE}nexo-assinatura.webp" alt="" width="900" height="148" loading="lazy" decoding="async"></a>`;   // arte original do Ricardo (19/11/2026)
   ["#telaApp", "#telaLogin"].forEach(sel => {
     const alvo = document.querySelector(sel);
-    if (alvo && !alvo.querySelector(":scope > .assinatura-nexo")) alvo.insertAdjacentHTML("beforeend", html);
+    if (alvo && !alvo.querySelector(":scope > .assinatura-nexo")) alvo.insertAdjacentHTML("beforeend", html +
+      `<nav class="legal-links" aria-label="Documentos"><a href="${AP_BASE}../privacidade.html">Privacidade</a><span aria-hidden="true">·</span><a href="${AP_BASE}../termos.html">Termos de Uso</a></nav>`);
   });
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apAssinatura); else apAssinatura();

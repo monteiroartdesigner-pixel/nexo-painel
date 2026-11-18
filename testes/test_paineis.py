@@ -542,6 +542,28 @@ class Master(unittest.TestCase):
             p.fechar()
 
 
+class PaginasLegais(unittest.TestCase):
+    """Privacidade e Termos (exigidos pelo Google e pela Meta) e o link no rodapé de todas as telas."""
+
+    def test_links_no_rodape_e_paginas_abrem(self):
+        for url, logado in (("/index.html", False), ("/prospect/", True)):
+            p = Pagina(logado=logado)
+            try:
+                pg = p.abrir(url, 1500)
+                hrefs = pg.eval_on_selector_all(".legal-links a", "as => as.filter(a => a.offsetParent).map(a => a.href)")
+                self.assertTrue(any(h.endswith("/privacidade.html") for h in hrefs), url)
+                self.assertTrue(any(h.endswith("/termos.html") for h in hrefs), url)
+            finally:
+                p.fechar()
+        p = Pagina(logado=False)
+        try:
+            for pagina, texto in (("/privacidade.html", "Uso Limitado"), ("/termos.html", "Teste grátis e pagamento")):
+                pg = p.abrir(pagina, 600)
+                self.assertIn(texto, pg.inner_text("main"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
 class AvisoMensalidade(unittest.TestCase):
     """Faixa vermelha no topo: 2 dias, 1 dia, vence hoje e vencida (pedido do Ricardo, 19/11/2026)."""
 
