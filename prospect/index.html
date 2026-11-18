@@ -256,7 +256,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
   .hide-m{display:none!important}
 }
 </style>
-<link rel="stylesheet" href="../assets/visual.css?v=20261119r">
+<link rel="stylesheet" href="../assets/visual.css?v=20261119t">
 <link rel="stylesheet" href="../assets/suporte.css?v=20261119a">
 </head>
 <body>
@@ -289,6 +289,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
     <nav class="areas" aria-label="Áreas da plataforma"><a class="sys" href="../" title="Marketing: a equipe de onças que cria e publica conteúdo"><i></i>Marketing</a><a class="pro" href="./" aria-current="page" title="Vendas: buscas de empresas, clientes e tarefas"><i></i>Vendas</a></nav>
     <nav class="nav" id="nav" aria-label="Módulos de Vendas"></nav>
     <div class="side-f">
+      <label class="emp-sel oculto" id="empresaP"><span class="peq muted">Empresa (Master)</span><select class="select" id="selEmpresaP" aria-label="Empresa que você está vendo"></select></label>
       <span id="quem" class="peq"></span>
       <button class="btn ghost sm oculto" id="btnEquipeP" style="justify-content:flex-start">Equipe da empresa</button>
       <button class="btn ghost sm" id="sair" data-sair style="justify-content:flex-start">Sair</button>
@@ -302,9 +303,9 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="../assets/base.js?v=20261118k"></script>
 <script src="../assets/links.js?v=20261119n"></script>
 <script src="../assets/leads.js?v=20261118k"></script>
-<script src="../assets/plano.js?v=20261119n"></script>
+<script src="../assets/plano.js?v=20261119s"></script>
 <script src="../assets/conta.js?v=20261119c"></script>
-<script src="../assets/explicador.js?v=20261119p"></script>
+<script src="../assets/explicador.js?v=20261119t"></script>
 <script src="../assets/suporte.js?v=20261119n"></script>
 <script>
 "use strict";
@@ -1038,7 +1039,20 @@ async function iniciar() {
   const ctx = await rpc("nexo_contexto");
   S.email = ctx.email || "";
   try { const { data } = await sb.auth.getSession(); S.nome = data.session?.user?.user_metadata?.full_name || ""; } catch { S.nome = ""; }
-  const emp = (ctx.empresas || []).find(e => (e.agentes || []).some(a => a.slug === "prospect"));
+  // Qual empresa abre em Vendas. O Master enxerga todas: abre sempre a da casa (NEXO Inteligência), e só vê a de
+  // um cliente se escolher no seletor, com aviso na tela. Cliente só tem a própria empresa (o banco já filtra).
+  const comVendas = (ctx.empresas || []).filter(e => (e.agentes || []).some(a => a.slug === "prospect"));
+  let escolhida = null;
+  if (ctx.plataforma) { try { escolhida = sessionStorage.getItem("vendas.empresa"); } catch {} }
+  const emp = comVendas.find(e => e.id === escolhida)
+    || (ctx.plataforma ? comVendas.find(e => e.slug === "nexo-inteligencia") : null)
+    || comVendas.find(e => e.papel === "dono") || comVendas[0];
+  if (ctx.plataforma && comVendas.length > 1) {
+    const sel = $("#selEmpresaP");
+    sel.innerHTML = comVendas.map(e => `<option value="${esc(e.id)}" ${e.id === emp?.id ? "selected" : ""}>${esc(e.nome)}${e.slug === "nexo-inteligencia" ? " (NEXO)" : ""}</option>`).join("");
+    sel.onchange = () => { try { sessionStorage.setItem("vendas.empresa", sel.value); } catch {} location.reload(); };
+    $("#empresaP").classList.remove("oculto");
+  }
   $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
   $("#quem").textContent = S.email;
   if (!emp) { $("#main").innerHTML = `<div class="card"><div class="empty"><h2>Sem acesso à área de Vendas</h2><p class="muted" style="margin:0">O login ${esc(S.email)} não tem papel na NEXO Inteligência e Automação. Peça acesso ao administrador.</p></div></div>`; return; }
@@ -1054,6 +1068,11 @@ async function iniciar() {
   $("#main").innerHTML = `<div class="sk" style="height:34px;width:260px"></div><div class="grid g-kpi">${"<div class='sk' style='height:92px'></div>".repeat(5)}</div><div class="sk" style="height:280px"></div>`;
   try { await carregarTudo(); } catch (e) { $("#main").innerHTML = `<div class="alert warn">${ic("alert")}<div>${esc(msgErro(e))}</div></div>`; return; }
   pintarNav(); render();
+  // Master olhando a empresa de um cliente: aviso fixo no topo, para não confundir com a NEXO.
+  if (ctx.plataforma && emp.slug !== "nexo-inteligencia") {
+    document.body.insertAdjacentHTML("afterbegin", `<div class="aviso-cliente" role="status">Você está vendo a empresa <b>${esc(emp.nome)}</b>, que é cliente. Tudo o que mudar aqui muda para ela. <button type="button" id="voltarNexo">Voltar para a NEXO</button></div>`);
+    $("#voltarNexo").onclick = () => { try { sessionStorage.removeItem("vendas.empresa"); } catch {} location.reload(); };
+  }
 }
 window.__prospect = { mock(fn) { MOCK = fn; return iniciar(); }, estado: S };
 $$("[data-ursa]").forEach(x => x.innerHTML = URSA_SVG);

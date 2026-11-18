@@ -30,6 +30,12 @@ function planoTem(recurso, empresaId) {
 }
 
 const PL_CONTATO = "https://www.instagram.com/nexo.rm/";
+// Onde ativar: no Marketing, a aba Meu plano (paga ali mesmo); em Vendas, a mesma aba do Marketing.
+const PL_ATIVAR = () => typeof abrirAba === "function" ? "#plano" : "../#plano";
+document.addEventListener("click", ev => {
+  const a = ev.target.closest('a[href$="#plano"]');
+  if (a && typeof abrirAba === "function") { ev.preventDefault(); abrirAba("plano"); }
+});
 function planoBloqueio(recurso, empresaId) {
   const s = PL.sits[empresaId] || {}, inativo = s.tem_assinatura && !["total", "aviso"].includes(s.acesso);
   const titulo = inativo ? (s.status === "teste_vencido" ? "Seu teste grátis acabou" : s.acesso === "bloqueado" ? "Assinatura cancelada" : "Assinatura inativa")
@@ -39,7 +45,7 @@ function planoBloqueio(recurso, empresaId) {
   return `<div class="plano-trava"><div class="pt-icone" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
     <div class="pt-txt"><span class="pt-selo">${inativo ? "Plano" : `Disponível no plano ${esc(PLANO_DE[recurso] || "superior")}`}</span>
       <h2>${esc(titulo)}</h2><p>${esc(texto)}</p>
-      <a class="btn prim pri" href="${PL_CONTATO}" target="_blank" rel="noopener">Falar com a NEXO para ativar</a></div></div>`;
+      <a class="btn prim pri" href="${PL_ATIVAR()}">Ver os planos e ativar</a></div></div>`;
 }
 
 // Faixa no topo quando o plano pede atenção (teste acabando ou acabado, vencida, suspensa).
@@ -53,5 +59,5 @@ function planoFaixa(empresaId, alvo) {
   else if (s.status === "teste_vencido") { msg = "Seu teste grátis acabou. Ative um plano para continuar usando."; tom = "bad"; }
   else if (["leitura", "bloqueado"].includes(s.acesso)) { msg = "Sua assinatura está inativa. Ative um plano para voltar a usar."; tom = "bad"; }
   if (!msg) return;
-  alvo.insertAdjacentHTML("afterbegin", `<div class="plano-faixa ${tom}" role="status"><span>${esc(msg)}</span><a href="${PL_CONTATO}" target="_blank" rel="noopener">Falar com a NEXO</a></div>`);
+  alvo.insertAdjacentHTML("afterbegin", `<div class="plano-faixa ${tom}" role="status"><span>${esc(msg)}</span><a href="${PL_ATIVAR()}">Ver os planos</a></div>`);
 }

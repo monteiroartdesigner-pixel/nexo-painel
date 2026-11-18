@@ -147,8 +147,12 @@ function explicadorMontar(el, opcoes = {}) {
       mostrar(j);
       const seguir = () => passo(j + 1);
       if (temAudio) {
-        audio = new Audio(EXP_AUDIO(j));   // um arquivo por cena do vídeo, na ordem em que aparecem audio.onended = () => { timer = setTimeout(seguir, 350); };
-        audio.play().catch(() => { tocando = false; botao(); });
+        // Um arquivo por cena do vídeo, na ordem em que aparecem. Cena ainda sem gravação: passa com legenda.
+        const soLegenda = () => { if (minha !== sessao) return; audio = null; timer = setTimeout(seguir, Math.max(5, EXP_CENAS[j].fala.split(/\s+/).length / 2.6) * 1000); };
+        audio = new Audio(EXP_AUDIO(j));
+        audio.onended = () => { timer = setTimeout(seguir, 350); };
+        audio.onerror = soLegenda;
+        audio.play().catch(e => { if (e && e.name === "NotAllowedError") { tocando = false; botao(); } else soLegenda(); });
       } else {   // sem a gravação da voz do Claude: as cenas passam com legenda (o Ricardo não quer a voz do navegador)
         timer = setTimeout(seguir, Math.max(5, EXP_CENAS[j].fala.split(/\s+/).length / 2.6) * 1000);
       }

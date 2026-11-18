@@ -527,6 +527,49 @@ class Master(unittest.TestCase):
             p.fechar()
 
 
+class EmpresaEmVendas(unittest.TestCase):
+    """Master enxerga todas as empresas: Vendas abre a NEXO, nunca a de um cliente por acaso (bug de 19/11/2026: abria a Godoi)."""
+
+    CTX_MASTER = {"email": "ricardo@nexo.com", "plataforma": True, "empresas": [
+        {"id": "emp-g", "nome": "GODOI NOBREAKS", "slug": "godoi-nobreaks-0ba62", "status": "ativa", "papel": "plataforma",
+         "agentes": [{"id": "ag-godoi", "nome": "Prospect", "slug": "prospect", "nivel": 1, "ativo": True}]},
+        {"id": "emp-p", "nome": "NEXO Inteligência e Automação", "slug": "nexo-inteligencia", "status": "ativa", "papel": "plataforma",
+         "agentes": [{"id": AG_PROSP, "nome": "Prospect", "slug": "prospect", "nivel": 1, "ativo": True}]}]}
+
+    def abrir(self, ctx_json):
+        p = Pagina(master=True)
+        p.ctx.route("**/rest/v1/rpc/nexo_contexto", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(ctx_json)))
+        return p, p.abrir("/prospect/", 2000)
+
+    def test_master_abre_a_nexo_e_troca_de_proposito(self):
+        p, pg = self.abrir(self.CTX_MASTER)
+        try:
+            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), AG_PROSP, "abre a NEXO, não a Godoi")
+            self.assertIsNone(pg.query_selector(".aviso-cliente"))
+            self.assertTrue(pg.is_visible("#selEmpresaP"), "o Master tem o seletor de empresa")
+            with pg.expect_navigation():
+                pg.select_option("#selEmpresaP", "emp-g")
+            pg.wait_for_timeout(1500)
+            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), "ag-godoi")
+            self.assertIn("GODOI NOBREAKS", pg.inner_text(".aviso-cliente"), "aviso claro de que é empresa de cliente")
+            with pg.expect_navigation():
+                pg.click("#voltarNexo")
+            pg.wait_for_timeout(1500)
+            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), AG_PROSP)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_cliente_so_tem_a_propria_empresa_e_nao_ve_seletor(self):
+        ctx = {"email": "dono@godoi.com", "plataforma": False, "empresas": [{**self.CTX_MASTER["empresas"][0], "papel": "dono"}]}
+        p, pg = self.abrir(ctx)
+        try:
+            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), "ag-godoi")
+            self.assertFalse(pg.is_visible("#selEmpresaP"))
+            self.assertIsNone(pg.query_selector(".aviso-cliente"))
+        finally:
+            p.fechar()
+
 class MeuPlano(unittest.TestCase):
     """Aba Meu plano (Marketing) e o Master com pedidos, vitalício e usuários (19/11/2026)."""
 
@@ -580,6 +623,65 @@ class MeuPlano(unittest.TestCase):
                         body='{"code":"PGRST202","message":"Could not find the function public.nexo_meu_plano"}'))
             pg = self.abrir_plano(p)
             self.assertIn("20261119140000", pg.inner_text('[data-sec="plano"]'))
+        finally:
+            p.fechar()
+
+    def test_pagar_abre_o_checkout_da_infinitepay(self):
+        MEU_PLANO.update({"pode_pedir": True, "pagamento_ligado": True, "planos": PLANOS_CLIENTE, "situacao": {"tem_assinatura": True, "acesso": "total",
+                          "status": "teste", "plano": "inicial", "plano_nome": "Inicial", "preco_centavos": 20000, "dias_teste_restantes": 2}})
+        p = Pagina()
+        try:
+            pedidos = []
+            def servidor(r):
+                pedidos.append((r.request.headers.get("authorization", ""), json.loads(r.request.post_data or "{}")))
+                r.fulfill(status=200, content_type="application/json", body='{"link":"https://checkout.infinitepay.io/teste-nexo"}')
+            p.ctx.route("**/functions/v1/nexo-pagamento", servidor)
+            p.ctx.route("https://checkout.infinitepay.io/**", lambda r: r.fulfill(status=200, content_type="text/html", body="<h1>Checkout InfinitePay</h1>"))
+            pg = self.abrir_plano(p)
+            sec = '[data-sec="plano"]'
+            self.assertIn("Pagar mensalidade", pg.inner_text(sec + " .mp-este"), "no teste grátis o plano atual já pode ser pago")
+            self.assertIn("Pix ou cartão", pg.inner_text(sec))
+            self.assertIsNone(pg.query_selector(sec + " [data-mp-plano]"), "com o pagamento ligado não tem pedido de troca")
+            with pg.expect_navigation():
+                pg.click(sec + ' [data-mp-pagar="completo"]')
+            self.assertEqual(pg.url, "https://checkout.infinitepay.io/teste-nexo")
+            self.assertEqual(pedidos[0][1], {"acao": "pagar", "empresa": "emp-v", "plano": "completo"})
+            self.assertTrue(pedidos[0][0].startswith("Bearer "), "vai com o login de quem está pagando")
+        finally:
+            p.fechar()
+
+    def test_erro_do_pagamento_aparece_e_o_botao_volta(self):
+        MEU_PLANO.update({"pode_pedir": True, "pagamento_ligado": True, "planos": PLANOS_CLIENTE, "situacao": {"tem_assinatura": True, "acesso": "total",
+                          "status": "ativa", "plano": "inicial", "plano_nome": "Inicial", "preco_centavos": 20000, "periodo_ate": "2099-01-01T00:00:00Z"}})
+        p = Pagina()
+        try:
+            p.ctx.route("**/functions/v1/nexo-pagamento", lambda r: r.fulfill(status=503, content_type="application/json",
+                        body='{"erro":"INFINITEPAY_NOT_ENABLED","mensagem":"O checkout da InfinitePay está desligado na conta da NEXO."}'))
+            pg = self.abrir_plano(p)
+            sec = '[data-sec="plano"]'
+            self.assertIn("Seu plano atual", pg.inner_text(sec + " .mp-este"), "pago até longe: não pede mensalidade agora")
+            pg.click(sec + ' [data-mp-pagar="completo"]'); pg.wait_for_timeout(500)
+            self.assertIn("checkout da InfinitePay está desligado", pg.inner_text("#toast"))
+            self.assertEqual(pg.inner_text(sec + ' [data-mp-pagar="completo"]'), "Assinar e pagar")
+        finally:
+            p.fechar()
+
+    def test_volta_do_checkout_confere_e_abre_meu_plano(self):
+        MEU_PLANO.update({"pode_pedir": True, "pagamento_ligado": True, "planos": PLANOS_CLIENTE, "situacao": {"tem_assinatura": True, "acesso": "total",
+                          "status": "ativa", "plano": "completo", "plano_nome": "Completo", "preco_centavos": 80000, "periodo_ate": "2026-12-19T12:00:00Z"}})
+        p = Pagina()
+        try:
+            pedidos = []
+            def servidor(r):
+                pedidos.append(json.loads(r.request.post_data or "{}"))
+                r.fulfill(status=200, content_type="application/json", body='{"resultado":"pago","pago_ate":"2026-12-19T12:00:00Z"}')
+            p.ctx.route("**/functions/v1/nexo-pagamento", servidor)
+            pg = p.abrir("/index.html?pagamento=volta&order_nsu=ABCDEFGHIJKLMNOPQRSTUVWXYZ12&transaction_nsu=T-1&slug=fat9&capture_method=pix", 2500)
+            self.assertEqual(pedidos[0], {"acao": "conferir", "order_nsu": "ABCDEFGHIJKLMNOPQRSTUVWXYZ12", "transaction_nsu": "T-1", "slug": "fat9"})
+            self.assertIn("Pagamento confirmado", pg.inner_text("#toast"))
+            self.assertTrue(pg.is_visible('[data-sec="plano"]'), "abre a aba Meu plano")
+            self.assertNotIn("order_nsu", pg.url, "o endereço fica limpo")
+            self.assertEqual(p.erros, [])
         finally:
             p.fechar()
 

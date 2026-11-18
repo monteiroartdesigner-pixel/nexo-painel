@@ -350,3 +350,14 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 .ct-v-plano.mp-este{border-color:var(--onca);box-shadow:0 0 0 1px var(--onca) inset}
 .mp-selo{justify-content:center;width:100%;margin-top:4px;opacity:.75;cursor:default}
 @media (max-width:560px){.mp-lado{align-items:flex-start}}
+.mp-faturas{display:flex;flex-direction:column}
+.mp-fat{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--fina,var(--border))}
+.mp-fat:first-child{border-top:0}
+@media (max-width:560px){.mp-fat{grid-template-columns:1fr auto}.mp-fat .pill{grid-column:1/-1;justify-self:start}}
+
+/* Vendas: seletor de empresa do Master e aviso quando ele olha a empresa de um cliente (19/11/2026) */
+.emp-sel{display:flex;flex-direction:column;gap:4px;margin-bottom:6px}
+.emp-sel .select{width:100%}
+.aviso-cliente{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:10px 16px;
+  background:#f2b632;color:#081325;font:600 14px var(--f)}
+.aviso-cliente button{font:700 13px var(--f);color:#081325;background:rgba(8,19,37,.12);border:1px solid rgba(8,19,37,.35);border-radius:999px;padding:5px 12px;cursor:pointer}
