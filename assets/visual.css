@@ -293,3 +293,31 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 .ct-v-plano .btn{margin-top:4px;justify-content:center;width:100%}
 @media (max-width:900px){.ct-vitrine{order:0}.login #explicador{order:1}}
 @media (min-width:901px){.login>.card{grid-column:2;grid-row:1 / span 2}.login>#explicador,.login>.ct-vitrine{grid-column:1}}
+
+/* ============================================================================
+   NOITE NEXO (19/11, pedido do Ricardo): o fundo e a fonte do vídeo da equipe no sistema todo.
+   Tema escuro (padrão): azul-noite com degradê e pontinhos dourados, igual ao palco do explicador.
+   Títulos em Syne 800 creme nos temas escuro e claro. O tema "cafe" segue com o estilo próprio.
+   ============================================================================ */
+:root:not([data-tema="cafe"]):not([data-tema="claro"]){
+  --bg:#081325; --panel:#0f2446; --card:#132c55; --dark:#0a1830; --fg:#fef5e8; --muted:#9fb2d3;
+  --borda:rgba(159,178,211,.30); --fina:rgba(159,178,211,.17);
+  --surface:#0f2446; --surface-2:#132c55; --surface-3:#183463; --border:rgba(159,178,211,.17); --border-strong:rgba(159,178,211,.30);
+  --text:#fef5e8; --text-2:#c4d1e8; --vidro-luz:rgba(254,245,232,.035); --sombra-card:0 24px 50px -30px rgba(2,6,15,.9);
+  --plat-fundo:#0a1830; --plat-borda:rgba(159,178,211,.22);
+}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) body{
+  background:radial-gradient(120% 140% at 15% 0%,#14305f 0%,#0e2140 48%,#081325 100%) fixed,#081325}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background-image:radial-gradient(rgba(242,182,50,.10) 1.2px,transparent 1.3px);background-size:22px 22px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 55%);mask-image:linear-gradient(90deg,transparent,#000 55%)}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) :is(.lado,.side,.topm,.bottom){background:rgba(8,19,37,.82)}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) :is(input,select,textarea,.input,.select,.textarea){background-color:rgba(8,19,37,.55)}
+
+/* fonte dos títulos: a mesma do vídeo, forte e legível */
+:root:not([data-tema="cafe"]) :is(h1,h2,h3,.kpi-n,.num){font-family:var(--ft,"Syne","Inter",sans-serif);font-weight:800;letter-spacing:-.005em;text-wrap:balance}
+:root:not([data-tema="cafe"]) h1{font-size:clamp(26px,2.9vw,36px);line-height:1.05}
+:root:not([data-tema="cafe"]) h2{font-size:clamp(17px,1.5vw,20px);line-height:1.2}
+:root:not([data-tema="cafe"]):not([data-tema="claro"]) :is(h1,h2,h3,.kpi-n){color:#fef5e8}
+:root:not([data-tema="cafe"]) .eyebrow{font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+@media (max-width:640px){:root:not([data-tema="cafe"]) h1{font-size:24px}}
