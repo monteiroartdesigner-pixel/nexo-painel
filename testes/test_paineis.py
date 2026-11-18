@@ -542,6 +542,31 @@ class Master(unittest.TestCase):
             p.fechar()
 
 
+class NomeNoTopo(unittest.TestCase):
+    """O nome no topo não repete a empresa quando o nome de exibição já a traz (19/11/2026)."""
+
+    def test_nome_da_empresa_nao_repete(self):
+        global rpc_falso
+        orig = rpc_falso
+
+        def com_nome(nome, args, *a, **k):
+            r = orig(nome, args, *a, **k)
+            if nome == "nexo_resumo":
+                r = {**r, "identidade": {"nome_exibicao": "Onça · NEXO VÁRZEA (teste)"}}
+            return r
+        rpc_falso = com_nome
+        try:
+            p = Pagina()
+            try:
+                pg = p.abrir("/index.html", 1500)
+                self.assertEqual(pg.inner_text("#nomeEmpresa").upper(), "NEXO VÁRZEA (TESTE) · ONÇA")
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
+        finally:
+            rpc_falso = orig
+
+
 class PaginasLegais(unittest.TestCase):
     """Privacidade e Termos (exigidos pelo Google e pela Meta) e o link no rodapé de todas as telas."""
 

@@ -432,7 +432,9 @@ async function carregar() {
     $$(".menu button[data-aba]").forEach(b => { const rec = SYS_RECURSO[b.dataset.aba]; b.classList.toggle("trancado", !!rec && !planoTem(rec, st.empresaId)); });
     const ident = r.identidade || {};
     const nomeEmp = r.empresa?.nome || (st.ctx.empresas || []).find(e => e.id === st.empresaId)?.nome || "";
-    $("#nomeEmpresa").textContent = [nomeEmp, ident.nome_exibicao || r.agente?.nome].filter(Boolean).join(" · ") || "NEXO";
+    // Sem repetir: o nome de exibição pode já trazer o nome da empresa ("Onça · NEXO VÁRZEA").
+    const partes = [nomeEmp, ...String(ident.nome_exibicao || r.agente?.nome || "").split(/\s*·\s*/)].map(s => (s || "").trim()).filter(Boolean);
+    $("#nomeEmpresa").textContent = partes.filter((p, i) => partes.findIndex(q => q.toLocaleLowerCase("pt-BR") === p.toLocaleLowerCase("pt-BR")) === i).join(" · ") || "NEXO";
     aplicarLogo();
     const n = st.conteudos.filter(x => x.status === "revisar").length;
     $("#nAprovar").textContent = n ? n : "";
