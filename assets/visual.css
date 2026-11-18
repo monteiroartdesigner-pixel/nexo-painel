@@ -276,3 +276,20 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 [data-tema="cafe"] .ag-in{background:#fff;color:#16224D;border:2px solid rgba(22,34,77,.4)}
 @media (max-width:900px){.ag-niveis{grid-template-columns:1fr 1fr}.ag-passo{gap:12px}}
 @media (max-width:520px){.ag-niveis{grid-template-columns:1fr}.ag-n{width:28px;height:28px;font-size:13px}}
+
+/* Vitrine de planos na tela de entrada (assets/conta.js › ctVitrine) */
+.ct-vitrine{display:flex;flex-direction:column;gap:16px;min-width:0}
+.ct-v-topo h2{margin:2px 0 4px;font:800 22px var(--f2,var(--f))}
+.ct-v-topo p{margin:0;color:var(--muted);font-size:14px}
+.ct-v-eyebrow{font:700 11.5px var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--onca)}
+.ct-v-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.ct-v-plano{display:flex;flex-direction:column;gap:8px;padding:18px;border-radius:16px;border:1px solid var(--borda,var(--border));background:var(--card,var(--surface))}
+.ct-v-plano:hover{border-color:var(--onca)}
+.ct-v-plano h3{margin:0;font:800 17px var(--f)}
+.ct-v-preco{margin:0;display:flex;align-items:baseline;gap:2px}
+.ct-v-preco b{font:800 26px var(--f);letter-spacing:-.01em}.ct-v-preco span{color:var(--muted);font-size:13px}
+.ct-v-desc{margin:0;color:var(--muted);font-size:13.5px;line-height:1.45;flex:1}
+.ct-v-teste{margin:0;font:600 12.5px var(--f);color:var(--onca)}
+.ct-v-plano .btn{margin-top:4px;justify-content:center;width:100%}
+@media (max-width:900px){.ct-vitrine{order:0}.login #explicador{order:1}}
+@media (min-width:901px){.login>.card{grid-column:2;grid-row:1 / span 2}.login>#explicador,.login>.ct-vitrine{grid-column:1}}

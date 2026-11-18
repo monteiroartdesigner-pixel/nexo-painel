@@ -806,6 +806,32 @@ class Conta(unittest.TestCase):
         finally:
             p.fechar()
 
+    def test_planos_aparecem_na_tela_de_entrada(self):
+        PLANOS_PUB.extend([
+            {"chave": "inicial", "nome": "Inicial", "descricao": "Prospect", "preco_centavos": 20000, "recursos": ["prospect"], "dias_teste": 3},
+            {"chave": "completo", "nome": "Completo", "descricao": "Tudo", "preco_centavos": 80000, "recursos": ["prospect"], "dias_teste": 3}])
+        for url in ("/index.html", "/prospect/"):
+            p = Pagina(logado=False)
+            try:
+                pg = p.abrir(url, 1800)
+                cards = pg.eval_on_selector_all(".ct-vitrine .ct-v-plano h3", "hs => hs.map(h => h.textContent)")
+                self.assertEqual(cards, ["Inicial", "Completo"], url)
+                self.assertIn("Teste 3 dias grátis", pg.inner_text(".ct-vitrine"))
+                self.assertIn("R$ 800,00", pg.inner_text(".ct-vitrine").replace("\xa0", " "))
+                pg.click('.ct-vitrine [data-plano="completo"]'); pg.wait_for_timeout(400)
+                self.assertTrue(pg.is_checked('.ct-janela input[name=plano][value="completo"]'), "abre o cadastro com o plano escolhido")
+                self.assertEqual(p.erros, [], url)
+            finally:
+                p.fechar()
+
+    def test_sem_plano_publico_a_vitrine_nao_aparece(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            self.assertIsNone(pg.query_selector(".ct-vitrine"))
+        finally:
+            p.fechar()
+
     def test_master_abre_equipe_e_convida(self):
         p = Pagina(master=True)
         try:

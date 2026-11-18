@@ -99,7 +99,8 @@ function ctContaConvidado(emailInicial) {
 }
 
 // ---------------------------------------------------------------- criar conta com teste grátis
-async function ctCriarConta() {
+async function ctCriarConta(escolhido) {
+  escolhido = typeof escolhido === "string" ? escolhido : null;   // vem da vitrine de planos; clique no link manda o evento
   let planos = [];
   try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { planos = []; }
   if (!planos.length) {
@@ -111,7 +112,7 @@ async function ctCriarConta() {
   ctJanela("Teste grátis do NEXO", `<form class="ct-form" data-f>
       <p class="ct-txt">Crie a conta da sua empresa. Sem cartão: o teste começa agora e você decide depois.
         <button type="button" class="ct-link" data-convidado>Recebi um convite de uma empresa</button></p>
-      <fieldset class="ct-planos"><legend>Plano</legend>${planos.map((p, i) => `<label class="ct-plano"><input type="radio" name="plano" value="${esc(p.chave)}" ${i === 0 ? "checked" : ""}>
+      <fieldset class="ct-planos"><legend>Plano</legend>${planos.map((p, i) => `<label class="ct-plano"><input type="radio" name="plano" value="${esc(p.chave)}" ${(escolhido ? p.chave === escolhido : i === 0) ? "checked" : ""}>
         <span><b>${esc(p.nome)}</b><small>${esc(p.descricao || "")}</small><small>${pl(p.dias_teste, "dia grátis", "dias grátis")} · depois ${esc(ctReais(p.preco_centavos))}</small></span></label>`).join("")}</fieldset>
       <div class="ct-duas"><label class="ct-campo"><span>Seu nome</span><input name="responsavel" autocomplete="name" required maxlength="120"></label>
         <label class="ct-campo"><span>Nome da empresa</span><input name="empresa" autocomplete="organization" required maxlength="120"></label></div>
@@ -157,9 +158,37 @@ function contaLigarLogin(form, campoEmail) {
     <button type="button" class="ct-link" data-criar>Criar conta com teste grátis</button></div>`);
   form.querySelector("[data-esqueci]").onclick = () => ctEsqueci(campoEmail?.value);
   form.querySelector("[data-criar]").onclick = ctCriarConta;
+  ctVitrine(form);
   // Link do convite (?convite=email): abre direto a conta de convidado, com o e-mail preenchido.
   const conv = new URLSearchParams(location.search).get("convite");
   if (conv) setTimeout(() => ctContaConvidado(conv), 300);
+}
+
+// Vitrine de planos na tela de entrada (pedido do Ricardo, 18/11/2026: "planos não aparecem na page do login").
+// Mostra só os planos marcados "No cadastro público" no Master; sem nenhum, a vitrine não aparece.
+async function ctVitrine(form) {
+  const tela = form.closest(".login");
+  if (!tela || tela.querySelector(".ct-vitrine")) return;
+  let planos = [];
+  try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { planos = []; }
+  if (!planos.length || tela.querySelector(".ct-vitrine")) return;
+  const dias = Math.min(...planos.map(p => Number(p.dias_teste) || 0));
+  const sec = document.createElement("section");
+  sec.className = "ct-vitrine"; sec.setAttribute("aria-labelledby", "ctVitTit");
+  sec.innerHTML = `<div class="ct-v-topo"><span class="ct-v-eyebrow">Planos</span>
+      <h2 id="ctVitTit">${dias ? `Teste ${esc(pl(dias, "dia", "dias"))} grátis` : "Escolha o seu plano"}</h2>
+      <p>Sem cartão. Você escolhe o plano, testa e decide depois.</p></div>
+    <div class="ct-v-grade">${planos.map(p => {
+      const [valor, mes] = ctReais(p.preco_centavos).split("/");
+      return `<article class="ct-v-plano"><h3>${esc(p.nome)}</h3>
+        <p class="ct-v-preco"><b>${esc(valor)}</b>${mes ? `<span>/${esc(mes)}</span>` : ""}</p>
+        ${p.descricao ? `<p class="ct-v-desc">${esc(p.descricao)}</p>` : ""}
+        <p class="ct-v-teste">${esc(pl(p.dias_teste, "dia grátis", "dias grátis"))}</p>
+        <button type="button" class="btn prim pri" data-plano="${esc(p.chave)}">Começar teste grátis</button></article>`;
+    }).join("")}</div>`;
+  const exp = tela.querySelector("#explicador");
+  if (exp) exp.after(sec); else tela.appendChild(sec);
+  sec.querySelectorAll("[data-plano]").forEach(b => b.onclick = () => ctCriarConta(b.dataset.plano));
 }
 
 // Mensagem pronta do convite, com o link que abre a conta de convidado.
