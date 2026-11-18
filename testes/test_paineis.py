@@ -500,6 +500,21 @@ class Master(unittest.TestCase):
         finally:
             p.fechar()
 
+    def test_master_cria_plano_novo(self):
+        p = Pagina(master=True)
+        try:
+            pg = self.abrir_master(p)
+            pg.click("#mNovoPlano")
+            pg.fill(".m-janela [name=nome]", "Teste Pagamento")
+            pg.fill(".m-janela [name=preco]", "1,00")
+            pg.click(".m-janela [type=submit]"); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_plano"][-1]
+            self.assertEqual(args["p_chave"], "teste_pagamento")
+            self.assertEqual((args["p_dados"]["preco_centavos"], args["p_dados"]["publico"], args["p_dados"]["ativo"]), (100, False, True))
+            self.assertIn("prospect", args["p_dados"]["recursos"])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
     def test_master_cria_empresa_e_define_plano(self):
         p = Pagina(master=True)
         try:

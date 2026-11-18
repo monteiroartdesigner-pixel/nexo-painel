@@ -81,11 +81,12 @@ async function master(el) {
       <div class="m-lista">${mst.empresas.filter(e => (M_FILTROS.find(x => x[0] === mst.filtro) || M_FILTROS[0])[2](e.situacao || {})).map(mLinhaEmpresa).join("") || `<div class="vazio">Nenhuma empresa neste filtro.</div>`}</div></div>
     ${mCartaoUsuarios(mst.usuarios)}
     ${mCartaoSuporte(mst.suporte)}
-    <div class="card"><div class="linha entre"><h2>Planos</h2><span class="muted peq">preço vazio = a definir</span></div>
+    <div class="card"><div class="linha entre"><h2>Planos</h2><div class="linha"><span class="muted peq">preço vazio = a definir</span><button class="btn" id="mNovoPlano">Novo plano</button></div></div>
       <p class="muted peq" style="margin:0">Os limites são de exemplo. Ajuste e salve: vale na hora para todas as empresas do plano. Limite vazio = sem limite.</p>
       <div class="m-planos">${mst.planos.map(mCartaoPlano).join("")}</div></div>`;
   $("#mRecarregar").onclick = async () => { mst.carregado = false; master(el); };
   $("#mNova").onclick = () => mEditarEmpresa(null);
+  $("#mNovoPlano").onclick = mNovoPlano;
   const bs = $("#mSuporte"); if (bs) bs.onclick = mEditarSuporte;
   el.querySelectorAll("[data-m-editar]").forEach(b => b.onclick = () => mEditarEmpresa(mst.empresas.find(e => e.id === b.dataset.mEditar)));
   el.querySelectorAll("[data-m-equipe]").forEach(b => b.onclick = () => abrirEquipe(b.dataset.mEquipe, mst.empresas.find(e => e.id === b.dataset.mEquipe)?.nome));
@@ -188,6 +189,26 @@ function mEditarSuporte() {
     <label class="m-campo"><span>DDD + número</span><input name="whatsapp" inputmode="tel" maxlength="20" required value="${esc(mFone(mst.suporte?.whatsapp))}" placeholder="41 99846-0993"></label>
     <p class="muted peq" style="margin:0">Vale na hora para todas as empresas. A troca fica registrada no Histórico.</p>`,
     async f => { await rpc("nexo_master_salvar_suporte", { p_whatsapp: f.elements.whatsapp.value }); aviso("Número do suporte salvo."); });
+}
+
+// Plano novo: nome e preço aqui; recursos, limites e "No cadastro público" no cartão que aparece na lista.
+function mNovoPlano() {
+  mJanela("Novo plano", `
+    <label class="m-campo"><span>Nome do plano</span><input name="nome" required maxlength="40" placeholder="Ex.: Teste"></label>
+    <div class="m-duas"><label class="m-campo"><span>Preço por mês (R$)</span><input name="preco" inputmode="decimal" placeholder="Ex.: 1,00"></label>
+      <label class="m-campo"><span>Dias de teste</span><input name="dias_teste" type="number" min="0" max="60" value="3"></label></div>
+    <p class="muted peq" style="margin:0">Nasce desligado do cadastro público e com todos os recursos. Depois marque "No cadastro público" no cartão do plano para ele aparecer para os clientes. A InfinitePay cobra no mínimo R$ 1,00.</p>`,
+    async f => {
+      const nome = f.elements.nome.value.trim();
+      const chave = nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 30);
+      if (chave.length < 2 || mst.planos.some(p => p.chave === chave)) throw new Error("Já existe um plano com esse nome (ou o nome é curto demais).");
+      const txt = f.elements.preco.value.trim().replace(/\./g, "").replace(",", ".");
+      if (txt && !(Number(txt) >= 0)) throw new Error("Preço inválido. Use, por exemplo, 1,00.");
+      await rpc("nexo_master_salvar_plano", { p_chave: chave, p_dados: { nome, preco_centavos: txt ? Math.round(Number(txt) * 100) : null,
+        dias_teste: Number(f.elements.dias_teste.value || 0), recursos: M_RECURSOS.map(r => r[0]), limites: {}, ativo: true, publico: false,
+        ordem: 90 } });
+      aviso(`Plano ${nome} criado.`);
+    });
 }
 
 function mEditarEmpresa(e) {
