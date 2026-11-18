@@ -69,7 +69,8 @@ async function master(el) {
   const i = mst.ind || {}, porSt = i.assinaturas_por_status || {};
   el.innerHTML = `
     <div class="m-topo"><div></div>
-      <div class="linha"><button class="btn" id="mRecarregar">Atualizar</button><button class="btn prim" id="mNova">Nova empresa</button></div></div>
+      <div class="linha"><button class="btn nao" id="mEmergencia" title="Faz a busca agora para a casa e para todos os clientes, fora dos 3 horários">Busca de emergência</button>
+        <button class="btn" id="mRecarregar">Atualizar</button><button class="btn prim" id="mNova">Nova empresa</button></div></div>
     <div class="grade kpis m-kpis">
       ${mKpi("Empresas", i.empresas ?? 0, `${(i.empresas_por_origem || {}).interna || 0} da casa`)}
       ${mKpi("Assinaturas ativas", porSt.ativa || 0, "pagando ou cortesia")}
@@ -89,6 +90,7 @@ async function master(el) {
       <p class="muted peq" style="margin:0">Os limites são de exemplo. Ajuste e salve: vale na hora para todas as empresas do plano. Limite vazio = sem limite.</p>
       <div class="m-planos">${mst.planos.map(mCartaoPlano).join("")}</div></div>`;
   $("#mRecarregar").onclick = async () => { mst.carregado = false; master(el); };
+  $("#mEmergencia").onclick = ev => mBuscaEmergencia(ev.currentTarget);
   $("#mNova").onclick = () => mEditarEmpresa(null);
   $("#mNovoPlano").onclick = mNovoPlano;
   const bs = $("#mSuporte"); if (bs) bs.onclick = mEditarSuporte;
@@ -304,4 +306,22 @@ function mRestaurarCliente(e) {
   if (!e) return;
   mJanela(`Restaurar ${e.nome}`, `<p style="margin:0">Os usuários voltam a entrar com o mesmo papel, a pesquisa volta a rodar e o plano volta ao que era antes da exclusão.</p>`,
     async () => { await rpc("nexo_master_restaurar_cliente", { p_empresa: e.id }); aviso(`${e.nome} foi restaurado.`); }, "Restaurar");
+}
+
+// ---------------------------------------------------------------- busca de emergência (18/11/2026)
+// Fora dos 3 horários: retrato novo e rodada extra do cérebro para a casa e todos os clientes (função nexo-rodada).
+async function mBuscaEmergencia(b) {
+  b.disabled = true;
+  try {
+    const sessao = (await sb.auth.getSession()).data.session;
+    if (!sessao) throw new Error("Entre de novo no painel.");
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/nexo-rodada`, { method: "POST",
+      headers: { Authorization: "Bearer " + sessao.access_token, apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ acao: "buscar" }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.erro || "Não deu para pedir a busca agora.");
+    aviso(d.disparado ? "Busca de emergência pedida para todos. A equipe começa em uns 2 minutos e entrega em uns 15."
+                      : `Já tem uma busca começando (${d.motivo}).`);
+  } catch (e) { aviso(e.message || "Falhou.", true); }
+  finally { b.disabled = false; }
 }

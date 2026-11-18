@@ -447,6 +447,18 @@ class Master(unittest.TestCase):
         pg.wait_for_timeout(600)
         return pg
 
+    def test_busca_de_emergencia_no_topo_do_master(self):
+        p = Pagina(master=True)
+        pedidos = []
+        p.page.on("request", lambda r: "/functions/v1/nexo-rodada" in r.url and pedidos.append(r.post_data))
+        try:
+            pg = self.abrir_master(p)
+            pg.click("#mEmergencia"); pg.wait_for_timeout(500)
+            self.assertEqual([json.loads(x) for x in pedidos], [{"acao": "buscar"}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
     def test_excluir_cliente_pede_o_nome_e_nao_aparece_na_casa(self):
         p = Pagina(master=True)
         try:
@@ -607,6 +619,13 @@ class RodadasDaEquipe(unittest.TestCase):
         self.assertIn("8 empresas novas para você", txt)
         self.assertNotIn("do Várzea", txt)   # leads da casa só o master vê
         self.assertEqual(pg.eval_on_selector_all("[data-rodada]", "x => x.length"), 0)
+        self.assertEqual(pg.eval_on_selector_all(".btn.emergencia", "x => x.length"), 0, "cliente não vê a busca de emergência")
+        self.assertEqual(p.erros, [])
+
+    def test_master_tem_busca_de_emergencia_no_topo(self):
+        p, pg, pedidos = self.abrir(True)
+        pg.click(".page-h .btn.emergencia"); pg.wait_for_timeout(500)
+        self.assertEqual([json.loads(x) for x in pedidos], [{"acao": "buscar"}])
         self.assertEqual(p.erros, [])
 
     def test_master_dispara_gravar_agora(self):
