@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Conectando o Google · NEXO Prospect</title>
+<style>
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#081325;color:#fef5e8;font:16px/1.5 system-ui,sans-serif;text-align:center;padding:16px}
+  p{max-width:420px}
+</style>
+</head>
+<body>
+<p id="msg">Conectando a sua conta Google…</p>
+<script>
+// Volta do "Entrar com Google" (19/11/2026). O Google só verifica apps com endereços do próprio domínio,
+// por isso a volta passa por nexoprospect.com e segue, com o mesmo código, para a função do servidor,
+// que troca o código pela autorização e guarda no cofre. Esta página não lê nem guarda nada.
+(function () {
+  var q = location.search;
+  if (!/[?&]state=/.test(q)) { document.getElementById("msg").textContent = "Endereço incompleto. Volte ao painel e clique de novo em Entrar com Google."; return; }
+  location.replace("https://rtjcvvjmmljizkjnztlb.supabase.co/functions/v1/nexo-google-oauth" + q);
+})();
+</script>
+</body>
+</html>
