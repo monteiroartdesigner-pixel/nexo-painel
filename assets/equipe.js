@@ -86,7 +86,7 @@ function falaDoRegistro(x) {
     conexao_instagram: "Testei a conexão com o Instagram: " + t + ".",
     conexao_telegram: "A conexão do Telegram precisa de você: " + t + ".",
     retrato: "Montei o retrato do dia para a equipe.",
-    ingerido: /lead/i.test(x.texto || "") ? "Levei os leads novos da rodada para o CRM." : /pec|conteud/i.test(x.texto || "") ? "Levei as peças novas da rodada para a sua aprovação." : "Guardei o trabalho da rodada.",
+    ingerido: /lead/i.test(x.texto || "") ? "Levei os leads novos da rodada para Clientes, em Vendas." : /pec|conteud/i.test(x.texto || "") ? "Levei as peças novas da rodada para a sua aprovação." : "Guardei o trabalho da rodada.",
   })[x.acao] || (x.acao.replace(/_/g, " ") + (t ? ": " + t : ""));
 }
 const SUCESSO = new Set(["publicado", "story_repost", "arte_pronta", "artes_ok", "prospeccao", "cadencia", "metricas", "respondido", "retrato", "ingerido", "pulso_ok"]);
@@ -201,7 +201,7 @@ async function equipe(el) {
       <div class="card"><h2>Diário da equipe</h2>
         <div>${feitos.map(x => { const p = acaoDe(x); return `<div class="feito"><div class="mini">${rosto(p)}</div><div><b>${esc(p.nome)}</b> <span class="muted">${esc(falaDoRegistro(x))}</span></div><span class="q">${quando(x.em)}</span></div>`; }).join("")
           || `<div class="vazio">Ainda sem entregas registradas.</div>`}</div>
-        <button class="btn" data-ir="atividade" style="margin-top:8px">Ver tudo na Atividade</button></div>
+        <button class="btn" data-ir="atividade" style="margin-top:8px">Ver tudo no Histórico</button></div>
     </section>
 
     <section class="card"><div class="linha entre"><h2>Conquistas da equipe</h2><span class="muted peq">${cq.filter(c => c.ok).length} de ${cq.length}</span></div>
@@ -228,7 +228,7 @@ function fichaOnca(p, e) {
     <div class="card" style="padding:12px"><b>Agora</b><span class="peq">${esc(e.fala)}</span></div>
     <div class="card" style="padding:12px"><b>Meus últimos registros</b>
       <div class="tempo">${e.meus.slice(0, 15).map(x => `<div class="it"><span class="mono muted">${quando(x.em)}</span><span class="peq">${x.nivel === "erro" ? `<span class="pill bad">erro</span> ` : ""}${esc(falaDoRegistro(x))}</span></div>`).join("") || `<div class="muted peq">Nada registrado recentemente.</div>`}</div></div>
-    <button class="btn prim" data-ir="${p.aba}">Abrir ${esc({ inicio: "o Início", leads: "os Leads", aprovar: "a Aprovação", conhecimento: "o Conhecimento", integracoes: "as Integrações" }[p.aba] || "a área")}</button>
+    <button class="btn prim" data-ir="${p.aba}">Abrir ${esc({ inicio: "o Início", leads: "os Leads", aprovar: "a Aprovação", conhecimento: "a Base da marca", integracoes: "as Contas conectadas" }[p.aba] || "a área")}</button>
   </aside>`;
   const fechar = () => { fundo.remove(); document.removeEventListener("keydown", esc_); };
   const esc_ = ev => { if (ev.key === "Escape") fechar(); };

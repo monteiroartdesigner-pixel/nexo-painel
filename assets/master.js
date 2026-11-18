@@ -18,14 +18,14 @@ const M_ERROS = {
 };
 
 const M_RECURSOS = [
-  ["prospect", "Prospect", "CRM, campanhas, tarefas e mandar link"],
+  ["prospect", "Vendas", "Clientes, buscas, tarefas e mandar link"],
   ["prospect_ia", "Pesquisa com IA", "A equipe pesquisa e qualifica sozinha"],
-  ["marketing_instagram", "Marketing Instagram", "Ideias, aprovação e agenda de posts"],
+  ["marketing_instagram", "Marketing Instagram", "Pedir peça, aprovação e agenda de posts"],
   ["marketing_google", "Marketing Google", "Perfil da empresa no Google"],
-  ["suporte_ia", "Suporte com IA", "Chat que responde pelo Conhecimento"],
+  ["suporte_ia", "Suporte com IA", "Chat que responde pela Base da marca"],
   ["automacoes", "Automações", "Rotinas automáticas da equipe"],
 ];
-const M_LIMITES = [["usuarios", "Usuários"], ["campanhas_ativas", "Campanhas ativas"], ["empresas_mes", "Empresas pesquisadas por mês"], ["pesquisas_mes", "Pesquisas com IA por mês"]];
+const M_LIMITES = [["usuarios", "Usuários"], ["campanhas_ativas", "Buscas ativas"], ["empresas_mes", "Empresas pesquisadas por mês"], ["pesquisas_mes", "Pesquisas com IA por mês"]];
 const M_ACESSO = { total: ["Liberado", "ok"], aviso: ["Vencida, em carência", "warn"], leitura: ["Só leitura", "bad"], bloqueado: ["Bloqueado", "bad"] };
 const M_STATUS = { teste: "Teste grátis", teste_vencido: "Teste acabou", ativa: "Ativa", vencida: "Vencida", suspensa: "Suspensa", cancelada: "Cancelada" };
 const M_ORIGEM = { interna: "Da casa", master: "Criada por você", cadastro: "Cadastro público" };
@@ -166,14 +166,14 @@ const mFone = n => { const d = String(n || "").replace(/^55/, ""); return d.leng
 function mCartaoSuporte(s) {
   if (!s) return `<div class="card"><h2>Suporte</h2><div class="aviso peq">Falta aplicar a migração do suporte no Supabase para trocar o número por aqui.</div></div>`;
   return `<div class="card"><div class="linha entre"><div><h2>Suporte</h2>
-      <p class="muted peq" style="margin:4px 0 0">WhatsApp do botão "Chamar no WhatsApp" do System e do Prospect.</p></div>
+      <p class="muted peq" style="margin:4px 0 0">WhatsApp do botão "Chamar no WhatsApp" do Marketing e das Vendas.</p></div>
       <button class="btn" id="mSuporte">Trocar número</button></div>
     <div class="m-sup">${s.whatsapp ? `<b>${esc(mFone(s.whatsapp))}</b> <a href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">testar</a>` : `<span class="muted">Sem número: o botão do WhatsApp fica escondido.</span>`}</div></div>`;
 }
 function mEditarSuporte() {
   mJanela("WhatsApp de suporte", `
     <label class="m-campo"><span>DDD + número</span><input name="whatsapp" inputmode="tel" maxlength="20" required value="${esc(mFone(mst.suporte?.whatsapp))}" placeholder="41 99846-0993"></label>
-    <p class="muted peq" style="margin:0">Vale na hora para todas as empresas. A troca fica registrada na Atividade.</p>`,
+    <p class="muted peq" style="margin:0">Vale na hora para todas as empresas. A troca fica registrada no Histórico.</p>`,
     async f => { await rpc("nexo_master_salvar_suporte", { p_whatsapp: f.elements.whatsapp.value }); aviso("Número do suporte salvo."); });
 }
 

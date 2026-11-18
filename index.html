@@ -7,7 +7,7 @@
 <!-- Política de conteúdo: scripts só daqui e da versão fixa do supabase-js; dados só do Supabase do NEXO. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://rtjcvvjmmljizkjnztlb.supabase.co wss://rtjcvvjmmljizkjnztlb.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self' blob:">
 <meta name="theme-color" content="#050B15">
-<title>NEXO System · Painel</title>
+<title>Marketing · NEXO Prospect</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
@@ -158,7 +158,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="assets/visual.css?v=20261119d">
+<link rel="stylesheet" href="assets/visual.css?v=20261119e">
 <link rel="stylesheet" href="assets/master.css?v=20261118c">
 <link rel="stylesheet" href="assets/suporte.css?v=20261119a">
 </head>
@@ -180,8 +180,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <main id="telaLogin" class="login oculto">
   <div id="explicador"></div>
   <form class="card" id="formLogin" autocomplete="on">
-    <div style="text-align:center"><div class="eyebrow">Plataforma NEXO · System</div><h1>Entrar</h1></div>
-    <p class="muted peq" style="margin:0;text-align:center">Um login só para o System e o Prospect.</p>
+    <div style="text-align:center"><div class="eyebrow">NEXO Prospect</div><h1>Entrar</h1></div>
+    <p class="muted peq" style="margin:0;text-align:center">Um login só para o Marketing e as Vendas.</p>
     <label class="campo">E-mail<input type="email" id="email" autocomplete="username" required></label>
     <label class="campo">Senha<input type="password" id="senha" autocomplete="current-password" required></label>
     <button class="btn prim" type="submit" id="btnEntrar">Entrar</button>
@@ -193,27 +193,27 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <div id="telaApp" class="app oculto">
   <aside class="lado" aria-label="Navegação da plataforma">
     <div class="topo-m">
-      <button class="plat-marca botao" id="btnMarca" type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Plataforma</span></span></button>
+      <button class="plat-marca botao" id="btnMarca" type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
       <button class="sair sair-m" type="button" data-sair>Sair</button>
     </div>
     <nav class="areas" aria-label="Áreas da plataforma">
-      <a class="sys" href="./" aria-current="page" title="NEXO System: agentes, conteúdo e integrações"><i></i>System</a>
-      <a class="pro" href="prospect/" title="NEXO Prospect: prospecção e CRM"><i></i>Prospect</a>
+      <a class="sys" href="./" aria-current="page" title="Marketing: a equipe de onças que cria e publica conteúdo"><i></i>Marketing</a>
+      <a class="pro" href="prospect/" title="Vendas: buscas de empresas, clientes e tarefas"><i></i>Vendas</a>
     </nav>
     <div class="rot">Agente</div>
     <select id="selAgente" aria-label="Escolher agente"></select>
-    <nav class="menu" aria-label="Seções do NEXO System">
+    <nav class="menu" aria-label="Seções do Marketing">
       <span class="grupo">Operação</span>
       <button data-aba="equipe" aria-current="page">Equipe</button>
       <button data-aba="inicio">Início</button>
-      <button data-aba="ideias">Ideias</button>
+      <button data-aba="ideias">Pedir peça</button>
       <button data-aba="aprovar">Aprovar <b id="nAprovar"></b></button>
-      <button data-aba="atividade">Atividade</button>
+      <button data-aba="atividade">Histórico</button>
       <span class="grupo">Configuração</span>
-      <button data-aba="agente">Agente</button>
-      <button data-aba="funcoes">Funções</button>
-      <button data-aba="conhecimento">Conhecimento</button>
-      <button data-aba="integracoes">Integrações</button>
+      <button data-aba="agente">Identidade</button>
+      <button data-aba="funcoes">Permissões</button>
+      <button data-aba="conhecimento">Base da marca</button>
+      <button data-aba="integracoes">Contas conectadas</button>
       <span class="grupo m-so-master oculto">Plataforma</span>
       <button data-aba="master" class="m-so-master oculto">Master</button>
       <span class="grupo">Suporte</span>
@@ -225,18 +225,18 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   </aside>
   <main class="conteudo">
   <header class="cab">
-    <div><div class="eyebrow" id="nomeEmpresa">NEXO System</div><h1 id="tituloAba">Painel</h1><p class="sub-aba" id="subAba"></p></div>
+    <div><div class="eyebrow" id="nomeEmpresa">NEXO Prospect</div><h1 id="tituloAba">Painel</h1><p class="sub-aba" id="subAba"></p></div>
   </header>
 
   <section data-sec="equipe" aria-label="Equipe"></section>
   <section data-sec="inicio" class="oculto" aria-label="Início"></section>
-  <section data-sec="ideias" class="oculto" aria-label="Ideias"></section>
+  <section data-sec="ideias" class="oculto" aria-label="Pedir peça"></section>
   <section data-sec="aprovar" class="oculto" aria-label="Aprovar"></section>
-  <section data-sec="agente" class="oculto" aria-label="Agente"></section>
-  <section data-sec="funcoes" class="oculto" aria-label="Funções"></section>
-  <section data-sec="conhecimento" class="oculto" aria-label="Conhecimento"></section>
-  <section data-sec="integracoes" class="oculto" aria-label="Integrações"></section>
-  <section data-sec="atividade" class="oculto" aria-label="Atividade"></section>
+  <section data-sec="agente" class="oculto" aria-label="Identidade"></section>
+  <section data-sec="funcoes" class="oculto" aria-label="Permissões"></section>
+  <section data-sec="conhecimento" class="oculto" aria-label="Base da marca"></section>
+  <section data-sec="integracoes" class="oculto" aria-label="Contas conectadas"></section>
+  <section data-sec="atividade" class="oculto" aria-label="Histórico"></section>
   <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
   <section data-sec="master" class="oculto" aria-label="Master da plataforma"></section>
   </main>
@@ -246,13 +246,13 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script src="assets/base.js?v=20261118k"></script>
-<script src="assets/equipe.js?v=20261118k"></script>
-<script src="assets/master.js?v=20261119a"></script>
-<script src="assets/plano.js?v=20261118k"></script>
-<script src="assets/conta.js?v=20261119b"></script>
-<script src="assets/ideias.js?v=20261118k"></script>
-<script src="assets/explicador.js?v=20261118k"></script>
-<script src="assets/suporte.js?v=20261119a"></script>
+<script src="assets/equipe.js?v=20261119n"></script>
+<script src="assets/master.js?v=20261119n"></script>
+<script src="assets/plano.js?v=20261119n"></script>
+<script src="assets/conta.js?v=20261119c"></script>
+<script src="assets/ideias.js?v=20261119n"></script>
+<script src="assets/explicador.js?v=20261119p"></script>
+<script src="assets/suporte.js?v=20261119n"></script>
 <script>
 "use strict";
 // Supabase (sb), $, $$, esc, urlSegura, hrefSeguro e FUSO vêm de assets/base.js (comum ao System e ao Prospect).
@@ -347,13 +347,13 @@ const vazioOnca = (quem, titulo, texto) => `<div class="vazio-onca">${typeof ros
 const TITULO_ABA = {
   equipe: ["Equipe", "Quem está trabalhando agora e o que cada oncinha entregou."],
   inicio: ["Início", "O resumo do dia e os interruptores da equipe."],
-  ideias: ["Ideias", "Peça peças novas à equipe: com tema, material ou só no improviso."],
+  ideias: ["Pedir peça", "Peça peças novas à equipe: com tema, material ou só no improviso."],
   aprovar: ["Aprovar", "Peças esperando você antes de ir ao ar. As publicadas ficam no arquivo."],
-  atividade: ["Atividade", "Tudo o que a equipe fez e quem mudou o quê."],
-  agente: ["Agente", "Nome, identidade, nível de autonomia e instruções."],
-  funcoes: ["Funções", "O que a equipe pode fazer e o que pede o seu OK."],
-  conhecimento: ["Conhecimento", "Respostas prontas, fatos aprovados e o jeito de falar da marca."],
-  integracoes: ["Integrações", "Contas conectadas: Instagram, Google e as próximas."],
+  atividade: ["Histórico", "Tudo o que a equipe fez e quem mudou o quê."],
+  agente: ["Identidade", "Nome, identidade, nível de autonomia e instruções."],
+  funcoes: ["Permissões", "O que a equipe pode fazer e o que pede o seu OK."],
+  conhecimento: ["Base da marca", "Respostas prontas, fatos aprovados e o jeito de falar da marca."],
+  integracoes: ["Contas conectadas", "Contas conectadas: Instagram, Google e as próximas."],
   master: ["Master", "Empresas clientes, planos e assinaturas."],
   ajuda: ["Ajuda", "Como usar o painel e quem tem acesso."],
 };
@@ -375,8 +375,8 @@ async function iniciar() {
   if (!data.session) return mostrarLogin();
   await contaPosLogin();   // aceita convites e termina um cadastro que esperava a confirmação do e-mail (assets/conta.js)
   try { st.ctx = await rpc("nexo_contexto"); } catch (e) { aviso(msgErro(e), true); return mostrarLogin(); }
-  Suporte.iniciar({ produto: "System", onca: { nome: "Pintada", img: "assets/equipe/gestora-rosto.webp" }, rpc,
-    empresa: () => (($("#nomeEmpresa").textContent || "").split(" · ")[0] || "").replace(/^NEXO( System)?$/, ""),
+  Suporte.iniciar({ produto: "Marketing", onca: { nome: "Pintada", img: "assets/equipe/gestora-rosto.webp" }, rpc,
+    empresa: () => (($("#nomeEmpresa").textContent || "").split(" · ")[0] || "").replace(/^NEXO( System| Prospect)?$/, ""),
     abas: $$(".menu [data-aba]").map(b => b.dataset.aba), ir: abrirAba });
   const todosAgentes = st.ctx.empresas.flatMap(e => e.agentes.map(a => ({ ...a, empresa: e.nome, papel: e.papel })));
   st.prospect = todosAgentes.find(a => a.slug === "prospect") || null;
@@ -441,7 +441,7 @@ const CHAVES = [
   ["pausado", "Pausar tudo", "Para o agente na hora. Nada roda até você retomar."],
   ["publicar", "Publicar no Instagram", "Publica só as peças que você aprovou, no horário marcado."],
   ["responder", "Responder comentários", "Responde pelo FAQ aprovado e manda o link no direct de quem comentou."],
-  ["pesquisar", "Pesquisar clientes", "Procura clientes com contato público para o seu CRM."]
+  ["pesquisar", "Pesquisar clientes", "Procura clientes com contato público para a aba Clientes, em Vendas."]
 ];
 function inicio(el) {
   const r = st.resumo, c = r.controle || {}, cont = r.conteudos || {}, ld = r.leads || {};
@@ -459,12 +459,12 @@ function inicio(el) {
       </div>
       <div class="card"><span class="muted peq">Esperando sua aprovação</span><span class="num onca">${revisar}</span><button class="btn" data-ir="aprovar">Ver peças</button></div>
       <div class="card"><span class="muted peq">Aprovadas na fila</span><span class="num ok">${prontos}</span><span class="muted peq">Publicadas: ${cont.publicado || 0}</span></div>
-      <div class="card"><span class="muted peq">Leads no CRM</span><span class="num">${totalLeads}</span><span class="muted peq">Para abordar: ${(ld.abordar || 0) + (ld.qualificado || 0)}</span></div>
+      <div class="card"><span class="muted peq">Leads em Clientes</span><span class="num">${totalLeads}</span><span class="muted peq">Para abordar: ${(ld.abordar || 0) + (ld.qualificado || 0)}</span></div>
       ${r.conta ? `<div class="card"><span class="muted peq">Seguidores (${quando(r.conta.dia, false)})</span><span class="num">${r.conta.seguidores ?? "–"}</span><span class="muted peq">Alcance: ${r.conta.alcance ?? "–"} · visitas: ${r.conta.visitas_perfil ?? "–"}</span></div>` : ""}
     </div>
     <div class="card">
       <h2>Interruptores</h2>
-      <p class="muted peq" style="margin:0">Valem na próxima atualização da equipe (até 1 hora). Tudo fica registrado em Atividade.</p>
+      <p class="muted peq" style="margin:0">Valem na próxima atualização da equipe (até 1 hora). Tudo fica registrado no Histórico.</p>
       ${CHAVES.map(([k, t, d]) => `
         <div class="chave"><div class="txt"><b>${t}</b><span class="muted peq">${d}</span></div>
           <label class="sw"><input type="checkbox" data-chave="${k}" ${c[k] ? "checked" : ""} ${podeMudar() ? "" : "disabled"} aria-label="${t}"><span></span></label></div>`).join("")}
@@ -666,8 +666,8 @@ function funcoes(el) {
   el.innerHTML = `
     <div class="card">
       <h2>O que este agente pode fazer</h2>
-      <p class="muted peq" style="margin:0">Nível atual: <b>${nivel}. ${NIVEIS[nivel - 1][1]}</b>. Funções acima do nível ficam travadas até você subir o nível na aba Agente. "Publicar", "Responder" e "Pesquisar" também mudam nos interruptores do Início.</p>
-      <div class="aviso info">Preparar peças e pesquisar clientes já seguem estas chaves. Para publicar e responder, a trava está em teste: o agente só anota na Atividade o que ela desligaria, até você mandar valer.</div>
+      <p class="muted peq" style="margin:0">Nível atual: <b>${nivel}. ${NIVEIS[nivel - 1][1]}</b>. Funções acima do nível ficam travadas até você subir o nível na aba Identidade. "Publicar", "Responder" e "Pesquisar" também mudam nos interruptores do Início.</p>
+      <div class="aviso info">Preparar peças e pesquisar clientes já seguem estas chaves. Para publicar e responder, a trava está em teste: o agente só anota no Histórico o que ela desligaria, até você mandar valer.</div>
       ${r.funcoes.map(f => {
         const acima = f.nivel_minimo > nivel;
         return `<div class="chave" data-acao="${f.acao}">
@@ -711,7 +711,7 @@ function historicoCon(tipo, x) {
 }
 function fonteCon(x) { return x?.ativa?.conteudo || x?.base?.conteudo || null; }
 async function conhecimento(el) {
-  el.innerHTML = `<div class="card"><h2>Conhecimento</h2><div class="muted peq">Carregando…</div></div>`;
+  el.innerHTML = `<div class="card"><h2>Base da marca</h2><div class="muted peq">Carregando…</div></div>`;
   try { conhec = await rpc("nexo_conhecimento", { p_agente: st.agente }) || {}; }
   catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; return; }
   const dis = podeMudar() ? "" : "disabled";
@@ -901,8 +901,8 @@ function ajuda(el) {
         <li><b>Aprovar:</b> veja a peça, ajuste a data se quiser e toque em Aprovar. Ela só vai ao ar se <b>Publicar</b> estiver ligado no Início.</li>
         <li><b>Pausar tudo</b> no Início para o agente na próxima rodada (até 1 hora).</li>
         <li><b>Leads:</b> copie a mensagem pronta, mande pelo seu Instagram ou WhatsApp e mude o status para "Abordado".</li>
-        <li><b>Agente</b> e <b>Funções:</b> nome, identidade, instruções, nível de autonomia e o que o agente pode fazer.</li>
-        <li><b>Atividade:</b> tudo o que o agente fez e quem mudou o quê no painel.</li>
+        <li><b>Identidade</b> e <b>Permissões:</b> nome, identidade, instruções, nível de autonomia e o que o agente pode fazer.</li>
+        <li><b>Histórico:</b> tudo o que o agente fez e quem mudou o quê no painel.</li>
       </ol>
     </div>
     ${["plataforma", "dono", "admin"].includes(st.resumo?.papel) && st.empresaId ? `<div class="card"><div class="linha entre"><div><h3>Equipe da empresa</h3>

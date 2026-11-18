@@ -101,11 +101,11 @@ function lkErro(e, ctx) {
 }
 
 function lkItem(p, ctx) {
-  const { esc } = ctx, marca = p.destino === "prospect" ? "NEXO Prospect" : "NEXO Várzea";
+  const { esc } = ctx, marca = p.destino === "prospect" ? "Vendas" : "NEXO Várzea";
   const curto = String(p.texto || "").replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "");
   const linha2 = {
     na_fila: `Na fila · a equipe analisa ${lkProxima()}`,
-    pronto: `${p.destino === "prospect" ? "Virou empresa no" : "Virou lead do"} <b>${marca}</b>${p.resultado_nome ? ": " + esc(p.resultado_nome) : ""}`,
+    pronto: `${p.destino === "prospect" ? "Virou empresa em" : "Virou lead do"} <b>${marca}</b>${p.resultado_nome ? ": " + esc(p.resultado_nome) : ""}`,
     descartado: `Descartado: ${esc(p.observacao || "não serve para nenhuma das marcas")}`,
     cancelado: "Cancelado",
   }[p.status] || esc(p.status);

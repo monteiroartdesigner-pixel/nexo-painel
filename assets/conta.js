@@ -175,10 +175,13 @@ async function ctVitrine(form) {
   const dias = Math.min(...planos.map(p => Number(p.dias_teste) || 0));
   const sec = document.createElement("section");
   sec.className = "ct-vitrine"; sec.setAttribute("aria-labelledby", "ctVitTit");
-  sec.innerHTML = `<div class="ct-v-topo"><span class="ct-v-eyebrow">Planos</span>
-      <h2 id="ctVitTit">${dias ? `Teste ${esc(pl(dias, "dia", "dias"))} grátis` : "Escolha o seu plano"}</h2>
-      <p>Sem cartão. Você escolhe o plano, testa e decide depois.</p></div>
-    <div class="ct-v-grade">${planos.map(p => {
+  // 18/11/2026, Ricardo: a entrada mostra só "3 dias grátis"; o clique abre a aba dos planos.
+  const chamada = dias ? `Teste ${pl(dias, "dia", "dias")} grátis` : "Ver os planos";
+  sec.innerHTML = `<div class="ct-v-topo"><span class="ct-v-eyebrow">Sem cartão</span>
+      <h2 id="ctVitTit">Ainda não tem conta?</h2>
+      <p>Você escolhe o plano, testa e decide depois.</p></div>
+    <button type="button" class="btn prim pri ct-v-abrir" aria-expanded="false" aria-controls="ctVitGrade">${esc(chamada)} <span aria-hidden="true">→</span></button>
+    <div class="ct-v-grade" id="ctVitGrade" hidden>${planos.map(p => {
       const [valor, mes] = ctReais(p.preco_centavos).split("/");
       return `<article class="ct-v-plano"><h3>${esc(p.nome)}</h3>
         <p class="ct-v-preco"><b>${esc(valor)}</b>${mes ? `<span>/${esc(mes)}</span>` : ""}</p>
@@ -189,6 +192,13 @@ async function ctVitrine(form) {
   const exp = tela.querySelector("#explicador");
   if (exp) exp.after(sec); else tela.appendChild(sec);
   sec.querySelectorAll("[data-plano]").forEach(b => b.onclick = () => ctCriarConta(b.dataset.plano));
+  const abrir = sec.querySelector(".ct-v-abrir"), grade = sec.querySelector(".ct-v-grade");
+  abrir.onclick = () => {
+    grade.hidden = false; abrir.hidden = true; abrir.setAttribute("aria-expanded", "true");
+    sec.classList.add("aberta");
+    sec.scrollIntoView({ block: "start" });
+    grade.querySelector("[data-plano]")?.focus({ preventScroll: true });
+  };
 }
 
 // Mensagem pronta do convite, com o link que abre a conta de convidado.

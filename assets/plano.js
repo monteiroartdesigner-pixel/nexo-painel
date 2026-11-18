@@ -10,7 +10,7 @@
 
 const PLANO_DE = { prospect: "Inicial", marketing_instagram: "Profissional", marketing_google: "Profissional",
   prospect_ia: "Completo", suporte_ia: "Completo", automacoes: "Completo" };
-const RECURSO_NOME = { prospect: "NEXO Prospect", marketing_instagram: "Marketing no Instagram", marketing_google: "Marketing no Google",
+const RECURSO_NOME = { prospect: "Vendas", marketing_instagram: "Marketing no Instagram", marketing_google: "Marketing no Google",
   prospect_ia: "Pesquisa automática com IA", suporte_ia: "Suporte com IA", automacoes: "Automações" };
 const PL = { sits: {} };   // situação por empresa
 

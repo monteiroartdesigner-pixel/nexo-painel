@@ -39,7 +39,7 @@ async function ideias(el) {
   catch (e) {
     const m = (e && e.message) || "";
     el.innerHTML = /nexo_ideias|does not exist|Could not find/i.test(m)
-      ? `<div class="aviso">A aba Ideias precisa da atualização do banco (migração <b>20261116190000_nexo_ideias.sql</b>). Depois de aplicada, esta tela passa a funcionar.</div>`
+      ? `<div class="aviso">A aba Pedir peça precisa da atualização do banco (migração <b>20261116190000_nexo_ideias.sql</b>). Depois de aplicada, esta tela passa a funcionar.</div>`
       : `<div class="vazio">${esc(msgErro(e))}</div>`;
     return;
   }
@@ -48,7 +48,7 @@ async function ideias(el) {
     <section class="card id-pedir">
       <div class="id-time">${idRosto("pauta")}${idRosto("rabisco")}</div>
       <div style="flex:1;min-width:0">
-        <h2 style="margin:0">Peça ideias à equipe</h2>
+        <h2 style="margin:0">Peça novas peças à equipe</h2>
         <p class="muted peq" style="margin:4px 0 0">Diga o tema ou deixe em branco. A <b>Pauta</b> escolhe o formato (post, carrossel, story ou reels) e explica o porquê; o <b>Rabisco</b> monta a arte. Tudo chega em <b>Aprovar</b>: nada vai ao ar sem o seu OK.</p>
       </div>
     </section>

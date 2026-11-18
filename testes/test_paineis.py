@@ -814,9 +814,13 @@ class Conta(unittest.TestCase):
             p = Pagina(logado=False)
             try:
                 pg = p.abrir(url, 1800)
+                self.assertFalse(pg.is_visible(".ct-vitrine .ct-v-grade"), "os planos ficam fechados até o clique")
+                self.assertIn("Teste 3 dias grátis", pg.inner_text(".ct-v-abrir"))
+                pg.click(".ct-v-abrir"); pg.wait_for_timeout(300)
+                self.assertTrue(pg.is_visible(".ct-vitrine .ct-v-grade"), "o clique abre a aba dos planos")
                 cards = pg.eval_on_selector_all(".ct-vitrine .ct-v-plano h3", "hs => hs.map(h => h.textContent)")
                 self.assertEqual(cards, ["Inicial", "Completo"], url)
-                self.assertIn("Teste 3 dias grátis", pg.inner_text(".ct-vitrine"))
+                self.assertIn("3 dias grátis", pg.inner_text(".ct-vitrine"))
                 self.assertIn("R$ 800,00", pg.inner_text(".ct-vitrine").replace("\xa0", " "))
                 pg.click('.ct-vitrine [data-plano="completo"]'); pg.wait_for_timeout(400)
                 self.assertTrue(pg.is_checked('.ct-janela input[name=plano][value="completo"]'), "abre o cadastro com o plano escolhido")
@@ -929,7 +933,7 @@ class AbaAgenteSimples(unittest.TestCase):
         p = Pagina()
         try:
             pg = self.abrir(p)
-            self.assertEqual(pg.inner_text("#tituloAba"), "Agente")
+            self.assertEqual(pg.inner_text("#tituloAba"), "Identidade")
             self.assertEqual(len(pg.query_selector_all(".ag-passo")), 4)
             self.assertEqual(len(pg.query_selector_all('[data-sec="agente"] button[type=submit]')), 1, "um botão Salvar só")
             self.assertFalse(pg.is_visible("#idLogo"), "logo e cores ficam em Mais opções")
