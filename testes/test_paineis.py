@@ -542,6 +542,76 @@ class Master(unittest.TestCase):
             p.fechar()
 
 
+class AnexosPedirPeca(unittest.TestCase):
+    """Pedir peça com fotos e vídeos (assets/anexos.js, 19/11/2026)."""
+
+    def test_foto_e_video_sobem_e_entram_no_pedido(self):
+        import tempfile
+        global rpc_falso
+        orig = rpc_falso
+        pedidos = [{"id": "p-velho", "texto": "Semifinal", "quantidade": 2, "status": "pronto", "criado_em": "2026-11-18T12:00:00Z",
+                    "anexos": [{"id": "x1", "caminho": "emp-v/a/1.jpg", "tipo": "foto", "legenda": "<b>gol</b>", "ordem": 1}],
+                    "pecas": [{"id": "c1", "pauta": "A virada", "formato": "carrossel", "status": "revisar", "anexo_base": "x1"}]}]
+
+        def com_anexos(nome, args, *a, **k):
+            if nome == "nexo_ideias":
+                return pedidos
+            if nome == "nexo_pedir_ideias":
+                return {"ok": True, "id": "p-novo"}
+            if nome == "nexo_anexar_ideia":
+                return {"ok": True, "anexos": len(args["p_anexos"])}
+            return orig(nome, args, *a, **k)
+        rpc_falso = com_anexos
+        pasta = tempfile.mkdtemp()
+        foto, video = pathlib.Path(pasta, "jogo.png"), pathlib.Path(pasta, "lance.mp4")
+        import base64
+        foto.write_bytes(base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="))
+        video.write_bytes(b"\x00\x00\x00\x18ftypmp42" + b"\x00" * 64)
+        try:
+            p = Pagina()
+            try:
+                pg = p.abrir("/index.html", 1500)
+                pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
+                self.assertTrue(pg.is_visible("#axZona"), "o bloco de anexos aparece")
+                self.assertIn("&lt;b&gt;gol&lt;/b&gt;", pg.inner_html(".ax-tiras"), "legenda do anexo vai escapada")
+                self.assertIn("Feita a partir da", pg.inner_text(".ax-origem"))
+                pg.set_input_files("#axArq", [str(foto), str(video)])
+                for _ in range(50):
+                    if pg.eval_on_selector_all(".ax-item.pronto", "x => x.length") == 2:
+                        break
+                    pg.wait_for_timeout(100)
+                self.assertEqual(pg.eval_on_selector_all(".ax-item.pronto", "x => x.length"), 2, pg.inner_text("#axGrade"))
+                self.assertIn("recebeu 1 foto e 1 vídeo", pg.inner_text("#axFalaTxt"))
+                pg.fill(".ax-item input >> nth=0", "torcida")
+                self.assertFalse(pg.is_disabled("#idPedir"))
+                pg.click("#idPedir"); pg.wait_for_timeout(600)
+                ligados = [a for n, a in p.args if n == "nexo_anexar_ideia"]
+                self.assertEqual(len(ligados), 1)
+                self.assertEqual(ligados[0]["p_pedido"], "p-novo")
+                cams = [x["caminho"] for x in ligados[0]["p_anexos"]]
+                self.assertTrue(cams[0].startswith("emp-v/") and cams[0].endswith(".jpg"), cams)
+                self.assertTrue(cams[1].endswith(".mp4"), cams)
+                self.assertEqual(ligados[0]["p_anexos"][0]["legenda"], "torcida")
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
+        finally:
+            rpc_falso = orig
+
+    def test_arquivo_de_outro_tipo_e_recusado(self):
+        import tempfile
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
+            arq = pathlib.Path(tempfile.mkdtemp(), "planilha.xlsx"); arq.write_bytes(b"PK")
+            pg.set_input_files("#axArq", [str(arq)]); pg.wait_for_timeout(300)
+            self.assertIn("só fotos", pg.inner_text("#axErro"))
+            self.assertEqual(pg.eval_on_selector_all(".ax-item", "x => x.length"), 0)
+        finally:
+            p.fechar()
+
+
 class NomeNoTopo(unittest.TestCase):
     """O nome no topo não repete a empresa quando o nome de exibição já a traz (19/11/2026)."""
 

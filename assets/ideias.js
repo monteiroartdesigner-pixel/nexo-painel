@@ -49,11 +49,12 @@ async function ideias(el) {
       <div class="id-time">${idRosto("pauta")}${idRosto("rabisco")}</div>
       <div style="flex:1;min-width:0">
         <h2 style="margin:0">Peça novas peças à equipe</h2>
-        <p class="muted peq" style="margin:4px 0 0">Diga o tema ou deixe em branco. A <b>Pauta</b> escolhe o formato (post, carrossel, story ou reels) e explica o porquê; o <b>Rabisco</b> monta a arte. Tudo chega em <b>Aprovar</b>: nada vai ao ar sem o seu OK.</p>
+        <p class="muted peq" style="margin:4px 0 0">Diga o tema, mande fotos e vídeos ou deixe em branco. A <b>Pauta</b> escolhe o formato (post, carrossel, story ou reels) e explica o porquê; o <b>Rabisco</b> monta a arte a partir do que você mandou. Tudo chega em <b>Aprovar</b>: nada vai ao ar sem o seu OK.</p>
       </div>
     </section>
     <section class="card">
       <label class="campo">O que você quer?<textarea id="idTexto" maxlength="500" placeholder="Ex.: peças para o fim de semana da final do campeonato · algo para atrair donos de arena · deixe em branco para a equipe escolher" ${pode ? "" : "disabled"}></textarea></label>
+      ${typeof anexosHtml === "function" ? anexosHtml(pode) : ""}
       <details class="id-mat"><summary><b>Usar um material seu</b> <span class="muted peq">(transcrição de vídeo, podcast, áudio ou texto)</span></summary>
         <p class="muted peq" style="margin:6px 0">A equipe cria a partir das <b>suas palavras</b>, sem partir do zero: carrossel com as ideias principais, guia passo a passo ou roteiro de reels.</p>
         <label class="campo">Material<textarea id="idMat" maxlength="40000" placeholder="Cole aqui a transcrição ou o texto (mínimo de 200 caracteres)." ${pode ? "" : "disabled"} style="min-height:150px"></textarea></label>
@@ -76,6 +77,7 @@ async function ideias(el) {
             <div style="min-width:0"><b>${p.texto ? esc(p.texto) : "Surpreendam-me (a equipe escolhe o tema)"}</b>
               <div class="muted peq">${pl(p.quantidade, "ideia", "ideias")} · pedido ${esc(quando(p.criado_em))}</div></div>
             <span class="pill ${cls}">${rot}</span></div>
+          ${typeof anexosTiras === "function" ? anexosTiras(p) : ""}
           ${p.material_palavras ? `<div class="peq muted id-mat-info">Material: <b>${esc(p.material_origem || "texto")}</b> · ${p.material_palavras} palavras${p.material_inicio ? ` · “${esc(p.material_inicio.slice(0, 110))}…”` : ""}</div>` : ""}
           ${p.status === "na_fila" ? `<div class="linha entre"><span class="peq muted">A equipe pega na próxima rodada${prox ? ` (${esc(idHora(prox))})` : ""}.</span>${pode ? `<button class="btn nao peq" data-cancelar="${p.id}">Cancelar</button>` : ""}</div>` : ""}
           ${p.status === "sem_resultado" && p.observacao ? `<div class="aviso peq">${esc(p.observacao)}</div>` : ""}
@@ -84,22 +86,34 @@ async function ideias(el) {
               <span class="id-fmt ${esc(c.formato)}">${esc(ID_FORMATO[c.formato] || c.formato)}</span>
               <div style="min-width:0"><b>${esc(c.pauta)}</b>
                 ${c.motivo_formato ? `<div class="peq">${idRosto("pauta")}<span>${esc(c.motivo_formato)}</span></div>` : ""}
-                <div class="muted peq">${esc(ID_ST_PECA[c.status] || c.status)}${c.agendado_para ? " · " + esc(quando(c.agendado_para)) : ""}</div></div>
+                <div class="muted peq">${esc(ID_ST_PECA[c.status] || c.status)}${c.agendado_para ? " · " + esc(quando(c.agendado_para)) : ""}</div>
+                ${typeof anexosBase === "function" ? anexosBase(p, c) : ""}</div>
             </div>`).join("")}</div>
             <button class="btn" data-aprovar style="align-self:flex-start">Ver em Aprovar</button>` : ""}
         </article>`; }).join("") : vazioOnca("pauta", "Nenhum pedido ainda.", "Escreva um tema acima (ou deixe em branco) e clique em Pedir à equipe. A Pauta cuida do resto.")}
     </section></div>`;
 
   $$("[data-q]", el).forEach(b => b.onclick = () => { idQtd = Number(b.dataset.q); $$("[data-q]", el).forEach(x => x.setAttribute("aria-pressed", x === b)); });
-  const pedir = $("#idPedir", el);
+  const pedir = $("#idPedir", el), pedirPode = pedir && !pedir.disabled;
+  // Enquanto algum arquivo ainda sobe, o pedido espera (assets/anexos.js).
+  if (pedir && typeof anexosMontar === "function") anexosMontar(el, subindo => {
+    if (!pedirPode) return;
+    pedir.disabled = subindo; pedir.textContent = subindo ? "Esperando os arquivos subirem…" : "Pedir à equipe";
+  });
+  if (typeof anexosAssinar === "function") anexosAssinar(el);
   if (pedir) pedir.onclick = async () => {
     pedir.disabled = true;
     const texto = $("#idTexto", el).value.trim() || null, mat = $("#idMat", el).value.trim();
     if (mat && mat.length < 200) { pedir.disabled = false; aviso("O material precisa de pelo menos 200 caracteres.", true); return; }
     try {
-      if (mat) await rpc("nexo_pedir_ideias_material", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd, p_material: mat, p_origem: $("#idOrigem", el).value });
-      else await rpc("nexo_pedir_ideias", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd });
-      aviso(mat ? "Pedido enviado com o seu material." : "Pedido enviado à equipe."); ideias(el); }
+      const r = mat ? await rpc("nexo_pedir_ideias_material", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd, p_material: mat, p_origem: $("#idOrigem", el).value })
+                    : await rpc("nexo_pedir_ideias", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd });
+      let n = 0;
+      if (typeof anexosTem === "function" && anexosTem() && r?.id) {
+        try { n = await anexosLigar(r.id); }
+        catch (e) { aviso("O pedido foi feito, mas os anexos não entraram: " + msgErro(e).replace(/^.*pedido_invalido:\s*/, ""), true); ideias(el); return; }
+      }
+      aviso(n ? `Pedido enviado. O Rabisco recebeu ${n} ${n > 1 ? "arquivos" : "arquivo"}.` : mat ? "Pedido enviado com o seu material." : "Pedido enviado à equipe."); ideias(el); }
     catch (e) { pedir.disabled = false;
       const m = (e && e.message) || "";
       aviso(/nexo_pedir_ideias_material|Could not find/i.test(m) ? "O material precisa da atualização do banco (migração 20261116230000_nexo_ideias_material.sql)." : msgErro(e).replace(/^.*pedido_invalido:\s*/, ""), true); }
