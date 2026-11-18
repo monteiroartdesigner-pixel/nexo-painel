@@ -399,6 +399,8 @@ function ligarCopiaAoAbrir(raiz, msg) {
     const ok = await copiarTexto(msg);
     toast(ok ? "Mensagem copiada. Na conversa, é só colar (Ctrl+V; no celular, segure e toque em Colar)." : "O navegador bloqueou a cópia: use o botão Copiar da mensagem.", !ok);
   }));
+  // Sem contato público: a mensagem continua à mão, para quando o contato aparecer.
+  $$("[data-msg-sem-contato]", raiz).forEach(b => b.onclick = () => copiar(msg, "Mensagem"));
 }
 
 /* ============================================================ modal e gaveta */
@@ -682,6 +684,7 @@ function pintarFicha(f) {
           ${msgDe(camps) && (e.whatsapp || e.email || e.instagram) ? `<span class="peq muted" style="flex-basis:100%">Ao tocar num contato, a mensagem sugerida já vai copiada: lá é só colar (Ctrl+V).</span>` : ""}
           ${urlSegura(e.site) ? `<a class="btn sm" target="_blank" rel="noopener" href="${hrefSeguro(e.site)}">${ic("web")}Site</a>` : ""}
           ${!e.whatsapp && !e.email && !e.instagram ? `<span class="peq muted">Sem contato comercial público.</span>` : ""}
+          ${msgDe(camps) && !e.whatsapp && !e.email && !e.instagram ? `<button class="btn sm" data-msg-sem-contato>${ic("copy")}Copiar mensagem</button><span class="peq muted" style="flex-basis:100%">A mensagem já está pronta: guarde para quando achar o contato.</span>` : ""}
         </div></div>
       ${(() => { const dv = duvidaDe(e); if (!dv) return ""; return `<div class="alert warn" style="flex-direction:column;align-items:stretch">
         <div><b>${esc(dv.pergunta)}</b>${(dv.sinais || []).length ? `<div class="peq t2">O que a equipe viu: ${esc(dv.sinais.join(" · "))}</div>` : ""}
