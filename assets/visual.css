@@ -361,3 +361,8 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 .aviso-cliente{position:sticky;top:0;z-index:60;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;padding:10px 16px;
   background:#f2b632;color:#081325;font:600 14px var(--f)}
 .aviso-cliente button{font:700 13px var(--f);color:#081325;background:rgba(8,19,37,.12);border:1px solid rgba(8,19,37,.35);border-radius:999px;padding:5px 12px;cursor:pointer}
+
+/* Faixa vermelha da mensalidade (assets/plano.js): 2 dias, 1 dia, vence hoje e vencida. Fica presa no topo ao rolar. */
+.plano-faixa.urgente{position:sticky;top:0;z-index:40;background:#d93a3a;border-color:#d93a3a;color:#fff;font-weight:600;
+  box-shadow:0 10px 24px -14px rgba(217,58,58,.9)}
+.plano-faixa.urgente a{background:#fff;color:#b51f1f;text-decoration:none;padding:6px 14px;border-radius:999px;font-weight:800;white-space:nowrap}

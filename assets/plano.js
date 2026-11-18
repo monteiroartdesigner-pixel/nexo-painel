@@ -48,16 +48,38 @@ function planoBloqueio(recurso, empresaId) {
       <a class="btn prim pri" href="${PL_ATIVAR()}">Ver os planos e ativar</a></div></div>`;
 }
 
-// Faixa no topo quando o plano pede atenção (teste acabando ou acabado, vencida, suspensa).
+// Dias de calendário (horário de Brasília) de hoje até a data: 0 = hoje, 1 = amanhã, negativo = já passou.
+function planoDiasAte(iso) {
+  if (!iso) return null;
+  const dia = d => new Date(d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) + "T00:00:00Z");
+  return Math.round((dia(new Date(iso)) - dia(new Date())) / 86400000);
+}
+const plDataCurta = iso => new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+
+// Faixa no topo quando o plano pede atenção.
+// Mensalidade (pedido do Ricardo, 19/11/2026): faixa VERMELHA com 2 dias, 1 dia e no dia do vencimento,
+// e também depois de vencida. Teste grátis acabando: o mesmo aviso, no fim do teste.
 function planoFaixa(empresaId, alvo) {
   document.querySelector(".plano-faixa")?.remove();
   const s = PL.sits[empresaId]; if (!s || !s.tem_assinatura || !alvo) return;
-  let msg = "", tom = "warn";
-  if (s.status === "teste" && s.dias_teste_restantes != null && s.dias_teste_restantes <= 3)
-    msg = `Teste grátis do plano ${s.plano_nome}: ${s.dias_teste_restantes === 0 ? "termina hoje" : `faltam ${pl(s.dias_teste_restantes, "dia", "dias")}`}.`;
-  else if (s.acesso === "aviso") msg = "Sua assinatura venceu. Regularize para não perder o acesso.";
-  else if (s.status === "teste_vencido") { msg = "Seu teste grátis acabou. Ative um plano para continuar usando."; tom = "bad"; }
-  else if (["leitura", "bloqueado"].includes(s.acesso)) { msg = "Sua assinatura está inativa. Ative um plano para voltar a usar."; tom = "bad"; }
+  let msg = "", tom = "warn", botao = "Ver os planos";
+  const quando = d => d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence em ${d} dias`;
+  const dPago = s.status === "ativa" ? planoDiasAte(s.periodo_ate) : null;
+  const dTeste = s.status === "teste" ? (s.dias_teste_restantes ?? planoDiasAte(s.teste_ate)) : null;
+  if (dPago != null && dPago >= 0 && dPago <= 2) {
+    msg = `Sua mensalidade do plano ${s.plano_nome} ${quando(dPago)} (${plDataCurta(s.periodo_ate)}). Pague para não perder o acesso.`;
+    tom = "urgente"; botao = "Pagar agora";
+  } else if (dTeste != null && dTeste >= 0 && dTeste <= 2) {
+    msg = `Seu teste grátis do plano ${s.plano_nome} ${dTeste === 0 ? "termina hoje" : dTeste === 1 ? "termina amanhã" : `termina em ${dTeste} dias`}. Assine para continuar usando.`;
+    tom = "urgente"; botao = "Assinar agora";
+  } else if (s.status === "teste" && dTeste != null && dTeste <= 3)
+    msg = `Teste grátis do plano ${s.plano_nome}: faltam ${pl(dTeste, "dia", "dias")}.`;
+  else if (s.acesso === "aviso") {
+    msg = `Sua mensalidade venceu${s.periodo_ate ? ` em ${plDataCurta(s.periodo_ate)}` : ""}. Pague agora para não perder o acesso.`;
+    tom = "urgente"; botao = "Pagar agora";
+  }
+  else if (s.status === "teste_vencido") { msg = "Seu teste grátis acabou. Ative um plano para continuar usando."; tom = "urgente"; botao = "Assinar agora"; }
+  else if (["leitura", "bloqueado"].includes(s.acesso)) { msg = "Sua assinatura está inativa. Ative um plano para voltar a usar."; tom = "urgente"; botao = "Ver os planos"; }
   if (!msg) return;
-  alvo.insertAdjacentHTML("afterbegin", `<div class="plano-faixa ${tom}" role="status"><span>${esc(msg)}</span><a href="${PL_ATIVAR()}">Ver os planos</a></div>`);
+  alvo.insertAdjacentHTML("afterbegin", `<div class="plano-faixa ${tom}" role="alert"><span>${esc(msg)}</span><a href="${PL_ATIVAR()}">${esc(botao)}</a></div>`);
 }

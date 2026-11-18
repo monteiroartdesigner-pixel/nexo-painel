@@ -542,6 +542,56 @@ class Master(unittest.TestCase):
             p.fechar()
 
 
+class AvisoMensalidade(unittest.TestCase):
+    """Faixa vermelha no topo: 2 dias, 1 dia, vence hoje e vencida (pedido do Ricardo, 19/11/2026)."""
+
+    def tearDown(self):
+        SITUACAO.clear()
+
+    def faixa(self, situacao):
+        import datetime
+        SITUACAO.update({"emp-v": {"tem_assinatura": True, "plano": "inicial", "plano_nome": "Inicial", **situacao}})
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1800)
+            el = pg.query_selector(".plano-faixa")
+            r = (el.get_attribute("class"), el.inner_text()) if el else (None, "")
+            self.assertEqual(p.erros, [])
+            return r
+        finally:
+            p.fechar()
+
+    def em(self, dias):
+        import datetime
+        # meio da tarde em Brasília daqui a N dias (15:00 BRT = 18:00 UTC)
+        d = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).date() + datetime.timedelta(days=dias)
+        return f"{d.isoformat()}T18:00:00Z"
+
+    def test_dois_um_e_zero_dias(self):
+        for dias, texto in ((2, "vence em 2 dias"), (1, "vence amanhã"), (0, "vence hoje")):
+            cls, txt = self.faixa({"status": "ativa", "acesso": "total", "periodo_ate": self.em(dias)})
+            self.assertIn("urgente", cls or "", f"{dias} dias: faixa vermelha")
+            self.assertIn(texto, txt)
+            self.assertIn("Pagar agora", txt)
+
+    def test_tres_dias_ainda_nao_avisa(self):
+        cls, _ = self.faixa({"status": "ativa", "acesso": "total", "periodo_ate": self.em(3)})
+        self.assertIsNone(cls, "com 3 dias ainda não aparece faixa")
+
+    def test_vencida_continua_vermelha(self):
+        cls, txt = self.faixa({"status": "vencida", "acesso": "aviso", "periodo_ate": self.em(-1)})
+        self.assertIn("urgente", cls)
+        self.assertIn("venceu", txt)
+
+    def test_teste_gratis_acabando(self):
+        cls, txt = self.faixa({"status": "teste", "acesso": "total", "dias_teste_restantes": 1, "teste_ate": self.em(1)})
+        self.assertIn("urgente", cls)
+        self.assertIn("termina amanhã", txt)
+
+    def test_vitalicio_nunca_avisa(self):
+        cls, _ = self.faixa({"status": "vitalicia", "acesso": "total", "periodo_ate": None})
+        self.assertIsNone(cls)
+
 class EmpresaEmVendas(unittest.TestCase):
     """Master enxerga todas as empresas: Vendas abre a NEXO, nunca a de um cliente por acaso (bug de 19/11/2026: abria a Godoi)."""
 
@@ -818,7 +868,7 @@ class PlanoDaEmpresa(unittest.TestCase):
         try:
             pg = p.abrir("/prospect/#/crm", 1500)
             self.assertIn("Seu teste grátis acabou", pg.inner_text("#main"))
-            self.assertIsNotNone(pg.query_selector(".plano-faixa.bad"))
+            self.assertIsNotNone(pg.query_selector(".plano-faixa.urgente"), "faixa vermelha")
             self.assertIsNone(pg.query_selector(".kanban"), "o CRM não aparece")
             self.assertEqual(p.erros, [])
         finally:
