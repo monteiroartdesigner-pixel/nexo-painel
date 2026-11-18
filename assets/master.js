@@ -55,15 +55,14 @@ async function master(el) {
   }
   const i = mst.ind || {}, porSt = i.assinaturas_por_status || {};
   el.innerHTML = `
-    <div class="m-topo"><div><div class="eyebrow">Plataforma NEXO</div><h2 style="margin:2px 0 0">Master</h2>
-      <p class="muted peq" style="margin:4px 0 0">Empresas clientes, planos e assinaturas. Só você vê esta área.</p></div>
+    <div class="m-topo"><div></div>
       <div class="linha"><button class="btn" id="mRecarregar">Atualizar</button><button class="btn prim" id="mNova">Nova empresa</button></div></div>
     <div class="grade kpis m-kpis">
       ${mKpi("Empresas", i.empresas ?? 0, `${(i.empresas_por_origem || {}).interna || 0} da casa`)}
       ${mKpi("Assinaturas ativas", porSt.ativa || 0, "pagando ou cortesia")}
       ${mKpi("Em teste grátis", porSt.teste || 0, `${i.testes_acabando || 0} acabando em 2 dias`)}
       ${mKpi("Receita mensal", reais(i.receita_mensal_centavos || 0), "assinaturas ativas, sem o Interno")}
-      ${mKpi("Faturas em aberto", reais(i.faturas_abertas_centavos || 0), "cobrança entra na Etapa 6")}
+      ${mKpi("Faturas em aberto", reais(i.faturas_abertas_centavos || 0), "cobrança automática em breve")}
       ${mKpi("Usuários", i.usuarios ?? 0, "com acesso a alguma empresa")}
     </div>
     <div class="card"><div class="linha entre"><h2>Empresas</h2><span class="muted peq">${mst.empresas.length}</span></div>
@@ -84,12 +83,12 @@ const mKpi = (rot, val, sub) => `<div class="card kpi"><span class="muted peq">$
 function mLinhaEmpresa(e) {
   const s = e.situacao || {}, ac = M_ACESSO[s.acesso] || ["—", ""];
   const plano = s.tem_assinatura ? `${esc(s.plano_nome || s.plano)} · ${esc(M_STATUS[s.status] || s.status)}` : "Sem plano";
-  const extra = s.status === "teste" && s.dias_teste_restantes != null ? ` · ${s.dias_teste_restantes} dia(s) de teste`
+  const extra = s.status === "teste" && s.dias_teste_restantes != null ? ` · ${pl(s.dias_teste_restantes, "dia de teste", "dias de teste")}`
               : s.periodo_ate ? ` · até ${dataCurta(s.periodo_ate)}` : "";
   return `<div class="m-emp">
     <div class="m-emp-av">${esc((e.nome || "?").split(/\s+/).map(p => p[0]).slice(0, 2).join("").toUpperCase())}</div>
     <div class="m-emp-txt"><b>${esc(e.nome)}</b>
-      <span class="muted peq">${esc(M_ORIGEM[e.origem] || e.origem || "")} · ${e.membros} usuário(s) · ${e.agentes} agente(s)${e.status !== "ativa" ? ` · empresa ${esc(e.status)}` : ""}</span>
+      <span class="muted peq">${esc(M_ORIGEM[e.origem] || e.origem || "")} · ${pl(e.membros, "usuário", "usuários")} · ${pl(e.agentes, "agente", "agentes")}${e.status !== "ativa" ? ` · empresa ${esc(e.status)}` : ""}</span>
       <span class="peq">${plano}${extra}</span></div>
     <span class="pill ${ac[1]}">${esc(ac[0])}</span>
     <div class="linha"><button class="btn" data-m-equipe="${e.id}">Equipe</button><button class="btn" data-m-plano="${e.id}">Plano</button><button class="btn" data-m-editar="${e.id}">Editar</button></div>
@@ -99,7 +98,7 @@ function mLinhaEmpresa(e) {
 function mCartaoPlano(p) {
   const rec = new Set(p.recursos || []), lim = p.limites || {};
   return `<form class="m-plano" data-m-salvar-plano="${esc(p.chave)}">
-    <div class="linha entre"><div><b class="m-plano-nome">${esc(p.nome)}</b> <span class="muted peq">${p.empresas} empresa(s)</span></div>
+    <div class="linha entre"><div><b class="m-plano-nome">${esc(p.nome)}</b> <span class="muted peq">${pl(p.empresas, "empresa", "empresas")}</span></div>
       ${p.chave === "interno" ? `<span class="pill">cortesia</span>` : `<span class="pill ${p.preco_centavos == null ? "warn" : "ok"}">${esc(reais(p.preco_centavos))}</span>`}</div>
     <label class="m-campo"><span>Descrição</span><input name="descricao" value="${esc(p.descricao || "")}" maxlength="160"></label>
     <div class="m-duas">
@@ -111,7 +110,7 @@ function mCartaoPlano(p) {
     <div class="m-duas">${M_LIMITES.map(([k, n]) => `<label class="m-campo"><span>${esc(n)}</span><input name="lim_${k}" type="number" min="0" placeholder="sem limite" value="${lim[k] ?? ""}"></label>`).join("")}</div>
     <div class="linha entre"><div class="linha">
       <label class="m-chk"><input type="checkbox" name="ativo" ${p.ativo ? "checked" : ""}><span>Ativo</span></label>
-      <label class="m-chk" title="Aparece na página de cadastro (Etapa 5)"><input type="checkbox" name="publico" ${p.publico ? "checked" : ""}><span>No cadastro público</span></label></div>
+      <label class="m-chk" title="Aparece na página de cadastro"><input type="checkbox" name="publico" ${p.publico ? "checked" : ""}><span>No cadastro público</span></label></div>
       <button class="btn prim" type="submit">Salvar plano</button></div>
   </form>`;
 }

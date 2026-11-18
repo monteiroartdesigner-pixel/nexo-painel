@@ -221,7 +221,8 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 .app{--destaque-fundo:#152548;--destaque-borda:rgba(122,162,255,.5)}
 .topm{display:none}
 .ursa{--onca:#f2b632;--onca-out:#13234d;--cream:#fff4dc;--gorro:#2a56d6;display:inline-block;flex:0 0 auto;line-height:0}
-.ursa svg{width:100%;height:100%}
+.ursa svg,.ursa img{width:100%;height:100%}
+.ursa img{object-fit:cover;border-radius:30%;background:radial-gradient(circle at 50% 35%,#3f6b46,#0d0f14 85%);box-shadow:0 0 0 1px rgba(255,255,255,.12)}
 .ursa-fala{display:flex;align-items:center;gap:14px;text-align:left}
 .ursa-fala .balao{background:var(--surface-2);border:1px solid var(--border);border-radius:14px 14px 14px 4px;padding:10px 14px;color:var(--text-2);font-size:13.5px;max-width:460px}
 @media (prefers-reduced-motion:no-preference){.ursa.oi svg{animation:oi 2.4s ease-in-out 1}}
@@ -255,7 +256,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
   .hide-m{display:none!important}
 }
 </style>
-<link rel="stylesheet" href="../assets/visual.css?v=20261118j">
+<link rel="stylesheet" href="../assets/visual.css?v=20261118k">
 </head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -267,7 +268,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <section id="telaLogin" class="login oculto">
   <div id="explicador"></div>
   <form class="card" id="formLogin">
-    <div class="ursa-fala"><span class="ursa oi" data-ursa style="width:52px;height:56px"></span><div class="balao">Oi! Aqui é o <b>NEXO Prospect</b>. Entre com o mesmo e-mail e senha do NEXO System.</div></div>
+    <div class="ursa-fala"><span class="ursa oi" data-ursa style="width:52px;height:56px"></span><div class="balao">Oi! Eu sou a onça <b>Faro</b>, do NEXO Prospect. Entre com o mesmo e-mail e senha do NEXO System.</div></div>
     <label class="field"><span>E-mail</span><input class="input" type="email" id="lEmail" autocomplete="username" required></label>
     <label class="field"><span>Senha</span><input class="input" type="password" id="lSenha" autocomplete="current-password" required></label>
     <button class="btn pri" type="submit" id="lEntrar" style="height:40px">Entrar</button>
@@ -297,12 +298,12 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
-<script src="../assets/base.js?v=20261118a"></script>
+<script src="../assets/base.js?v=20261118k"></script>
 <script src="../assets/links.js?v=20261117c"></script>
-<script src="../assets/leads.js?v=20261118c"></script>
-<script src="../assets/plano.js?v=20261118i"></script>
-<script src="../assets/conta.js?v=20261118j"></script>
-<script src="../assets/explicador.js?v=20261117f"></script>
+<script src="../assets/leads.js?v=20261118k"></script>
+<script src="../assets/plano.js?v=20261118k"></script>
+<script src="../assets/conta.js?v=20261118k"></script>
+<script src="../assets/explicador.js?v=20261118k"></script>
 <script>
 "use strict";
 /* ============================================================ base */
@@ -332,14 +333,7 @@ const ICONS = {
 const ic = (n, cls = "ic") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n] || ""}"/></svg>`;
 // A ursinha, mascote do NEXO Prospect (o mesmo desenho que já existia no painel). Aparece no login, nos
 // estados vazios e na ajuda; nunca no meio dos dados.
-const URSA_SVG = `<svg viewBox="104 130 112 120" aria-hidden="true">
-  <circle cx="122" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/><circle cx="198" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
-  <ellipse cx="160" cy="204" rx="48" ry="42" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
-  <ellipse cx="160" cy="226" rx="26" ry="18" fill="var(--cream)" stroke="var(--onca-out)" stroke-width="3.5"/>
-  <path d="M151 214 h18 l-9 9z" fill="var(--onca-out)"/><path d="M148 229 q12 10 24 0" fill="none" stroke="var(--onca-out)" stroke-width="3" stroke-linecap="round"/>
-  <rect x="124" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/><rect x="163" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/>
-  <path d="M112 186 C110 136 210 136 208 186 Z" fill="var(--gorro)" stroke="var(--onca-out)" stroke-width="4"/>
-  <rect x="106" y="174" width="108" height="18" rx="9" fill="#1c3c9e" stroke="var(--onca-out)" stroke-width="4"/></svg>`;
+const URSA_SVG = `<img src="../assets/equipe/faro-rosto.webp" alt="">`;   // a onça Faro (pesquisa e prospecção) no lugar do antigo urso
 const ursa = (tam = 56, cls = "") => `<span class="ursa ${cls}" style="width:${tam}px;height:${Math.round(tam * 1.07)}px">${URSA_SVG}</span>`;
 const fala = (texto, tam = 56) => `<div class="ursa-fala">${ursa(tam)}<div class="balao">${texto}</div></div>`;
 const LOGO =`<svg viewBox="0 0 24 24" fill="none" stroke="#CFE0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5l14 14V5"/></svg>`;
@@ -500,6 +494,7 @@ function proximoPasso(e) {
 }
 
 /* ============================================================ INÍCIO */
+const saudacao = () => { const h = Number(new Date().toLocaleString("en-US", { timeZone: FUSO, hour: "numeric", hourCycle: "h23" })); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; };
 function kpi(lbl, v, sub, i) { return `<div class="card kpi"><div class="lbl">${ic(i)}${lbl}</div><div class="kpi-n">${v}</div>${sub ? `<div class="sub">${sub}</div>` : ""}</div>`; }
 function vInicio(el) {
   const i = S.indic || {}, ativas = S.campanhas.filter(c => c.status === "ativa"), h = hoje();
@@ -509,17 +504,17 @@ function vInicio(el) {
   const semAbordar = S.empresas.filter(e => ["novo", "qualificado", "abordar"].includes(e.status) && melhorPrio(e) === "alta" && !duvidaDe(e)).slice(0, 6);
   const funil = [["Encontradas", i.empresas || 0], ["Qualificadas", i.qualificadas || 0], ["Abordadas", i.abordadas || 0], ["Responderam", i.responderam || 0], ["Propostas", i.propostas || 0], ["Contratos", i.contratos || 0]];
   const max = Math.max(1, ...funil.map(f => f[1]));
-  const nome = (S.email || "").split("@")[0];
+  const nome = (S.nome || "").trim().split(/\s+/)[0];   // primeiro nome do cadastro; sem nome, só a saudação
   const vazio = !S.empresas.length;
   el.innerHTML = `
-    <div class="page-h"><div class="row" style="gap:14px;flex-wrap:nowrap">${ursa(48, "oi")}<div><h1>Olá${nome ? ", " + esc(nome) : ""}</h1><p>${new Date().toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long" })} · ${ativas.length} campanha(s) ativa(s)</p></div></div>
+    <div class="page-h"><div class="row" style="gap:14px;flex-wrap:nowrap">${ursa(48, "oi")}<div><h1>${saudacao()}${nome ? ", " + esc(nome) : ""}</h1><p>${new Date().toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "long", day: "numeric", month: "long" })} · ${pl(ativas.length, "campanha ativa", "campanhas ativas")}</p></div></div>
       <div class="row"><a class="btn" href="#/campanhas">${ic("camp")}Campanhas</a><a class="btn pri" href="#/crm">${ic("crm")}Abrir CRM</a></div></div>
     <div id="pLinks"></div>
     ${vazio ? `<div class="card"><div class="empty">${ursa(72)}<h2>Comece em 3 passos</h2>
       <ol><li>Abra <b>Campanhas</b> e revise os filtros da campanha que você quer usar.</li><li>Clique em <b>Ativar</b> e depois em <b>Pedir pesquisa</b>.</li><li>Na rodada seguinte (06:10, 12:10 ou 18:10) as empresas aparecem aqui e no CRM, com a evidência e a mensagem pronta.</li></ol>
       <a class="btn pri" href="#/campanhas">Ir para Campanhas</a></div></div>` : ""}
     <div class="grid g-2">
-      <div class="card"><div class="card-h"><h2>Foco de hoje</h2><span class="badge ${atrasadas.length ? "bad" : deHoje.length ? "warn" : "ok"}">${atrasadas.length} atrasada(s) · ${deHoje.length} para hoje</span></div>
+      <div class="card"><div class="card-h"><h2>Foco de hoje</h2><span class="badge ${atrasadas.length ? "bad" : deHoje.length ? "warn" : "ok"}">${pl(atrasadas.length, "atrasada", "atrasadas")} · ${deHoje.length} para hoje</span></div>
         <div class="list">${[...atrasadas, ...deHoje].slice(0, 6).map(t => `<div class="li" data-emp="${t.empresa}"><div class="av">${iniciais(t.empresa_nome)}</div><div class="grow"><div style="font-weight:600">${esc(t.titulo)}</div><div class="peq muted">${esc(t.empresa_nome)}</div></div><span class="badge ${t.vence_em < h ? "bad" : "warn"}">${t.vence_em < h ? "atrasada · " + dataBR(t.vence_em) : "hoje"}</span></div>`).join("")
           || (S.faltaCrm ? `<div class="alert warn">${ic("alert")}<div>As tarefas aparecem depois da atualização do banco (migração do CRM).</div></div>`
             : `<div class="empty" style="padding:18px"><div class="peq">Nenhuma tarefa vencendo. Ao registrar uma abordagem, crie o follow-up.</div></div>`)}</div>
@@ -541,7 +536,7 @@ function vInicio(el) {
       ${kpi("Propostas", i.propostas || 0, Object.keys(i.propostas_valor || {}).length ? somaMoedas(i.propostas_valor) : "", "edit")}
       ${kpi("Contratos", i.contratos || 0, "", "target")}
       ${kpi("Receita", somaMoedas(i.receita), "contratos registrados", "bolt")}
-      ${kpi("Tarefas pendentes", S.faltaCrm ? "–" : pendentes.length, atrasadas.length ? `${atrasadas.length} atrasada(s)` : "", "task")}
+      ${kpi("Tarefas pendentes", S.faltaCrm ? "–" : pendentes.length, atrasadas.length ? `${pl(atrasadas.length, "atrasada", "atrasadas")}` : "", "task")}
     </div>` : `<div class="alert warn">${ic("alert")}<div>Os indicadores não carregaram agora. Recarregue a página em instantes.</div></div>`}
     ${S.empresas.length ? `<div class="grid g-2">
       <div class="card"><div class="card-h"><h2>Leads por nicho</h2></div>${barras((i.por_nicho || []).map(x => [x.nome, x.n]))}</div>
@@ -754,7 +749,7 @@ function quadroAutomacao() {
   const h = o.hoje || {}, em = o.empresas || {};
   const k = (n, v, sub) => `<div class="auto-k"><span>${n}</span><b class="num">${v}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
   return `<section class="card stack"><div class="card-h" style="margin:0"><h2>Automação</h2>
-      <span class="badge ${o.erros && o.erros.length ? "warn" : "ok"}"><span class="dot"></span>${o.erros && o.erros.length ? o.erros.length + " aviso(s) em 48 h" : "Rodando sem erro"}</span></div>
+      <span class="badge ${o.erros && o.erros.length ? "warn" : "ok"}"><span class="dot"></span>${o.erros && o.erros.length ? pl(o.erros.length, "aviso", "avisos") + " em 48 h" : "Rodando sem erro"}</span></div>
     <div class="auto-grid">
       ${k("Pesquisas hoje", h.rodadas || 0, `${h.buscas || 0} buscas`)}
       ${k("Encontradas hoje", h.encontradas || 0, `${h.novas || 0} novas`)}
@@ -765,7 +760,7 @@ function quadroAutomacao() {
     </div>
     <div class="auto-prox">${ic("cal")}<div>${prox ? `<b>Próxima rodada: ${prox.quando.toLocaleString("pt-BR", { timeZone: FUSO, weekday: "long", hour: "2-digit", minute: "2-digit" })}</b> (${nomesTurno[prox.turno]})
       <div class="peq t2">${daVez.length ? "Entram: " + daVez.map(c => esc(c.nome)).join(", ") : "Nenhuma campanha neste turno."}</div>` : "Sem rodada prevista."}
-      <div class="peq muted">Última rodada: ${o.ultima_rodada ? quando(o.ultima_rodada) : "ainda não houve"}. O GitHub pode atrasar alguns minutos.</div></div></div>
+      <div class="peq muted">Última rodada: ${o.ultima_rodada ? quando(o.ultima_rodada) : "ainda não houve"}. Pode atrasar alguns minutos.</div></div></div>
     <details class="auto-det"><summary>Campanhas em execução (${(o.campanhas || []).filter(c => c.status === "ativa").length})</summary>
       <div class="table-wrap" style="margin-top:8px"><table><thead><tr><th>Campanha</th><th>Turno</th><th>Buscas hoje</th><th>Última pesquisa</th><th>Situação</th></tr></thead><tbody>
       ${(o.campanhas || []).map(c => `<tr><td>${esc(c.nome)}</td><td>${c.modo === "automatico" ? (c.turnos || []).map(t => nomesTurno[t] || t).join(", ") : "manual"}</td>
@@ -789,7 +784,7 @@ function abaOportunidade(a, e, camps) {
     ${(k.evidencias || []).length ? `<div><div class="peq muted">Evidências</div><ul style="margin:4px 0 0;padding-left:18px">${k.evidencias.map(v => `<li><a href="${hrefSeguro(v.onde)}" target="_blank" rel="noopener">${esc(v.o_que)}</a></li>`).join("")}</ul></div>` : ""}
     ${["pt", "en"].filter(l => k["mensagem_" + l]).map(l => `<div><div class="row between"><span class="peq muted">Mensagem em ${l === "pt" ? "português" : "inglês"}</span><button class="btn sm ghost" data-copiar="${i}:${l}">${ic("copy")}Copiar</button></div><div class="msg">${esc(k["mensagem_" + l])}</div></div>`).join("")}
     ${k.oportunidade ? `<div class="row"><button class="btn sm" data-prop="${i}">${ic("copy")}Copiar proposta</button></div>` : ""}
-  </div>`).join("") + (e.fonte_url ? `<div class="peq muted" style="margin-top:10px">Fonte: <a href="${hrefSeguro(e.fonte_url)}" target="_blank" rel="noopener">${esc(e.fonte_url.replace(/^https?:\/\//, "").slice(0, 60))}</a></div>` : "");
+  </div>`).join("") + (urlSegura(e.fonte_url) ? `<div class="peq muted" style="margin-top:10px">Fonte: <a href="${hrefSeguro(e.fonte_url)}" target="_blank" rel="noopener">${esc(e.fonte_url.replace(/^https?:\/\//, "").slice(0, 60))}</a></div>` : "");
   $$("[data-copiar]", a).forEach(b => b.onclick = () => { const [i, l] = b.dataset.copiar.split(":"); copiar(camps[i]["mensagem_" + l], "Mensagem"); });
   $$("[data-prop]", a).forEach(b => b.onclick = () => copiar(propostaTexto(e, camps[b.dataset.prop]), "Proposta"));
 }
@@ -901,7 +896,7 @@ function vCampanhas(el) {
       const faltas = [!c.oferta && "oferta", !(c.moeda && c.preco_min_centavos != null) && "faixa de preço", !c.canal_abordagem && "canal"].filter(Boolean);
       return `<article class="card stack" data-c="${c.id}" style="gap:10px">
         <div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><div><h2>${esc(c.nome)}</h2><div class="peq muted">${esc(c.servico)}</div></div><span class="badge ${cl}"><span class="dot"></span>${st}</span></div>
-        <div class="row">${c.modo === "automatico" ? `<span class="badge pri">${ic("cal")}Automática · ${(c.dias_semana || []).length} dia(s)</span>` : `<span class="badge">Manual</span>`}<span class="badge">${(c.paises || []).join(" + ")}</span><span class="badge">${c.idioma === "en" ? "Inglês" : "Português"}</span></div>
+        <div class="row">${c.modo === "automatico" ? `<span class="badge pri">${ic("cal")}Automática · ${pl((c.dias_semana || []).length, "dia", "dias")}</span>` : `<span class="badge">Manual</span>`}<span class="badge">${(c.paises || []).join(" + ")}</span><span class="badge">${c.idioma === "en" ? "Inglês" : "Português"}</span></div>
         <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
           <div><div class="num" style="font-size:20px">${c.empresas}</div><div class="peq muted">leads</div></div>
           <div><div class="num" style="font-size:20px">${c.prioritarias}</div><div class="peq muted">prioritários</div></div>
@@ -1040,6 +1035,7 @@ async function iniciar() {
   if (!MOCK) await contaPosLogin();   // aceita convites e termina cadastro pendente (assets/conta.js)
   const ctx = await rpc("nexo_contexto");
   S.email = ctx.email || "";
+  try { const { data } = await sb.auth.getSession(); S.nome = data.session?.user?.user_metadata?.full_name || ""; } catch { S.nome = ""; }
   const emp = (ctx.empresas || []).find(e => (e.agentes || []).some(a => a.slug === "prospect"));
   $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
   $("#quem").textContent = S.email;

@@ -98,8 +98,8 @@ function estadoDe(p, itens, r) {
   const base = { meus, ult, prox: proximaRonda(p.agenda) };
   if (p.id === "gestora" && c.pausado) return { ...base, st: "atencao", rot: "Pausada", fala: "Pausei a equipe, como você pediu. Ninguém trabalha até você retomar no Início." };
   if (p.funcao && c[p.funcao] === false) return { ...base, st: "off", rot: "Desligada", fala: `Minha função está desligada no painel. Quando quiser, ligue em Início › Interruptores.` };
-  if (p.id === "gestora" && r.erros_24h > 0) return { ...base, st: "atencao", rot: "Atenção", fala: `A equipe teve ${r.erros_24h} erro(s) nas últimas 24 horas. Os detalhes estão na Atividade.` };
-  if (p.id === "pauta" && (cont.revisar || 0) > 0) return { ...base, st: "espera", rot: "Esperando você", fala: `Tenho ${cont.revisar} peça(s) prontas esperando a sua aprovação.` };
+  if (p.id === "gestora" && r.erros_24h > 0) return { ...base, st: "atencao", rot: "Atenção", fala: `A equipe teve ${pl(r.erros_24h, "erro", "erros")} nas últimas 24 horas. Os detalhes estão na Atividade.` };
+  if (p.id === "pauta" && (cont.revisar || 0) > 0) return { ...base, st: "espera", rot: "Esperando você", fala: `Tenho ${pl(cont.revisar, "peça", "peças")} prontas esperando a sua aprovação.` };
   if (p.id === "lupa") { const prob = (r.integracoes || []).filter(i => i.ultimo_teste_ok === false || i.status === "erro"); if (prob.length) return { ...base, st: "atencao", rot: "Atenção", fala: `A conexão ${prob.map(i => i.tipo).join(", ")} precisa de você. Veja em Integrações.` }; }
   if (erroRec) return { ...base, st: "atencao", rot: "Atenção", fala: falaDoRegistro(erroRec) };
   if (ult && agora - new Date(ult.em) < 12 * MIN) return { ...base, st: "trab", rot: "Trabalhando", fala: falaDoRegistro(ult) };
@@ -126,11 +126,11 @@ function nivelDe(n) {
 }
 function missoes(n, r) {
   const m = [];
-  if (n.revisar) m.push({ p: "pauta", voce: true, t: `Aprovar ${n.revisar} peça(s)`, d: "Prontas e esperando o seu OK para entrar na fila.", aba: "aprovar" });
-  if (n.retornos && n.retornosEm && (Date.now() - new Date(n.retornosEm)) < 20 * HORA) m.push({ p: "faro", voce: true, t: `${n.retornos} retorno(s) de leads para hoje`, d: "A Faro separou quem está na hora de receber um retorno.", aba: "leads" });
-  if (n.leadsAbordar) m.push({ p: "faro", voce: true, t: `${n.leadsAbordar} lead(s) esperando abordagem`, d: "Com mensagem pronta. Você copia, revisa e envia.", aba: "leads" });
+  if (n.revisar) m.push({ p: "pauta", voce: true, t: `Aprovar ${pl(n.revisar, "peça", "peças")}`, d: "Prontas e esperando o seu OK para entrar na fila.", aba: "aprovar" });
+  if (n.retornos && n.retornosEm && (Date.now() - new Date(n.retornosEm)) < 20 * HORA) m.push({ p: "faro", voce: true, t: `${pl(n.retornos, "retorno", "retornos")} de leads para hoje`, d: "A Faro separou quem está na hora de receber um retorno.", aba: "leads" });
+  if (n.leadsAbordar) m.push({ p: "faro", voce: true, t: `${pl(n.leadsAbordar, "lead esperando", "leads esperando")} abordagem`, d: "Com mensagem pronta. Você copia, revisa e envia.", aba: "leads" });
   if (n.cidades) m.push({ p: "faro", t: "Mapa da prospecção", d: `${n.cidades[0]} de ${n.cidades[1]} cidades pesquisadas.`, pct: Math.round(100 * n.cidades[0] / n.cidades[1]), aba: "leads" });
-  if (n.fila) m.push({ p: "vitrine", t: `${n.fila} peça(s) aprovadas na fila`, d: r.controle?.publicar === false ? "Publicação desligada: ficam esperando você ligar." : "Saem no horário marcado.", aba: "aprovar" });
+  if (n.fila) m.push({ p: "vitrine", t: `${pl(n.fila, "peça aprovada", "peças aprovadas")} na fila`, d: r.controle?.publicar === false ? "Publicação desligada: ficam esperando você ligar." : "Saem no horário marcado.", aba: "aprovar" });
   if (n.seguidores != null) { const alvo = proximoMarco(n.seguidores, [100, 250, 500, 1000, 2500, 5000, 10000]); if (alvo) m.push({ p: "lupa", t: `Rumo a ${alvo} seguidores`, d: `Hoje: ${n.seguidores}.`, pct: Math.round(100 * n.seguidores / alvo), aba: "inicio" }); }
   return m;
 }
@@ -144,7 +144,7 @@ function conquistas(n, r) {
     { i: "📣", t: P.feito ? `No ar · ${P.feito} publicação(ões)` : "Primeira publicação", d: P.prox ? `${n.publicados} de ${P.prox}` : `${n.publicados} publicadas`, ok: !!P.feito, aba: "aprovar" },
     C && { i: "🗺️", t: C.feito ? `Desbravadora · ${C.feito} cidades` : "Desbravadora", d: C.prox ? `${n.cidades[0]} de ${C.prox} cidades` : "Mapa completo", ok: !!C.feito, aba: "leads" },
     S && { i: "⭐", t: S.feito ? `Comunidade · ${S.feito}` : "Comunidade de 100", d: S.prox ? `${n.seguidores} de ${S.prox} seguidores` : `${n.seguidores} seguidores`, ok: !!S.feito, aba: "inicio" },
-    { i: "🛡️", t: "Ronda limpa", d: r.erros_24h ? `${r.erros_24h} erro(s) nas últimas 24 h` : "Nenhum erro nas últimas 24 h", ok: !r.erros_24h, aba: "atividade" },
+    { i: "🛡️", t: "Ronda limpa", d: r.erros_24h ? `${pl(r.erros_24h, "erro", "erros")} nas últimas 24 h` : "Nenhum erro nas últimas 24 h", ok: !r.erros_24h, aba: "atividade" },
     ig && { i: "🔗", t: "Conectada ao Instagram", d: ig.status === "conectado" ? "Conexão oficial ativa" : "Conexão pendente", ok: ig.status === "conectado", aba: "integracoes" },
   ].filter(Boolean);
 }

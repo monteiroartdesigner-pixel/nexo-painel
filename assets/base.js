@@ -26,4 +26,6 @@ function urlSegura(v) {
   catch { return ""; }
 }
 // Atalho para o atributo: href="${hrefSeguro(x)}" já escapado ("#" quando o link não presta).
+// Plural certo: pl(1, "peça", "peças") -> "1 peça"; pl(3, ...) -> "3 peças".
+const pl = (n, um, varios) => `${n} ${Number(n) === 1 ? um : varios}`;
 const hrefSeguro = v => esc(urlSegura(v) || "#");

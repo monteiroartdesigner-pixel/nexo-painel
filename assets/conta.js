@@ -112,7 +112,7 @@ async function ctCriarConta() {
       <p class="ct-txt">Crie a conta da sua empresa. Sem cartão: o teste começa agora e você decide depois.
         <button type="button" class="ct-link" data-convidado>Recebi um convite de uma empresa</button></p>
       <fieldset class="ct-planos"><legend>Plano</legend>${planos.map((p, i) => `<label class="ct-plano"><input type="radio" name="plano" value="${esc(p.chave)}" ${i === 0 ? "checked" : ""}>
-        <span><b>${esc(p.nome)}</b><small>${esc(p.descricao || "")}</small><small>${p.dias_teste} dia(s) grátis · depois ${esc(ctReais(p.preco_centavos))}</small></span></label>`).join("")}</fieldset>
+        <span><b>${esc(p.nome)}</b><small>${esc(p.descricao || "")}</small><small>${pl(p.dias_teste, "dia grátis", "dias grátis")} · depois ${esc(ctReais(p.preco_centavos))}</small></span></label>`).join("")}</fieldset>
       <div class="ct-duas"><label class="ct-campo"><span>Seu nome</span><input name="responsavel" autocomplete="name" required maxlength="120"></label>
         <label class="ct-campo"><span>Nome da empresa</span><input name="empresa" autocomplete="organization" required maxlength="120"></label></div>
       <div class="ct-duas"><label class="ct-campo"><span>WhatsApp</span><input name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="20"></label>
@@ -179,7 +179,7 @@ async function abrirEquipe(empresaId, nomeEmpresa) {
   catch (e) { alert(/Could not find|does not exist/.test(e.message || "") ? "A equipe precisa da migração da Etapa 5 no banco." : ctMsg(e)); return; }
   const usados = d.membros.length + d.convites.length, lim = d.limite_usuarios;
   ctJanela(`Equipe · ${nomeEmpresa || "empresa"}`, `
-    <p class="ct-txt">${usados} de ${lim ?? "∞"} usuário(s) do plano. Quem já tem conta entra na hora; quem não tem recebe o acesso ao criar a conta com o mesmo e-mail.</p>
+    <p class="ct-txt">${usados} de ${lim ?? "∞"} usuários do plano. Quem já tem conta entra na hora; quem não tem recebe o acesso ao criar a conta com o mesmo e-mail.</p>
     <div class="ct-lista">${d.membros.map(m => `<div class="ct-membro"><div><b>${esc(m.email)}</b><small>${esc(CT_PAPEL[m.papel] || m.papel)}</small></div>
         ${m.papel === "dono" ? "" : `<button class="btn nao" type="button" data-tirar="${esc(m.user_id)}">Tirar acesso</button>`}</div>`).join("")}
       ${d.convites.map(c => { const t = ctTextoConvite(c.email, nomeEmpresa); return `<div class="ct-membro ct-pend"><div><b>${esc(c.email)}</b><small>${esc(CT_PAPEL[c.papel] || c.papel)} · convite esperando a pessoa criar a conta. O NEXO não manda e-mail sozinho: envie o convite abaixo.</small>

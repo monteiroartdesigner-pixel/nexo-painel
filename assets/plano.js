@@ -48,7 +48,7 @@ function planoFaixa(empresaId, alvo) {
   const s = PL.sits[empresaId]; if (!s || !s.tem_assinatura || !alvo) return;
   let msg = "", tom = "warn";
   if (s.status === "teste" && s.dias_teste_restantes != null && s.dias_teste_restantes <= 3)
-    msg = `Teste grátis do plano ${s.plano_nome}: ${s.dias_teste_restantes === 0 ? "termina hoje" : `faltam ${s.dias_teste_restantes} dia(s)`}.`;
+    msg = `Teste grátis do plano ${s.plano_nome}: ${s.dias_teste_restantes === 0 ? "termina hoje" : `faltam ${pl(s.dias_teste_restantes, "dia", "dias")}`}.`;
   else if (s.acesso === "aviso") msg = "Sua assinatura venceu. Regularize para não perder o acesso.";
   else if (s.status === "teste_vencido") { msg = "Seu teste grátis acabou. Ative um plano para continuar usando."; tom = "bad"; }
   else if (["leitura", "bloqueado"].includes(s.acesso)) { msg = "Sua assinatura está inativa. Ative um plano para voltar a usar."; tom = "bad"; }

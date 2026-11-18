@@ -21,7 +21,7 @@ const EXP_CENAS = [
   { tit: "A gestora", eb: "Onça Pintada · gestora da equipe", h: "Primeiro, ela lê o retrato do dia", img: "pintada",
     fala: "A onça Pintada, gestora da equipe, começa lendo o retrato do dia: as métricas do Instagram, os leads que já existem, os conteúdos agendados e tudo o que você pediu no painel.",
     vis: `<div class="exp-fluxo"><span>Métricas do Instagram</span><span>Leads</span><span>Agenda de posts</span><span>Seus pedidos</span></div>` },
-  { tit: "Leads do Várzea", eb: "Onça Faro · pesquisa e prospecção", h: "Times, ligas e escolinhas para o NEXO Várzea", img: "faro",
+  { tit: "Leads do Várzea", soCasa: true, eb: "Onça Faro · pesquisa e prospecção", h: "Times, ligas e escolinhas para o NEXO Várzea", img: "faro",
     fala: "A onça Faro pesquisa times, ligas, campeonatos e escolinhas de futebol amador. Ela usa só informação pública, procura o contato oficial do time e dá uma nota para cada lead. Quem tem contato e nota boa vai para Para abordar, com a mensagem pronta.",
     vis: `<div class="exp-cartao"><b>Lead encontrado</b><div class="lin"><span>Fonte</span>perfil público</div><div class="lin"><span>Contato</span>só o oficial do time</div><div class="lin"><span>Destino</span>Para abordar, com mensagem</div></div>` },
   { tit: "Dúvida vira pergunta", eb: "Classificação flexível", h: "Na dúvida, a equipe pergunta antes de escrever", img: "faro",
@@ -51,7 +51,7 @@ const EXP_CENAS = [
   { tit: "Regra de ouro", eb: "Quem decide é você", h: "Nada sai sem o seu OK", img: "pintada",
     fala: "E a regra de ouro: nada é enviado, publicado ou pago sem o seu OK. A equipe prepara tudo. Você abre o painel, revisa e manda.",
     vis: `<div class="exp-grande">Você decide.</div><div class="exp-chips"><span class="exp-chip nao">Nada enviado sozinho</span><span class="exp-chip nao">Nada publicado sozinho</span><span class="exp-chip nao">Nada pago sozinho</span></div>` },
-];
+].map((c, n) => ({ ...c, n })).filter(c => !c.soCasa);   // soCasa: cena só da casa (NEXO VÁRZEA), fora do vídeo dos clientes
 
 function explicadorMontar(el, opcoes = {}) {
   if (!el || el.dataset.montado) return;
@@ -138,7 +138,7 @@ function explicadorMontar(el, opcoes = {}) {
       mostrar(j);
       const seguir = () => passo(j + 1);
       if (temAudio) {
-        audio = new Audio(EXP_AUDIO(j)); audio.onended = () => { timer = setTimeout(seguir, 350); };
+        audio = new Audio(EXP_AUDIO(EXP_CENAS[j].n)); audio.onended = () => { timer = setTimeout(seguir, 350); };
         audio.play().catch(() => { tocando = false; botao(); });
       } else {   // sem a gravação da voz do Claude: as cenas passam com legenda (o Ricardo não quer a voz do navegador)
         timer = setTimeout(seguir, Math.max(5, EXP_CENAS[j].fala.split(/\s+/).length / 2.6) * 1000);

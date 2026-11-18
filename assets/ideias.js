@@ -74,7 +74,7 @@ async function ideias(el) {
         <article class="card id-pedido">
           <div class="linha entre" style="flex-wrap:nowrap;align-items:flex-start">
             <div style="min-width:0"><b>${p.texto ? esc(p.texto) : "Surpreendam-me (a equipe escolhe o tema)"}</b>
-              <div class="muted peq">${p.quantidade} ideia(s) · pedido ${esc(quando(p.criado_em))}</div></div>
+              <div class="muted peq">${pl(p.quantidade, "ideia", "ideias")} · pedido ${esc(quando(p.criado_em))}</div></div>
             <span class="pill ${cls}">${rot}</span></div>
           ${p.material_palavras ? `<div class="peq muted id-mat-info">Material: <b>${esc(p.material_origem || "texto")}</b> · ${p.material_palavras} palavras${p.material_inicio ? ` · “${esc(p.material_inicio.slice(0, 110))}…”` : ""}</div>` : ""}
           ${p.status === "na_fila" ? `<div class="linha entre"><span class="peq muted">A equipe pega na próxima rodada${prox ? ` (${esc(idHora(prox))})` : ""}.</span>${pode ? `<button class="btn nao peq" data-cancelar="${p.id}">Cancelar</button>` : ""}</div>` : ""}
@@ -87,7 +87,7 @@ async function ideias(el) {
                 <div class="muted peq">${esc(ID_ST_PECA[c.status] || c.status)}${c.agendado_para ? " · " + esc(quando(c.agendado_para)) : ""}</div></div>
             </div>`).join("")}</div>
             <button class="btn" data-aprovar style="align-self:flex-start">Ver em Aprovar</button>` : ""}
-        </article>`; }).join("") : `<div class="vazio">Nenhum pedido ainda. Escreva um tema acima ou deixe em branco e clique em Pedir à equipe.</div>`}
+        </article>`; }).join("") : vazioOnca("pauta", "Nenhum pedido ainda.", "Escreva um tema acima (ou deixe em branco) e clique em Pedir à equipe. A Pauta cuida do resto.")}
     </section></div>`;
 
   $$("[data-q]", el).forEach(b => b.onclick = () => { idQtd = Number(b.dataset.q); $$("[data-q]", el).forEach(x => x.setAttribute("aria-pressed", x === b)); });

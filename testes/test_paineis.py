@@ -451,7 +451,8 @@ class Master(unittest.TestCase):
         try:
             pg = self.abrir_master(p)
             sec = pg.inner_text('[data-sec="master"]')
-            for txt in ("Master", "Empresas", "Planos", "NEXO VÁRZEA (teste)", "Teste grátis", "a definir"):
+            self.assertEqual(pg.inner_text("#tituloAba"), "Master", "o título fica no cabeçalho da aba")
+            for txt in ("Empresas", "Planos", "NEXO VÁRZEA (teste)", "Teste grátis", "a definir"):
                 self.assertIn(txt, sec)
             self.assertEqual(pg.evaluate("document.querySelectorAll('[data-sec=master] img[src=x]').length"), 0, "nome com HTML não vira imagem")
             self.assertEqual(len(pg.query_selector_all(".m-emp")), 2)
@@ -664,6 +665,37 @@ class ArquivoDePublicados(unittest.TestCase):
             p.fechar()
 
 
+class PecaSemArte(unittest.TestCase):
+    """Aprovar: peça sem arte diz o porquê e o que fazer (antes: só "sem mídia")."""
+
+    def tearDown(self):
+        CONTEUDOS.clear()
+
+    def test_explica_cada_caso(self):
+        base = {"origem": "agente", "midias": [], "legenda": "x", "status": "revisar", "agendado_para": "2026-11-20T21:00:00Z"}
+        CONTEUDOS.extend([
+            {**base, "id": "a", "pauta": "Travada", "formato": "carrossel", "motivo": "número não aprovado: 200",
+             "checagem": {"problemas": [{"tipo": "número não aprovado", "trecho": "200"}]}},
+            {**base, "id": "b", "pauta": "Reel", "formato": "reel", "motivo": None,
+             "arte": {"cenas": [{"tempo": "0-3s", "fala": "WhatsApp não é sistema.", "imagem": "Close no celular"}]}},
+            {**base, "id": "c", "pauta": "Ajuste", "formato": "reel", "motivo": "ajustar: fazer a artes"},
+        ])
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
+            txt = lambda i: pg.inner_text(f'article[data-id="{i}"] .sem-arte')
+            self.assertIn("Arte travada", txt("a")); self.assertIn('"200"', txt("a"))
+            self.assertIn("Reel é vídeo", txt("b")); self.assertIn("Ver roteiro (1 cena)", txt("b"))
+            self.assertIn("Ajuste pedido", txt("c"))
+            self.assertNotIn("sem mídia", pg.inner_text('[data-sec="aprovar"]'))
+            self.assertIsNone(pg.query_selector('article[data-id="a"] [data-dec="aprovado"]'), "sem arte não tem Aprovar")
+            self.assertIsNotNone(pg.query_selector('article[data-id="a"] [data-dec="ajustar"]'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
 class Conta(unittest.TestCase):
     """Criar conta, esqueci a senha, equipe e arquivo completo."""
 
@@ -791,6 +823,43 @@ class ConviteSemEmail(unittest.TestCase):
             pg.click("[data-criar]"); pg.wait_for_timeout(400)
             pg.click(".ct-janela [data-convidado]"); pg.wait_for_timeout(300)
             self.assertIn("Criar sua conta", pg.inner_text(".ct-janela"))
+        finally:
+            p.fechar()
+
+
+class AbaAgenteSimples(unittest.TestCase):
+    """Aba Agente em 4 passos com um botão só, que grava apenas o que mudou."""
+
+    def abrir(self, p):
+        pg = p.abrir("/index.html", 1500)
+        pg.click('.menu [data-aba="agente"]'); pg.wait_for_timeout(400)
+        return pg
+
+    def test_quatro_passos_e_titulo_da_aba(self):
+        p = Pagina()
+        try:
+            pg = self.abrir(p)
+            self.assertEqual(pg.inner_text("#tituloAba"), "Agente")
+            self.assertEqual(len(pg.query_selector_all(".ag-passo")), 4)
+            self.assertEqual(len(pg.query_selector_all('[data-sec="agente"] button[type=submit]')), 1, "um botão Salvar só")
+            self.assertFalse(pg.is_visible("#idLogo"), "logo e cores ficam em Mais opções")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_estilo_por_toque_e_salva_so_o_que_mudou(self):
+        p = Pagina()
+        try:
+            pg = self.abrir(p)
+            pg.click('[data-tom="Descontraído"]'); pg.click('[data-tom="Direto"]')
+            self.assertEqual(pg.input_value("#idPers"), "Descontraído, direto.")
+            self.assertIn("mudanças sem salvar", pg.inner_text("#agMud"))
+            pg.click("#agSalvar"); pg.wait_for_timeout(600)
+            chamadas = [n for n, a in p.args]
+            self.assertIn("nexo_salvar_identidade", chamadas)
+            self.assertNotIn("nexo_salvar_agente", chamadas, "nome e nível não mudaram")
+            self.assertNotIn("nexo_salvar_instrucoes", chamadas, "instruções não mudaram")
+            self.assertEqual(p.erros, [])
         finally:
             p.fechar()
 

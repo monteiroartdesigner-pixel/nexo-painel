@@ -119,6 +119,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .dia{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin:6px 0 -4px}
 .peca{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}
 @media (max-width:560px){.peca{grid-template-columns:1fr}}
+.peca.sem{grid-template-columns:1fr}
+.sem-arte{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px dashed var(--borda,#3a3a3a);border-radius:12px;font-size:13px;line-height:1.45;width:100%}
+.sem-arte b{font-size:14px}
+.sem-arte details{margin-top:4px}.sem-arte summary{cursor:pointer;font-weight:600}
+.sem-arte ol{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.sem-arte i{display:block;opacity:.7;font-size:12px}
 .midia{display:flex;gap:6px;overflow-x:auto;border-radius:12px}
 .midia img,.midia video{width:120px;aspect-ratio:4/5;object-fit:cover;border-radius:10px;background:var(--dark);flex:0 0 auto}
 @media (max-width:560px){.midia img,.midia video{width:46%}}
@@ -152,7 +158,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 .vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="assets/visual.css?v=20261118j">
+<link rel="stylesheet" href="assets/visual.css?v=20261118k">
 <link rel="stylesheet" href="assets/master.css?v=20261118c">
 </head>
 <body>
@@ -174,7 +180,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   <div id="explicador"></div>
   <form class="card" id="formLogin" autocomplete="on">
     <div style="text-align:center"><div class="eyebrow">Plataforma NEXO · System</div><h1>Entrar</h1></div>
-    <p class="muted peq" style="margin:0;text-align:center">Um login só para o NEXO System e o NEXO Prospect. Use o mesmo e-mail e senha do NEXO SPORT.</p>
+    <p class="muted peq" style="margin:0;text-align:center">Um login só para o System e o Prospect.</p>
     <label class="campo">E-mail<input type="email" id="email" autocomplete="username" required></label>
     <label class="campo">Senha<input type="password" id="senha" autocomplete="current-password" required></label>
     <button class="btn prim" type="submit" id="btnEntrar">Entrar</button>
@@ -218,7 +224,7 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
   </aside>
   <main class="conteudo">
   <header class="cab">
-    <div><div class="eyebrow" id="nomeEmpresa">NEXO System</div><h1 id="nomeAgente">Painel</h1></div>
+    <div><div class="eyebrow" id="nomeEmpresa">NEXO System</div><h1 id="tituloAba">Painel</h1><p class="sub-aba" id="subAba"></p></div>
   </header>
 
   <section data-sec="equipe" aria-label="Equipe"></section>
@@ -238,13 +244,13 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <div id="toast" class="toast oculto" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
-<script src="assets/base.js?v=20261118a"></script>
-<script src="assets/equipe.js?v=20261118b"></script>
-<script src="assets/master.js?v=20261118h"></script>
-<script src="assets/plano.js?v=20261118i"></script>
-<script src="assets/conta.js?v=20261118j"></script>
-<script src="assets/ideias.js?v=20261117c"></script>
-<script src="assets/explicador.js?v=20261117f"></script>
+<script src="assets/base.js?v=20261118k"></script>
+<script src="assets/equipe.js?v=20261118k"></script>
+<script src="assets/master.js?v=20261118k"></script>
+<script src="assets/plano.js?v=20261118k"></script>
+<script src="assets/conta.js?v=20261118k"></script>
+<script src="assets/ideias.js?v=20261118k"></script>
+<script src="assets/explicador.js?v=20261118k"></script>
 <script>
 "use strict";
 // Supabase (sb), $, $$, esc, urlSegura, hrefSeguro e FUSO vêm de assets/base.js (comum ao System e ao Prospect).
@@ -333,10 +339,28 @@ $$(".menu button").forEach(b => { const d = ICONES_MENU[b.dataset.aba]; if (d) b
 
 // ---------------------------------------------------------------- abas
 $$(".menu button").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+// Tela vazia com a oncinha responsável (descontraído, sem "Nada ainda").
+const vazioOnca = (quem, titulo, texto) => `<div class="vazio-onca">${typeof rosto === "function" && PESSOA[quem] ? rosto(PESSOA[quem], "vo-rosto") : ""}<div><b>${esc(titulo)}</b><span>${esc(texto)}</span></div></div>`;
+// Título e linha de explicação de cada aba (o nome do agente fica pequeno, em cima).
+const TITULO_ABA = {
+  equipe: ["Equipe", "Quem está trabalhando agora e o que cada oncinha entregou."],
+  inicio: ["Início", "O resumo do dia e os interruptores da equipe."],
+  ideias: ["Ideias", "Peça peças novas à equipe: com tema, material ou só no improviso."],
+  aprovar: ["Aprovar", "Peças esperando você antes de ir ao ar. As publicadas ficam no arquivo."],
+  atividade: ["Atividade", "Tudo o que a equipe fez e quem mudou o quê."],
+  agente: ["Agente", "Nome, identidade, nível de autonomia e instruções."],
+  funcoes: ["Funções", "O que a equipe pode fazer e o que pede o seu OK."],
+  conhecimento: ["Conhecimento", "Respostas prontas, fatos aprovados e o jeito de falar da marca."],
+  integracoes: ["Integrações", "Contas conectadas: Instagram, Google e as próximas."],
+  master: ["Master", "Empresas clientes, planos e assinaturas."],
+  ajuda: ["Ajuda", "Como usar o painel e quem tem acesso."],
+};
 function abrirAba(aba) {
   // Os leads moram no NEXO Prospect desde 18/11/2026 (um lugar só para leads).
   if (aba === "leads") { location.href = "prospect/#/leads"; return; }
   st.aba = aba;
+  const [tit, sub] = TITULO_ABA[aba] || [aba, ""];
+  $("#tituloAba").textContent = tit; $("#subAba").textContent = sub;
   $$(".menu button").forEach(b => b.dataset.aba === aba ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
   $$("[data-sec]").forEach(s => s.classList.toggle("oculto", s.dataset.sec !== aba));
   try { localStorage.setItem("nexo.aba", aba); } catch {}
@@ -390,8 +414,8 @@ async function carregar() {
     planoFaixa(st.empresaId, $(".conteudo"));
     $$(".menu button[data-aba]").forEach(b => { const rec = SYS_RECURSO[b.dataset.aba]; b.classList.toggle("trancado", !!rec && !planoTem(rec, st.empresaId)); });
     const ident = r.identidade || {};
-    $("#nomeEmpresa").textContent = r.empresa?.nome || "NEXO System";
-    $("#nomeAgente").textContent = ident.nome_exibicao || r.agente?.nome || "Agente";
+    const nomeEmp = r.empresa?.nome || (st.ctx.empresas || []).find(e => e.id === st.empresaId)?.nome || "";
+    $("#nomeEmpresa").textContent = [nomeEmp, ident.nome_exibicao || r.agente?.nome].filter(Boolean).join(" · ") || "NEXO";
     aplicarLogo();
     const n = st.conteudos.filter(x => x.status === "revisar").length;
     $("#nAprovar").textContent = n ? n : "";
@@ -412,14 +436,14 @@ const CHAVES = [
   ["pausado", "Pausar tudo", "Para o agente na hora. Nada roda até você retomar."],
   ["publicar", "Publicar no Instagram", "Publica só as peças que você aprovou, no horário marcado."],
   ["responder", "Responder comentários", "Responde pelo FAQ aprovado e manda o link no direct de quem comentou."],
-  ["pesquisar", "Pesquisar clientes", "Procura times e contatos públicos para o CRM."]
+  ["pesquisar", "Pesquisar clientes", "Procura clientes com contato público para o seu CRM."]
 ];
 function inicio(el) {
   const r = st.resumo, c = r.controle || {}, cont = r.conteudos || {}, ld = r.leads || {};
   const prontos = cont.pronto || 0, revisar = cont.revisar || 0;
   const totalLeads = Object.values(ld).reduce((a, b) => a + b, 0);
   const estado = c.pausado ? `<span class="pill bad">pausado</span>` : `<span class="pill ok">ativo</span>`;
-  const alerta = (!c.publicar && prontos) ? `<div class="aviso">${prontos} peça(s) aprovada(s) esperando: <b>Publicar</b> está desligado. Ligue quando quiser que elas saiam.</div>` : "";
+  const alerta = (!c.publicar && prontos) ? `<div class="aviso">${pl(prontos, "peça aprovada", "peças aprovadas")} esperando: <b>Publicar</b> está desligado. Ligue quando quiser que elas saiam.</div>` : "";
   el.innerHTML = `
     ${alerta}
     <div class="grade">
@@ -435,7 +459,7 @@ function inicio(el) {
     </div>
     <div class="card">
       <h2>Interruptores</h2>
-      <p class="muted peq" style="margin:0">Valem na próxima rodada do agente (até 1 hora). Tudo fica registrado em Atividade.</p>
+      <p class="muted peq" style="margin:0">Valem na próxima atualização da equipe (até 1 hora). Tudo fica registrado em Atividade.</p>
       ${CHAVES.map(([k, t, d]) => `
         <div class="chave"><div class="txt"><b>${t}</b><span class="muted peq">${d}</span></div>
           <label class="sw"><input type="checkbox" data-chave="${k}" ${c[k] ? "checked" : ""} ${podeMudar() ? "" : "disabled"} aria-label="${t}"><span></span></label></div>`).join("")}
@@ -458,6 +482,18 @@ function midiaHtml(m) {
     ? `<video src="${esc(x.url)}" preload="metadata" controls playsinline muted></video>`
     : `<a href="${hrefSeguro(x.url)}" target="_blank" rel="noopener" aria-label="Abrir a arte em tamanho real"><img src="${esc(x.mini || x.url)}" alt="" loading="lazy"></a>`).join("");
 }
+// Peça sem arte: diz o porquê e o que fazer, em vez de só "sem mídia" (pedido do Ricardo, 17/11/2026).
+function semArte(c) {
+  const ajuste = String(c.motivo || "").startsWith("ajustar:");
+  const probs = (c.checagem?.problemas || []).filter(p => p && p.trecho);
+  let t, d;
+  if (ajuste) { t = "Ajuste pedido"; d = "A equipe refaz na rodada da manhã e a arte sai junto."; }
+  else if (c.formato === "reel") { t = "Reel é vídeo"; d = "Você grava seguindo o roteiro. Quer arte? Peça ajuste com \"fazer a arte\" e ele vira carrossel."; }
+  else if (probs.length) { t = "Arte travada"; d = `O texto cita ${probs.slice(0, 3).map(p => `"${esc(p.trecho)}"`).join(", ")}, que não está nos fatos aprovados. Clique em Pedir ajuste e a equipe reescreve.`; }
+  else { t = "Arte a caminho"; d = "Sai na próxima atualização da equipe."; }
+  const cenas = c.formato === "reel" && !ajuste ? (c.arte?.cenas || []).slice(0, 12) : [];
+  return `<div class="sem-arte"><b>${t}</b><span>${ajuste || c.formato === "reel" ? esc(d) : d}</span>${cenas.length ? `<details><summary>Ver roteiro (${pl(cenas.length, "cena", "cenas")})</summary><ol>${cenas.map(s => `<li><span class="mono">${esc(s.tempo || "")}</span> ${esc(s.fala || "")}${s.imagem ? `<i>${esc(s.imagem)}</i>` : ""}</li>`).join("")}</ol></details>` : ""}</div>`;
+}
 // Publicados saem da fila e ficam no arquivo (aba "Publicados"), do mais recente para o mais antigo. Nada é apagado.
 let aprovarVista = "fila";
 function aprovar(el) {
@@ -473,7 +509,7 @@ function aprovar(el) {
     if (aprovarVista === "arquivo" && !st.publicados) { try { st.publicados = await rpc("nexo_publicados", { p_agente: st.agente }) || []; } catch { st.publicados = null; } }
     aprovar(el);
   });
-  if (!lista.length) { el.innerHTML = abas + `<div class="vazio">${aprovarVista === "arquivo" ? "Nenhuma peça publicada ainda." : "Nenhuma peça na fila. As publicadas estão em Publicados."}</div>`; ligarAbas(); return; }
+  if (!lista.length) { el.innerHTML = abas + (aprovarVista === "arquivo" ? vazioOnca("vitrine", "Nada publicado ainda.", "A Vitrine guarda aqui tudo o que for ao ar.") : vazioOnca("pauta", "Fila zerada.", "Quando a Pauta preparar algo novo, aparece aqui para o seu OK.")); ligarAbas(); return; }
   let html = abas + (pub || aprovarVista === "arquivo" ? "" : `<div class="aviso info">Publicar está <b>desligado</b>. Aprovar deixa a peça pronta; ela só vai ao ar quando você ligar Publicar no Início.</div>`);
   let diaAtual = "";
   for (const c of lista) {
@@ -482,8 +518,8 @@ function aprovar(el) {
     const [rot, cls] = ST_PECA[c.status] || [c.status, "muted"];
     const editavel = ["revisar", "erro", "rascunho", "pronto"].includes(c.status);
     html += `
-      <article class="card peca" data-id="${c.id}">
-        <div class="midia">${midiaHtml(c.midias) || `<div class="vazio peq" style="width:120px">sem mídia</div>`}</div>
+      <article class="card peca${c.midias?.length ? "" : " sem"}" data-id="${c.id}">
+        <div class="midia">${midiaHtml(c.midias) || semArte(c)}</div>
         <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
           <div class="linha entre"><h3>${esc(c.pauta)}</h3><span class="pill ${cls}">${rot}</span></div>
           <div class="linha muted peq"><span class="mono">${esc(c.formato)}</span><span>· ${quando(c.agendado_para)}</span><span>· ${c.origem === "ricardo" ? "feita com você" : "feita pelo agente"}</span></div>
@@ -493,7 +529,7 @@ function aprovar(el) {
           ${editavel ? `
           <div class="linha"><label class="campo" style="flex:1 1 220px">Data e hora (Brasília)<input type="datetime-local" data-quando value="${paraInput(c.agendado_para)}" ${podeEditar() ? "" : "disabled"}></label></div>
           <div class="acoes">
-            ${c.status !== "pronto" ? `<button class="btn sim" data-dec="aprovado" ${podeMudar() ? "" : "disabled"}>Aprovar</button>` : `<button class="btn" data-reag ${podeEditar() ? "" : "disabled"}>Salvar nova data</button>`}
+            ${c.status !== "pronto" && !c.midias?.length ? "" : c.status !== "pronto" ? `<button class="btn sim" data-dec="aprovado" ${podeMudar() ? "" : "disabled"}>Aprovar</button>` : `<button class="btn" data-reag ${podeEditar() ? "" : "disabled"}>Salvar nova data</button>`}
             ${c.midias?.length ? `<button class="btn onca" data-postar ${podeMudar() ? "" : "disabled"}>Postar agora</button>` : ""}
             <button class="btn" data-dec="ajustar" ${podeEditar() ? "" : "disabled"}>Pedir ajuste</button>
             <button class="btn nao" data-dec="recusado" ${podeMudar() ? "" : "disabled"}>Recusar</button>
@@ -551,50 +587,71 @@ const NIVEIS = [
   [3, "Operacional", "Executa o que você aprovou e as rotinas autorizadas."],
   [4, "Autônomo", "Roda as rotinas autorizadas dentro dos limites que você definiu."]
 ];
+// Aba Agente simplificada (pedido do Ricardo em 18/11/2026: "mais simples e fácil de usar").
+// 4 passos numerados e um botão só, que grava apenas o que mudou (nexo_salvar_agente / identidade / instruções).
+const AG_TOM = ["Descontraído", "Profissional", "Direto", "Bem-humorado", "Acolhedor", "Técnico", "Frases curtas", "Sem gírias"];
 function agente(el) {
   const r = st.resumo, a = r.agente || {}, i = r.identidade || {}, ins = r.instrucao;
   const dis = podeMudar() ? "" : "disabled", disE = podeEditar() ? "" : "disabled";
+  const cor = (v, p) => /^#[0-9A-Fa-f]{6}$/.test(v || "") ? v : p;
   el.innerHTML = `
-    <div class="aviso info">O agente lê daqui o nome, a identidade e as instruções a cada rodada do cérebro (3 vezes por dia). As instruções valem desde que não quebrem as regras fixas: só fatos aprovados, marcas separadas e nada publicado sem a sua aprovação.</div>
-    <div class="card">
-      <h2>Agente</h2>
-      <label class="campo">Nome do agente<input type="text" id="agNome" value="${esc(a.nome)}" maxlength="60" ${dis}></label>
-      <div class="muted peq">Empresa: <b>${esc(r.empresa?.nome)}</b> · sistema integrado: <b>${esc(a.sistema_integrado || "–")}</b></div>
-      <h3 style="margin-top:6px">Nível de autonomia</h3>
-      <div class="niveis">${NIVEIS.map(([n, t, d]) => `<label class="nivel"><input type="radio" name="nivel" value="${n}" ${a.nivel_autonomia === n ? "checked" : ""} ${dis}><span><b>${n}. ${t}</b><br><span class="muted peq">${d}</span></span></label>`).join("")}</div>
-      <p class="muted peq" style="margin:0">Publicar, mandar mensagem e anúncio sempre pedem sua aprovação, a não ser no nível 4 com a função liberada por você.</p>
-      <button class="btn prim" id="salvarAg" style="align-self:flex-start" ${dis}>Salvar agente</button>
-    </div>
-    <div class="card">
-      <h2>Identidade</h2>
-      <div class="grade">
-        <label class="campo">Nome que aparece<input type="text" id="idNome" value="${esc(i.nome_exibicao)}" maxlength="80" ${disE}></label>
-        <label class="campo">Link do logotipo<input type="url" id="idLogo" value="${esc(i.logo_url)}" placeholder="https://…" ${disE}></label>
-        <label class="campo">Cor principal<input type="text" id="idCor1" value="${esc(i.cor_primaria)}" placeholder="#F2B632" pattern="#[0-9A-Fa-f]{6}" ${disE}></label>
-        <label class="campo">Cor secundária<input type="text" id="idCor2" value="${esc(i.cor_secundaria)}" placeholder="#2B8CEB" pattern="#[0-9A-Fa-f]{6}" ${disE}></label>
-      </div>
-      <label class="campo">Personalidade<textarea id="idPers" maxlength="4000" placeholder="Ex.: boleiro, bem-humorado, direto. Nunca arrogante." ${disE}>${esc(i.personalidade)}</textarea></label>
-      <label class="campo">Linguagem<textarea id="idLing" maxlength="4000" placeholder="Ex.: português do Brasil, frases curtas, gírias de várzea com moderação." ${disE}>${esc(i.linguagem)}</textarea></label>
-      <label class="campo">Assinatura<input type="text" id="idAss" value="${esc(i.assinatura)}" maxlength="200" ${disE}></label>
-      <button class="btn prim" id="salvarId" style="align-self:flex-start" ${disE}>Salvar identidade</button>
-    </div>
-    <div class="card">
-      <div class="linha entre"><h2>Instruções específicas</h2><span class="muted mono">${ins ? `versão ${ins.versao} · ${quando(ins.criado_em)}` : "nenhuma ainda"}</span></div>
-      <p class="muted peq" style="margin:0">O que este agente precisa saber da empresa: produto, público, o que pode e o que não pode prometer. As regras de segurança da plataforma valem sempre e não aparecem aqui.</p>
-      <textarea id="insTxt" style="min-height:220px" maxlength="20000" ${disE}>${esc(ins?.texto)}</textarea>
-      <button class="btn prim" id="salvarIns" style="align-self:flex-start" ${disE}>Salvar nova versão</button>
-    </div>`;
-  $("#salvarAg").onclick = async () => {
-    const nivel = Number($("input[name=nivel]:checked", el)?.value || a.nivel_autonomia);
-    try { await rpc("nexo_salvar_agente", { p_agente: st.agente, p_nome: $("#agNome").value, p_nivel: nivel }); aviso("Agente salvo."); await carregar(); } catch (e) { aviso(msgErro(e), true); }
-  };
-  $("#salvarId").onclick = async () => {
-    for (const id of ["idCor1", "idCor2"]) { const v = $("#" + id).value.trim(); if (v && !/^#[0-9A-Fa-f]{6}$/.test(v)) return aviso("Cor no formato #RRGGBB, ex.: #F2B632.", true); }
-    const dados = { nome_exibicao: $("#idNome").value, logo_url: $("#idLogo").value, cor_primaria: $("#idCor1").value, cor_secundaria: $("#idCor2").value, personalidade: $("#idPers").value, linguagem: $("#idLing").value, assinatura: $("#idAss").value };
-    try { await rpc("nexo_salvar_identidade", { p_agente: st.agente, p_dados: dados }); aviso("Identidade salva."); await carregar(); } catch (e) { aviso(msgErro(e), true); }
-  };
-  $("#salvarIns").onclick = async () => {
-    try { const r2 = await rpc("nexo_salvar_instrucoes", { p_agente: st.agente, p_texto: $("#insTxt").value }); aviso(`Versão ${r2.versao} salva.`); await carregar(); } catch (e) { aviso(msgErro(e), true); }
+    <form class="ag" id="agForm">
+      <section class="card ag-passo"><span class="ag-n">1</span><div class="ag-c">
+        <h2>Nome da sua equipe</h2><p class="muted peq">Como a equipe se apresenta para você no painel.</p>
+        <input class="ag-in" type="text" id="agNome" value="${esc(a.nome)}" maxlength="60" placeholder="Ex.: Onça" ${dis}></div></section>
+
+      <section class="card ag-passo"><span class="ag-n">2</span><div class="ag-c">
+        <h2>Quanto ela faz sozinha</h2><p class="muted peq">Publicar, mandar mensagem e anúncio sempre pedem o seu OK (exceto no nível 4, se você liberar).</p>
+        <div class="ag-niveis">${NIVEIS.map(([n, t, d]) => `<label class="ag-nivel"><input type="radio" name="nivel" value="${n}" ${a.nivel_autonomia === n ? "checked" : ""} ${dis}>
+          <b>${t}</b><span>${d}</span>${n === 2 ? `<em>recomendado</em>` : ""}</label>`).join("")}</div></div></section>
+
+      <section class="card ag-passo"><span class="ag-n">3</span><div class="ag-c">
+        <h2>Jeito de falar</h2><p class="muted peq">Toque nos estilos para montar a personalidade. Dá para escrever do seu jeito também.</p>
+        <div class="ag-chips">${AG_TOM.map(t => `<button type="button" class="ag-chip" data-tom="${esc(t)}" ${disE}>${esc(t)}</button>`).join("")}</div>
+        <textarea class="ag-in" id="idPers" maxlength="4000" rows="3" placeholder="Ex.: descontraído, direto, bem-humorado. Nunca arrogante." ${disE}>${esc(i.personalidade)}</textarea>
+        <label class="ag-rot">Assinatura das mensagens <input class="ag-in" type="text" id="idAss" value="${esc(i.assinatura)}" maxlength="200" placeholder="Ex.: Equipe NEXO" ${disE}></label></div></section>
+
+      <section class="card ag-passo"><span class="ag-n">4</span><div class="ag-c">
+        <h2>O que a equipe precisa saber da sua empresa</h2>
+        <p class="muted peq">${ins ? `Versão ${ins.versao}, salva ${quando(ins.criado_em)}. ` : ""}Produto, público, o que pode e o que não pode prometer. As regras de segurança valem sempre.</p>
+        <textarea class="ag-in" id="insTxt" rows="8" maxlength="20000" placeholder="O que vendemos:&#10;Para quem:&#10;O que podemos prometer:&#10;O que nunca dizer:" ${disE}>${esc(ins?.texto)}</textarea></div></section>
+
+      <details class="card ag-mais"><summary>Mais opções: nome na marca, logo, cores e linguagem</summary>
+        <div class="grade">
+          <label class="ag-rot">Nome que aparece na marca<input class="ag-in" type="text" id="idNome" value="${esc(i.nome_exibicao)}" maxlength="80" ${disE}></label>
+          <label class="ag-rot">Link do logotipo<input class="ag-in" type="url" id="idLogo" value="${esc(i.logo_url)}" placeholder="https://…" ${disE}></label>
+          <label class="ag-rot">Cor principal<span class="ag-cor"><input type="color" id="idCor1p" value="${cor(i.cor_primaria, "#F2B632")}" ${disE}><input class="ag-in" type="text" id="idCor1" value="${esc(i.cor_primaria)}" placeholder="#F2B632" maxlength="7" ${disE}></span></label>
+          <label class="ag-rot">Cor secundária<span class="ag-cor"><input type="color" id="idCor2p" value="${cor(i.cor_secundaria, "#2B8CEB")}" ${disE}><input class="ag-in" type="text" id="idCor2" value="${esc(i.cor_secundaria)}" placeholder="#2B8CEB" maxlength="7" ${disE}></span></label>
+        </div>
+        <label class="ag-rot">Linguagem<textarea class="ag-in" id="idLing" rows="2" maxlength="4000" placeholder="Ex.: português do Brasil, frases curtas." ${disE}>${esc(i.linguagem)}</textarea></label>
+      </details>
+
+      <div class="ag-salvar"><span class="muted peq" id="agMud">Nada mudou ainda.</span><button class="btn prim" type="submit" id="agSalvar" ${disE}>Salvar tudo</button></div>
+    </form>`;
+  const f = $("#agForm", el), mud = $("#agMud", el);
+  const valor = () => ({ nome: $("#agNome").value.trim(), nivel: Number($("input[name=nivel]:checked", el)?.value || a.nivel_autonomia),
+    id: { nome_exibicao: $("#idNome").value, logo_url: $("#idLogo").value, cor_primaria: $("#idCor1").value.trim(), cor_secundaria: $("#idCor2").value.trim(),
+          personalidade: $("#idPers").value, linguagem: $("#idLing").value, assinatura: $("#idAss").value }, ins: $("#insTxt").value });
+  const ini = JSON.stringify(valor());
+  const marcar = () => { const m = JSON.stringify(valor()) !== ini; mud.textContent = m ? "Você tem mudanças sem salvar." : "Nada mudou ainda."; mud.classList.toggle("onca", m); };
+  f.addEventListener("input", marcar); f.addEventListener("change", marcar);
+  $$("[data-tom]", el).forEach(b => b.onclick = () => {
+    const t = $("#idPers"), atual = t.value.trim(), tom = b.dataset.tom.toLowerCase();
+    if (atual.toLowerCase().includes(tom)) return;
+    t.value = atual ? `${atual.replace(/[.\s]+$/, "")}, ${tom}.` : `${b.dataset.tom}.`; b.classList.add("on"); marcar();
+  });
+  [["idCor1p", "idCor1"], ["idCor2p", "idCor2"]].forEach(([p, t]) => { $("#" + p).oninput = e => { $("#" + t).value = e.target.value.toUpperCase(); marcar(); }; });
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    const v = valor(), o = JSON.parse(ini), b = $("#agSalvar"), feito = [];
+    for (const c of [v.id.cor_primaria, v.id.cor_secundaria]) if (c && !/^#[0-9A-Fa-f]{6}$/.test(c)) return aviso("Cor no formato #RRGGBB, ex.: #F2B632.", true);
+    b.disabled = true;
+    try {
+      if (!dis && (v.nome !== o.nome || v.nivel !== o.nivel)) { await rpc("nexo_salvar_agente", { p_agente: st.agente, p_nome: v.nome, p_nivel: v.nivel }); feito.push("nome e nível"); }
+      if (JSON.stringify(v.id) !== JSON.stringify(o.id)) { await rpc("nexo_salvar_identidade", { p_agente: st.agente, p_dados: v.id }); feito.push("jeito de falar"); }
+      if (v.ins !== o.ins) { const r2 = await rpc("nexo_salvar_instrucoes", { p_agente: st.agente, p_texto: v.ins }); feito.push(`instruções (versão ${r2.versao})`); }
+      aviso(feito.length ? `Salvo: ${feito.join(", ")}.` : "Nada mudou."); if (feito.length) await carregar();
+    } catch (e) { aviso(msgErro(e), true); } finally { b.disabled = false; }
   };
 }
 
@@ -631,7 +688,7 @@ const NOME_CON = { faq: "FAQ (respostas automáticas)", fatos: "Fatos aprovados"
 let conhec = null, faqEdit = null;
 function situacaoCon(x) {
   const a = x?.ativa;
-  if (!a) return `<span class="pill info">em uso: arquivo</span> <span class="muted peq">${x?.base ? "atualizado " + quando(x.base.atualizado_em) : "o agente ainda não mandou a base"}</span>`;
+  if (!a) return `<span class="pill info">em uso: arquivo</span> <span class="muted peq">${x?.base ? "atualizado " + quando(x.base.atualizado_em) : "a equipe ainda não enviou a versão inicial"}</span>`;
   const conf = a.aceito === true ? `<span class="pill ok">aceita pela Onça</span>` :
                a.aceito === false ? `<span class="pill bad">recusada: a Onça segue com o arquivo</span>` :
                `<span class="pill warn">esperando a conferência (próxima rodada)</span>`;
@@ -669,7 +726,7 @@ async function conhecimento(el) {
         <button class="btn peq" id="faqJsonUsar" ${dis}>Usar este JSON no editor</button></details>
       <div class="acoes"><button class="btn sim" data-salvar="faq" ${dis}>Salvar nova versão</button>
         ${conhec.faq?.ativa ? `<button class="btn" data-voltar="faq" ${dis}>Voltar ao arquivo</button>` : ""}</div>` :
-      `<div class="muted peq">O agente ainda não mandou o FAQ do arquivo. Ele manda no próximo retrato do dia.</div>`}
+      `<div class="muted peq">A equipe ainda não enviou a versão inicial do FAQ. Ela chega na próxima atualização do dia.</div>`}
       ${historicoCon("faq", conhec.faq)}
     </div>
 
@@ -684,7 +741,7 @@ async function conhecimento(el) {
 
     <div class="card" data-tipo="fatos">
       <div class="linha entre"><h2>${NOME_CON.fatos}</h2><div>${situacaoCon(conhec.fatos)}</div></div>
-      <p class="muted peq" style="margin:0">Preços, planos, contato, links e o que o checador permite. É a trava contra informação inventada: mude com cuidado. Formato JSON.</p>
+      <p class="muted peq" style="margin:0">Preços, planos, contato, links e o que a equipe pode afirmar. É a trava contra informação inventada: mude com cuidado. Formato JSON.</p>
       <textarea id="fatosJson" rows="16" class="mono" style="width:100%" ${dis}>${esc(fatos ? JSON.stringify(fatos, null, 1) : "")}</textarea>
       <div class="acoes"><button class="btn sim" data-salvar="fatos" ${dis}>Salvar nova versão</button>
         ${conhec.fatos?.ativa ? `<button class="btn" data-voltar="fatos" ${dis}>Voltar ao arquivo</button>` : ""}</div>
@@ -778,14 +835,14 @@ async function integracoes(el) {
   const tem = new Set(it.map(x => x.tipo));
   const faltam = ["whatsapp_business", "google", "crm"].filter(t => !tem.has(t));
   el.innerHTML = `
-    <div class="aviso info">O agente testa as conexões de verdade 3 vezes por dia (só leitura na Meta) e grava aqui o resultado de cada passo. As chaves da Onça ficam no cofre do GitHub, nunca neste painel. Para conectar ou renovar, use "Entrar com Facebook": a chave vai para o cofre do NEXO.</div>
+    <div class="aviso info">O agente testa as conexões de verdade 3 vezes por dia (só leitura na Meta) e grava aqui o resultado de cada passo. As chaves ficam num cofre seguro, nunca neste painel. Para conectar ou renovar, use "Entrar com Facebook": a chave vai para o cofre do NEXO.</div>
     <div class="grade">
       ${it.map(x => { const [rot, cls] = ST_INT[x.status] || [x.status, "muted"]; return `
         <div class="card ${x.tipo === "instagram" ? "largo" : ""}">
           <div class="linha entre"><h3>${esc(NOME_INT[x.tipo] || x.tipo)}</h3><span class="pill ${cls}">${rot}</span></div>
           <div class="peq">Conta: <b>${esc(x.conta || "–")}</b></div>
           ${x.funcionalidades?.length ? `<div class="linha">${x.funcionalidades.map(f => `<span class="pill info">${esc(f.replace(/_/g, " "))}</span>`).join("")}</div>` : ""}
-          <div class="muted peq">Chave guardada em: ${x.segredo === "github_secrets" ? "cofre do GitHub" : x.segredo === "cofre" ? "cofre do NEXO" : "–"}</div>
+          <div class="muted peq">Chave guardada em: ${x.segredo === "github_secrets" ? "cofre seguro" : x.segredo === "cofre" ? "cofre do NEXO" : "–"}</div>
           <div class="muted peq">Último teste real: ${x.ultimo_teste_em ? quando(x.ultimo_teste_em) + (x.ultimo_teste_ok ? " · ok" : " · falhou") : "ainda não testado"}${x.permissoes?.length ? ` · ${x.permissoes.length} permissões` : ""}</div>
           ${x.ultimo_erro ? `<div class="bad peq">${esc(x.ultimo_erro)}</div>` : ""}
           ${x.tipo === "instagram" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x)}
@@ -822,11 +879,11 @@ async function integracoes(el) {
 // (A antiga tela de Prospect que ficava aqui saiu em 18/11/2026: tudo dela existe, completo, no app prospect/.)
 // ---------------------------------------------------------------- ATIVIDADE
 async function atividade(el) {
-  el.innerHTML = `<div class="card"><h2>Atividade</h2><div class="muted peq">Carregando…</div></div>`;
+  el.innerHTML = `<div class="card"><div class="muted peq">Carregando…</div></div>`;
   try {
     const it = await rpc("nexo_atividades", { p_agente: st.agente });
-    el.innerHTML = `<div class="card"><h2>Atividade</h2><p class="muted peq" style="margin:0">O que o agente fez e o que mudou no painel, mais recente primeiro.</p><div class="tempo">
-      ${(it || []).map(x => `<div class="it"><span class="mono muted">${quando(x.em)}</span><span><span class="pill ${x.origem === "painel" ? "onca" : x.nivel === "erro" ? "bad" : x.nivel === "aviso" ? "warn" : "info"}">${esc(x.origem === "painel" ? "painel" : x.quem)}</span> <b>${esc(x.acao.replace(/_/g, " "))}</b> <span class="muted">${esc((x.texto || "").slice(0, 220))}</span></span></div>`).join("") || `<div class="vazio">Nada ainda.</div>`}
+    el.innerHTML = `<div class="card"><div class="tempo">
+      ${(it || []).map(x => `<div class="it"><span class="mono muted">${quando(x.em)}</span><span><span class="pill ${x.origem === "painel" ? "onca" : x.nivel === "erro" ? "bad" : x.nivel === "aviso" ? "warn" : "info"}">${esc(x.origem === "painel" ? "painel" : x.quem)}</span> <b>${esc(x.acao.replace(/_/g, " "))}</b> <span class="muted">${esc((x.texto || "").slice(0, 220))}</span></span></div>`).join("") || vazioOnca("lupa", "Ainda sem movimento.", "A Lupa anota aqui cada passo da equipe e cada mudança no painel.")}
     </div></div>`;
   } catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; }
 }
@@ -846,7 +903,7 @@ function ajuda(el) {
     ${["plataforma", "dono", "admin"].includes(st.resumo?.papel) && st.empresaId ? `<div class="card"><div class="linha entre"><div><h3>Equipe da empresa</h3>
       <p class="muted peq" style="margin:4px 0 0">Quem acessa o painel, com qual papel. Convide por e-mail ou tire o acesso.</p></div>
       <button class="btn prim" id="btnEquipe">Abrir equipe</button></div></div>` : ""}
-    <div class="card"><h3>Em breve</h3><p class="muted peq" style="margin:0">Central de Ajuda com manual e vídeos curtos (Etapa 7) e conexão guiada do Instagram (Etapa 4).</p></div>
+    <div class="card"><h3>Em breve</h3><p class="muted peq" style="margin:0">Central de Ajuda com manual e vídeos curtos, e conexão guiada do Instagram.</p></div>
     <div class="muted mono">Logado como ${esc(st.ctx?.email)} · ${esc(PAPEL[st.resumo?.papel] || "")}</div>`;
   const be = $("#btnEquipe", el);
   if (be) be.onclick = () => abrirEquipe(st.empresaId, (st.ctx.empresas || []).find(e => e.id === st.empresaId)?.nome);
