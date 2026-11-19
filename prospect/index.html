@@ -407,6 +407,19 @@ function ligarCopiaAoAbrir(raiz, msg) {
   }));
   // Sem contato público: a mensagem continua à mão, para quando o contato aparecer.
   $$("[data-msg-sem-contato]", raiz).forEach(b => b.onclick = () => copiar(msg, "Mensagem"));
+  ligarCopiaNumero(raiz);
+}
+// WhatsApp no computador: o wa.me abre uma janela nova a cada clique. Copiar o número deixa colar
+// direto na conversa nova do WhatsApp que já está aberto (Nova conversa > colar).
+const foneWa = v => "+" + String(v || "").replace(/\D/g, "");
+const foneBonito = v => { const d = String(v || "").replace(/\D/g, ""); const m = d.match(/^55(\d{2})(\d{4,5})(\d{4})$/); return m ? `+55 ${m[1]} ${m[2]}-${m[3]}` : foneWa(d); };
+function ligarCopiaNumero(raiz) {
+  $$("[data-copia-num]", raiz).forEach(b => b.onclick = async ev => {
+    ev.preventDefault(); ev.stopPropagation();
+    const ok = await copiarTexto(foneWa(b.dataset.copiaNum));
+    toast(ok ? `Número ${foneBonito(b.dataset.copiaNum)} copiado. No WhatsApp: Nova conversa, cole o número e depois a mensagem (botão Copiar da mensagem).`
+             : "O navegador bloqueou a cópia: selecione o número e copie.", !ok);
+  });
 }
 
 /* ============================================================ modal e gaveta */
@@ -687,7 +700,8 @@ function pintarFicha(f) {
     <div class="drawer-b">
       <div class="next"><div class="peq" style="color:#8DB5FF;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Próximo passo</div><div style="font-weight:700;font-size:15.5px;margin-top:3px">${esc(pp.t)}</div><div class="t2 peq">${esc(pp.d)}</div>
         <div class="row" style="margin-top:10px">
-          ${e.whatsapp ? `<a class="btn sm" data-copia target="_blank" rel="noopener" href="https://wa.me/${esc(e.whatsapp)}${msgDe(camps) ? "?text=" + encodeURIComponent(msgDe(camps)) : ""}" title="Abre o WhatsApp com a mensagem e deixa ela copiada">${ic("wa")}WhatsApp</a>` : ""}
+          ${e.whatsapp ? `<a class="btn sm" data-copia target="_blank" rel="noopener" href="https://wa.me/${esc(e.whatsapp)}${msgDe(camps) ? "?text=" + encodeURIComponent(msgDe(camps)) : ""}" title="Abre o WhatsApp com a mensagem e deixa ela copiada">${ic("wa")}WhatsApp</a>
+            <button class="btn sm" data-copia-num="${esc(e.whatsapp)}" title="Copia o número para colar no WhatsApp que já está aberto, sem abrir janela nova">${ic("copy")}Copiar número</button>` : ""}
           ${e.email ? `<a class="btn sm" data-copia href="mailto:${esc(e.email)}${msgDe(camps) ? "?body=" + encodeURIComponent(msgDe(camps)) : ""}" title="Abre o e-mail com a mensagem e deixa ela copiada">${ic("mail")}E-mail</a>` : ""}
           ${e.instagram ? `<a class="btn sm" data-copia target="_blank" rel="noopener" href="${esc(perfilIg(e.instagram))}" title="Copia a mensagem e abre o perfil: toque em Mensagem e cole">${ic("ig")}@${esc(usuarioIg(e.instagram))}</a>` : ""}
           ${msgDe(camps) && (e.whatsapp || e.email || e.instagram) ? `<span class="peq muted" style="flex-basis:100%">Ao tocar num contato, a mensagem sugerida já vai copiada: lá é só colar (Ctrl+V).</span>` : ""}
@@ -929,10 +943,12 @@ function vTarefas(el) {
     <div class="card" style="padding:6px 16px">${grupos[tarefaFiltro].map(t => `<div class="task"><button class="chk" role="checkbox" aria-checked="${t.feita}" data-t="${t.id}" aria-label="Concluir">${t.feita ? ic("check") : ""}</button>
       <div class="grow" data-emp="${t.empresa}" style="cursor:pointer"><div style="font-weight:600;${t.feita ? "text-decoration:line-through;color:var(--muted)" : ""}">${esc(t.titulo)}</div><div class="peq muted">${esc(t.empresa_nome)}</div></div>
       <span class="badge ${!t.feita && t.vence_em < h ? "bad" : !t.feita && t.vence_em === h ? "warn" : ""}">${t.feita ? "feita" : t.vence_em < h ? "atrasada · " + dataBR(t.vence_em) : t.vence_em === h ? "hoje" : dataBR(t.vence_em)}</span>
-      ${!t.feita && t.whatsapp ? `<a class="btn sm icon ghost" data-copia-emp="${esc(t.empresa)}" href="https://wa.me/${esc(t.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp (copia a mensagem sugerida)">${ic("wa")}</a>` : ""}</div>`).join("")
+      ${!t.feita && t.whatsapp ? `<a class="btn sm icon ghost" data-copia-emp="${esc(t.empresa)}" href="https://wa.me/${esc(t.whatsapp)}" target="_blank" rel="noopener" aria-label="WhatsApp (copia a mensagem sugerida)">${ic("wa")}</a>
+        <button class="btn sm icon ghost" data-copia-num="${esc(t.whatsapp)}" aria-label="Copiar número do WhatsApp" title="Copiar número">${ic("copy")}</button>` : ""}</div>`).join("")
       || `<div class="empty">${ursa(56)}<div>${tarefaFiltro === "hoje" ? "Tudo em dia por hoje." : tarefaFiltro === "proximas" ? "Nenhuma tarefa futura." : "Nenhuma tarefa concluída nos últimos 30 dias."}</div></div>`}</div>`}`;
   $$("[data-f]", el).forEach(b => b.onclick = () => { tarefaFiltro = b.dataset.f; vTarefas(el); });
   $$("[data-emp]", el).forEach(x => x.onclick = () => abrirFicha(x.dataset.emp));
+  ligarCopiaNumero(el);
   $$("[data-copia-emp]", el).forEach(a => a.addEventListener("click", async () => {
     const msg = msgDe(S.empresas.find(x => x.id === a.dataset.copiaEmp)?.campanhas); if (!msg) return;
     const ok = await copiarTexto(msg); toast(ok ? "Mensagem copiada. Na conversa, é só colar (Ctrl+V)." : "O navegador bloqueou a cópia.", !ok);
