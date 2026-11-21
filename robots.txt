@@ -1,5 +1,6 @@
 # nexoprospect.com: o portfólio é público; o painel (login) e as áreas internas não entram nas buscas.
 User-agent: *
+Allow: /$
 Allow: /portfolio/
 Allow: /privacidade.html
 Allow: /termos.html
