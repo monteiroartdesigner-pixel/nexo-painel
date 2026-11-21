@@ -144,10 +144,9 @@
     });
   }
 
-  // Botão "Entrar no sistema": o endereço vem do config.js
+  // Entrada escondida do sistema (o © do rodapé): o endereço vem do config.js
   document.querySelectorAll("[data-sistema]").forEach((b) => {
     if (S.sistema && S.sistema.url) b.href = S.sistema.url;
-    else b.closest("section").hidden = true; // sem endereço, o bloco some em vez de ficar com botão morto
   });
 
   /* ── Vídeos dos projetos: tocam só enquanto estão na tela ─────────────── */

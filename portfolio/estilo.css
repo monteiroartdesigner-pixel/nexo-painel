@@ -355,13 +355,8 @@ h1, h2 { background: var(--metal); -webkit-background-clip: text; background-cli
 /* Data da última atualização do portfólio */
 .atualizado { font-size: .9em; margin-top: -.4em; }
 
-/* Área do cliente: bloco discreto, depois do convite */
-.secao--sistema { min-height: auto; padding-top: 4vh; padding-bottom: 12vh; justify-items: center; }
-.painel--sistema { text-align: center; max-width: 640px; }
-.painel--sistema h2 { font-size: clamp(24px, 2.6vw, 36px); }
-.painel--sistema p { max-width: 34em; margin-inline: auto; }
-.painel--sistema .convite-numero a { color: var(--acento); text-underline-offset: 3px; cursor: pointer; }
-.secao--contato { padding-bottom: 6vh; }
+/* Entrada escondida do sistema: parece texto comum */
+.porta, .porta:hover, .porta:focus { color: inherit; text-decoration: none; cursor: default; outline: none; }
 
 /* Com 5 links o menu não cabe em telas médias: abaixo de 1040 px fica só o botão */
 @media (max-width: 1040px) { .menu a:not(.menu-cta) { display: none; } }

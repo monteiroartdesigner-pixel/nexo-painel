@@ -6,13 +6,12 @@ window.SITE = {
     mensagem: "Olá! Vi o portfólio da NEXO e quero uma demonstração.",
   },
 
-  // Login do sistema de pedidos e orçamentos (NEXO MASTER). Hoje é o endereço provisório da Hostinger;
-  // quando o sistema ganhar domínio próprio, troque só esta linha.
+  // Endereço do sistema. Para trocar, mude só esta linha.
   sistema: {
     url: "https://powderblue-fish-614576.hostingersite.com/login",
   },
 
-  // Sem formulário por decisão do Ricardo (16/11/2026): o contato é pelo WhatsApp.
+  // Sem formulário: o contato é pelo WhatsApp.
   contato: null,
 
   // Abertura: 160 frames do vídeo da onça de prata (fonte/abertura-corte.mp4).
