@@ -64,6 +64,7 @@ async function ideias(el) {
           <span class="muted peq" id="idConta">0 palavras</span>
         </div></details>
       <div class="linha entre">
+        ${typeof mkMarcaSelect === "function" ? mkMarcaSelect(pode) : ""}
         <div class="linha"><span class="muted peq">Quantas ideias?</span><div class="id-qtd" role="group" aria-label="Quantidade">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-q="${n}" aria-pressed="${idQtd === n}" ${pode ? "" : "disabled"}>${n}</button>`).join("")}</div></div>
         <button class="btn prim" id="idPedir" ${pode && naFila < 5 ? "" : "disabled"}>Pedir à equipe</button>
       </div>
@@ -76,7 +77,7 @@ async function ideias(el) {
           <div class="linha entre" style="flex-wrap:nowrap;align-items:flex-start">
             <div style="min-width:0"><b>${p.texto ? esc(p.texto) : "Surpreendam-me (a equipe escolhe o tema)"}</b>
               <div class="muted peq">${pl(p.quantidade, "ideia", "ideias")} · pedido ${esc(quando(p.criado_em))}</div></div>
-            <span class="pill ${cls}">${rot}</span></div>
+            <span class="linha" style="gap:6px;flex-wrap:nowrap">${typeof mkMarca === "function" ? mkMarca(p.marca) : ""}<span class="pill ${cls}">${rot}</span></span></div>
           ${typeof anexosTiras === "function" ? anexosTiras(p) : ""}
           ${p.material_palavras ? `<div class="peq muted id-mat-info">Material: <b>${esc(p.material_origem || "texto")}</b> · ${p.material_palavras} palavras${p.material_inicio ? ` · “${esc(p.material_inicio.slice(0, 110))}…”` : ""}</div>` : ""}
           ${p.status === "na_fila" ? `<div class="linha entre"><span class="peq muted">A equipe pega na próxima rodada${prox ? ` (${esc(idHora(prox))})` : ""}.</span>${pode ? `<button class="btn nao peq" data-cancelar="${p.id}">Cancelar</button>` : ""}</div>` : ""}
@@ -108,6 +109,8 @@ async function ideias(el) {
     try {
       const r = mat ? await rpc("nexo_pedir_ideias_material", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd, p_material: mat, p_origem: $("#idOrigem", el).value })
                     : await rpc("nexo_pedir_ideias", { p_agente: st.agente, p_texto: texto, p_quantidade: idQtd });
+      const marca = $("#idMarca", el)?.value || "";
+      if (marca && typeof mkMarcarPedido === "function") await mkMarcarPedido(r?.id, marca);
       let n = 0;
       if (typeof anexosTem === "function" && anexosTem() && r?.id) {
         try { n = await anexosLigar(r.id); }

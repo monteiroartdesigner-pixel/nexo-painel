@@ -107,6 +107,18 @@ h3{margin:0;font-size:15.5px;font-weight:700}
 .entre{justify-content:space-between}
 .passos{list-style:none;padding:0;margin:4px 0;display:flex;flex-direction:column;gap:8px}.passos li{display:flex;gap:8px;align-items:flex-start;min-width:0}.passos li>span:last-child{min-width:0;overflow-wrap:anywhere}.grade .card.largo{grid-column:1/-1}
 .pill{font-family:var(--mono);font-size:11.5px;border-radius:999px;padding:3px 9px;border:1.5px solid currentColor;white-space:nowrap}
+/* Marketing (auditoria 21/11/2026): marca da peça, motivo da recusa, histórico e redes */
+.mk-marca{border-style:dashed}
+.mk-dialogo{border:0;border-radius:18px;padding:22px;max-width:min(440px,calc(100vw - 32px));width:100%}
+.mk-dialogo::backdrop{background:rgba(10,14,30,.45)}
+.mk-dialogo form{display:flex;flex-direction:column;gap:12px}
+.mk-motivos{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px}
+.mk-motivos legend{margin-bottom:6px}
+.mk-motivos label{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1.5px solid var(--linha,#ccd);border-radius:10px;cursor:pointer}
+.mk-motivos label:has(input:checked){border-color:currentColor;font-weight:600}
+.mk-hist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.mk-redes{display:flex;flex-direction:column;gap:10px}
+.mk-rede{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--linha,#e3e3ea)}
 .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .info{color:var(--cyan)} .onca{color:var(--onca)}
 .aviso{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--panel));padding:12px 14px;border-radius:10px}
 .aviso.info{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 7%,var(--panel));color:var(--fg)}
@@ -276,7 +288,8 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="assets/plano.js?v=20261119v"></script>
 <script src="assets/conta.js?v=20261119c"></script>
 <script src="assets/anexos.js?v=20261119a"></script>
-<script src="assets/ideias.js?v=20261119p"></script>
+<script src="assets/ideias.js?v=20261121a"></script>
+<script src="assets/marketing.js?v=20261121a"></script>
 <script src="assets/explicador.js?v=20261119t"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
 <script src="assets/meuplano.js?v=20261119v"></script>
@@ -486,9 +499,11 @@ function inicio(el) {
   const prontos = cont.pronto || 0, revisar = cont.revisar || 0;
   const totalLeads = Object.values(ld).reduce((a, b) => a + b, 0);
   const estado = c.pausado ? `<span class="pill bad">pausado</span>` : `<span class="pill ok">ativo</span>`;
+  const falhou = cont.erro || 0;
+  const alertaErro = falhou ? `<div class="aviso">${pl(falhou, "peça falhou", "peças falharam")} ao publicar. Veja o motivo em <button class="btn peq" data-ir="aprovar">Aprovar</button>.</div>` : "";
   const alerta = (!c.publicar && prontos) ? `<div class="aviso">${pl(prontos, "peça aprovada", "peças aprovadas")} esperando: <b>Publicar</b> está desligado. Ligue quando quiser que elas saiam.</div>` : "";
   el.innerHTML = `
-    ${alerta}
+    ${alerta}${alertaErro}
     <div class="grade">
       <div class="card destaque">
         <div class="linha entre"><h2>Estado</h2>${estado}</div>
@@ -507,7 +522,9 @@ function inicio(el) {
         <div class="chave"><div class="txt"><b>${t}</b><span class="muted peq">${d}</span></div>
           <label class="sw"><input type="checkbox" data-chave="${k}" ${c[k] ? "checked" : ""} ${podeMudar() ? "" : "disabled"} aria-label="${t}"><span></span></label></div>`).join("")}
       <div class="muted mono">Última mudança: ${esc(c.atualizado_por || "–")} · ${quando(c.atualizado_em)}</div>
-    </div>`;
+    </div>
+    <div data-mk-redes><div class="card"><span class="muted peq">Conferindo as redes…</span></div></div>`;
+  mkRedesHtml().then(h => { const box = $("[data-mk-redes]", el); if (box) { box.innerHTML = h; mkRedesLigar(box, carregar); } });
   $$("[data-ir]", el).forEach(b => b.onclick = () => abrirAba(b.dataset.ir));
   $$("[data-chave]", el).forEach(inp => inp.onchange = async () => {
     const k = inp.dataset.chave, v = inp.checked;
@@ -519,7 +536,8 @@ function inicio(el) {
 }
 
 // ---------------------------------------------------------------- APROVAR
-const ST_PECA = { revisar: ["esperando você", "warn"], pronto: ["aprovada", "ok"], publicando: ["publicando", "info"], publicado: ["publicada", "info"], erro: ["erro", "bad"], rascunho: ["rascunho", "muted"] };
+// Estados com nome claro (auditoria 21/11/2026): rascunho › aguardando aprovação › agendada › publicando › publicada | falhou.
+const ST_PECA = { rascunho: ["em produção", "muted"], revisar: ["aguardando aprovação", "warn"], pronto: ["agendada", "ok"], publicando: ["publicando", "info"], publicado: ["publicada", "info"], erro: ["falhou", "bad"] };
 function midiaHtml(m) {
   return (m || []).slice(0, 10).map(x => x.tipo === "video"
     ? `<video src="${esc(x.url)}" preload="metadata" controls playsinline muted></video>`
@@ -543,15 +561,24 @@ function aprovar(el) {
   // Arquivo completo vem de nexo_publicados (todas as publicadas); sem a migração, usa as dos últimos 14 dias que já vieram.
   const todos = st.conteudos, arq = st.publicados || todos.filter(c => c.status === "publicado");
   const lista = aprovarVista === "arquivo" ? [...arq].sort((a, b) => (b.agendado_para || "").localeCompare(a.agendado_para || "")) : todos.filter(c => c.status !== "publicado");
+  const falhas = todos.filter(c => c.status === "erro").length;
   const pub = st.resumo.controle?.publicar;
   const abas = `<div class="ap-abas" role="tablist">
       <button role="tab" data-vista="fila" aria-selected="${aprovarVista === "fila"}">Na fila <b>${todos.filter(c => c.status !== "publicado").length}</b></button>
-      <button role="tab" data-vista="arquivo" aria-selected="${aprovarVista === "arquivo"}">Publicados (arquivo) <b>${arq.length}</b></button></div>`;
+      <button role="tab" data-vista="arquivo" aria-selected="${aprovarVista === "arquivo"}">Publicados (arquivo) <b>${arq.length}</b></button>
+      <button role="tab" data-vista="historico" aria-selected="${aprovarVista === "historico"}">Recusadas e falhas${falhas ? ` <b class="bad">${falhas}</b>` : ""}</button></div>`;
   const ligarAbas = () => $$("[data-vista]", el).forEach(b => b.onclick = async () => {
     aprovarVista = b.dataset.vista;
     if (aprovarVista === "arquivo" && !st.publicados) { try { st.publicados = await rpc("nexo_publicados", { p_agente: st.agente }) || []; } catch { st.publicados = null; } }
+    if (aprovarVista === "historico") st.historico = await mkHistorico();
     aprovar(el);
   });
+  if (aprovarVista === "historico") {
+    el.innerHTML = abas + (st.historico ? mkHistoricoHtml(st.historico) : `<div class="vazio">Carregando…</div>`);
+    ligarAbas();
+    if (!st.historico) mkHistorico().then(h => { st.historico = h; if (aprovarVista === "historico") aprovar(el); });
+    return;
+  }
   if (!lista.length) { el.innerHTML = abas + (aprovarVista === "arquivo" ? vazioOnca("vitrine", "Nada publicado ainda.", "A Vitrine guarda aqui tudo o que for ao ar.") : vazioOnca("pauta", "Fila zerada.", "Quando a Pauta preparar algo novo, aparece aqui para o seu OK.")); ligarAbas(); return; }
   let html = abas + (pub || aprovarVista === "arquivo" ? "" : `<div class="aviso info">Publicar está <b>desligado</b>. Aprovar deixa a peça pronta; ela só vai ao ar quando você ligar Publicar no Início.</div>`);
   let diaAtual = "";
@@ -565,7 +592,7 @@ function aprovar(el) {
         <div class="midia">${midiaHtml(c.midias) || semArte(c)}</div>
         <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
           <div class="linha entre"><h3>${esc(c.pauta)}</h3><span class="pill ${cls}">${rot}</span></div>
-          <div class="linha muted peq"><span class="mono">${esc(c.formato)}</span><span>· ${quando(c.agendado_para)}</span><span>· ${c.origem === "ricardo" ? "feita com você" : "feita pelo agente"}</span></div>
+          <div class="linha muted peq">${mkMarca(c.marca)}<span class="mono">${esc(c.formato)}</span><span>· ${quando(c.agendado_para)}</span><span>· ${c.origem === "ricardo" ? "feita com você" : "feita pelo agente"}</span></div>
           ${c.motivo ? `<div class="peq warn">${esc(c.motivo)}</div>` : ""}
           ${c.legenda ? `<div class="legenda" data-leg>${esc(c.legenda)}</div><button class="btn peq" type="button" data-abrir style="align-self:flex-start;padding:4px 10px">Ver legenda inteira</button>` : ""}
           ${urlSegura(c.permalink) ? `<a href="${hrefSeguro(c.permalink)}" target="_blank" rel="noopener">Ver no Instagram</a>` : ""}
@@ -588,7 +615,7 @@ function aprovar(el) {
     $$("[data-dec]", art).forEach(b => b.onclick = async () => {
       const dec = b.dataset.dec; let obs = null;
       if (dec === "ajustar") { obs = prompt("O que precisa mudar?"); if (obs === null) return; }
-      if (dec === "recusado") { if (!confirm("Recusar e tirar esta peça da fila?")) return; obs = prompt("Motivo (opcional):") || ""; }
+      if (dec === "recusado") { obs = await mkRecusar(st.conteudos.find(x => x.id === id)?.pauta); if (obs === null) return; st.historico = null; }
       b.disabled = true;
       try { await rpc("nexo_decidir_conteudo", { p_conteudo: id, p_decisao: dec, p_obs: obs, p_quando: deInput(q?.value) }); aviso(dec === "aprovado" ? "Aprovada." : "Registrado."); await carregar(); }
       catch (e) { b.disabled = false; aviso(msgErro(e), true); }

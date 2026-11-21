@@ -57,6 +57,8 @@ EMPRESAS_P = [
 TAREFAS = []   # cada teste que precisa de tarefa preenche e limpa
 CONTEUDOS = []  # peças do System (Aprovar)
 PUBLICADOS = []  # arquivo completo (nexo_publicados)
+HISTORICO = []   # recusadas e com falha (nexo_conteudos_historico)
+INTEGRACOES = []  # nexo_integracoes (redes conectadas)
 PLANOS_PUB = []  # planos no cadastro público
 FALHAR = {}      # funções que o banco recusa neste teste
 SUPORTE = {"whatsapp": "5541998460993"}  # nexo_suporte (o Master troca)
@@ -137,6 +139,14 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return CONTEUDOS
     if nome == "nexo_publicados":
         return PUBLICADOS
+    if nome == "nexo_conteudos_historico":
+        return HISTORICO
+    if nome == "nexo_integracoes":
+        return INTEGRACOES
+    if nome in ("nexo_marcar_pedido", "nexo_decidir_conteudo"):
+        return {"ok": True}
+    if nome == "nexo_pedir_ideias":
+        return {"id": "ped-novo"}
     if nome == "nexo_suporte":
         return SUPORTE
     if nome == "nexo_planos_publicos":
@@ -1440,3 +1450,123 @@ class AbaAgenteSimples(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class MarketingAuditoria(unittest.TestCase):
+    """Auditoria do Marketing (21/11/2026): estados claros, marca, motivo da recusa, histórico e redes."""
+
+    def tearDown(self):
+        CONTEUDOS.clear(); HISTORICO.clear(); INTEGRACOES.clear()
+
+    def test_cartao_mostra_marca_e_estado_claro(self):
+        base = {"formato": "carrossel", "origem": "agente", "midias": [], "legenda": "L"}
+        CONTEUDOS.extend([{**base, "id": "a", "pauta": "Peça prospect", "status": "revisar", "marca": "prospect", "agendado_para": "2026-12-20T21:00:00Z"},
+                          {**base, "id": "b", "pauta": "Peça que falhou", "status": "erro", "marca": "varzea", "agendado_para": "2026-12-21T21:00:00Z",
+                           "motivo": "Meta 400 (código 9007)"}])
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
+            a = pg.inner_text('article[data-id="a"]'); b = pg.inner_text('article[data-id="b"]')
+            self.assertIn("NEXO Prospect", a); self.assertIn("aguardando aprovação", a)
+            self.assertIn("NEXO VÁRZEA", b); self.assertIn("falhou", b); self.assertIn("9007", b)
+            self.assertIn("1", pg.inner_text('[data-vista="historico"]'), "a aba mostra quantas falharam")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_recusar_pede_o_motivo_com_um_clique(self):
+        CONTEUDOS.append({"id": "a", "pauta": "Dor: o juiz pago do bolso", "formato": "carrossel", "origem": "agente", "midias": [],
+                          "status": "revisar", "agendado_para": "2026-12-20T21:00:00Z"})
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
+            pg.click('article[data-id="a"] [data-dec="recusado"]'); pg.wait_for_timeout(200)
+            self.assertIn("juiz pago do bolso", pg.inner_text("dialog.mk-dialogo"))
+            pg.check('dialog.mk-dialogo input[value="assunto repetido"]')
+            pg.fill('dialog.mk-dialogo [name=mkd]', "já falamos do juiz")
+            pg.click('dialog.mk-dialogo button[value="ok"]'); pg.wait_for_timeout(400)
+            args = [a for n, a in p.args if n == "nexo_decidir_conteudo"][-1]
+            self.assertEqual((args["p_decisao"], args["p_obs"]), ("recusado", "assunto repetido: já falamos do juiz"))
+            self.assertIsNone(pg.query_selector("dialog.mk-dialogo"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_voltar_nao_recusa(self):
+        CONTEUDOS.append({"id": "a", "pauta": "Peça", "formato": "post", "origem": "agente", "midias": [], "status": "revisar",
+                          "agendado_para": "2026-12-20T21:00:00Z"})
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
+            pg.click('article[data-id="a"] [data-dec="recusado"]'); pg.wait_for_timeout(200)
+            pg.click('dialog.mk-dialogo button[value="cancelar"]'); pg.wait_for_timeout(300)
+            self.assertNotIn("nexo_decidir_conteudo", p.chamadas)
+        finally:
+            p.fechar()
+
+    def test_historico_de_recusadas_e_falhas(self):
+        HISTORICO.extend([
+            {"id": "h1", "pauta": "Story: falhou", "formato": "story", "status": "erro", "marca": "varzea", "motivo": "Meta 400", "tentativas": 3, "atualizado_em": "2026-11-20T21:00:00Z"},
+            {"id": "h2", "pauta": "Dor: o juiz", "formato": "carrossel", "status": "cancelado", "marca": "varzea", "motivo": "recusado no painel: assunto repetido", "atualizado_em": "2026-11-19T21:00:00Z"},
+            {"id": "h3", "pauta": "<img src=x onerror=alert(1)>", "formato": "post", "status": "cancelado", "motivo": "recusado no painel: ", "atualizado_em": "2026-11-18T21:00:00Z"}])
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
+            pg.click('[data-sec="aprovar"] [data-vista="historico"]'); pg.wait_for_timeout(500)
+            txt = pg.inner_text('[data-sec="aprovar"]')
+            self.assertIn("nexo_conteudos_historico", p.chamadas)
+            self.assertIn("Motivo: assunto repetido", txt); self.assertIn("3 tentativas", txt); self.assertIn("Sem motivo escrito", txt)
+            self.assertEqual(pg.evaluate("document.querySelectorAll('[data-sec=aprovar] img[src=x]').length"), 0, "pauta com HTML não vira imagem")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_inicio_mostra_redes_e_so_o_master_testa(self):
+        INTEGRACOES.extend([
+            {"tipo": "instagram", "status": "conectado", "conta": "@nexo.rm", "ultimo_teste_em": "2026-11-21T14:28:00Z", "ultimo_teste_ok": True,
+             "checagem": {"passos": [{"chave": "app_meta", "ok": True, "detalhe": "token válido no app NEXO Agente (não vence)"}]}},
+            {"tipo": "facebook_pagina", "status": "conectado", "conta": "Página", "ultimo_teste_em": "2026-11-21T14:28:00Z", "ultimo_teste_ok": False,
+             "ultimo_erro": "a Página não está ligada"},
+            {"tipo": "telegram", "status": "desconectado"}])
+        for master in (False, True):
+            p = Pagina(master=master)
+            try:
+                pg = p.abrir("/index.html", 1500)
+                pg.click('.menu [data-aba="inicio"]'); pg.wait_for_timeout(600)
+                box = pg.inner_text("[data-mk-redes]")
+                self.assertIn("Redes conectadas", box); self.assertIn("@nexo.rm", box); self.assertIn("conectada", box)
+                self.assertIn("com erro", box); self.assertIn("token não vence", box); self.assertNotIn("Telegram", box)
+                self.assertIn("Última sincronização", box)
+                self.assertEqual(pg.query_selector("[data-mk-testar]") is not None, master)
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
+
+    def test_pedir_peca_com_marca(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
+            pg.fill("#idTexto", "campanha do NEXO Prospect")
+            pg.select_option("#idMarca", "prospect")
+            pg.click("#idPedir"); pg.wait_for_timeout(500)
+            args = [a for n, a in p.args if n == "nexo_marcar_pedido"]
+            self.assertEqual(args, [{"p_pedido": "ped-novo", "p_marca": "prospect"}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_pedir_sem_marca_nao_chama_o_banco_a_mais(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
+            pg.click("#idPedir"); pg.wait_for_timeout(500)
+            self.assertIn("nexo_pedir_ideias", p.chamadas)
+            self.assertNotIn("nexo_marcar_pedido", p.chamadas)
+        finally:
+            p.fechar()
