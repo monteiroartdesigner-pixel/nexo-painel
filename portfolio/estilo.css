@@ -360,3 +360,23 @@ h1, h2 { background: var(--metal); -webkit-background-clip: text; background-cli
 
 /* Com 5 links o menu não cabe em telas médias: abaixo de 1040 px fica só o botão */
 @media (max-width: 1040px) { .menu a:not(.menu-cta) { display: none; } }
+
+/* ── Apps em abas (21/11/2026) ────────────────────────────────────────── */
+.abas { width: 100%; min-width: 0; max-width: min(var(--largura), 100%); margin-top: 24px; display: flex; flex-direction: column; gap: 24px; }
+.abas-barra { display: flex; gap: 8px; max-width: 100%; min-width: 0; overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.aba { flex: none; font: 600 14px/1 var(--fonte-texto); color: var(--texto-suave); background: none; border: 1px solid var(--linha);
+  border-radius: 999px; padding: 12px 18px; cursor: pointer; transition: color .25s, border-color .25s, background .25s; }
+.aba:hover { color: var(--texto); border-color: var(--acento); }
+.aba[aria-selected="true"] { color: var(--acento-texto); background: var(--acento); border-color: var(--acento); }
+.aba:focus-visible, .abas-quadro .botao:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+.abas-quadro { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: clamp(20px, 3vw, 40px); align-items: center; }
+.abas-quadro[hidden] { display: none; }
+.abas-capa { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: calc(var(--raio) - 6px); border: 1px solid var(--linha); background: var(--fundo-2); }
+.abas-texto { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; min-width: 0; }
+.abas-texto h3 { margin: 0; }
+.abas-texto p { margin: 0; }
+.abas-serve { color: var(--texto-suave); font-size: 15px; }
+.abas-endereco { font-size: 13px; color: var(--texto-suave); overflow-wrap: anywhere; }
+@media (max-width: 760px) { .abas-quadro { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .aba { transition: none; } }
+#apps > .painel { min-width: 0; max-width: min(var(--largura), 100%); }

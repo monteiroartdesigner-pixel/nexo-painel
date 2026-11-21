@@ -6,9 +6,9 @@ window.SITE = {
     mensagem: "Olá! Vi o portfólio da NEXO e quero uma demonstração.",
   },
 
-  // Endereço do sistema. Para trocar, mude só esta linha.
+  // Login escondido do master (o © do rodapé). Para trocar, mude só esta linha. (21/11/2026: painel NEXO Prospect)
   sistema: {
-    url: "https://powderblue-fish-614576.hostingersite.com/login",
+    url: "https://nexoprospect.com/",
   },
 
   // Sem formulário: o contato é pelo WhatsApp.

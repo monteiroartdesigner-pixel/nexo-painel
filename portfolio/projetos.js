@@ -7,6 +7,8 @@
  *   2. Copie um bloco abaixo, troque os textos e escolha o formato do vídeo:
  *        "horizontal" (16:9) · "vertical" (9:16) · "4x5" · "dupla" (dois vídeos verticais lado a lado)
  *   3. Troque a data em "atualizado".
+ *   4. Para o app aparecer com "Acessar o app" na seção Apps, ponha o endereço em  link: "https://...".
+ *      Sem link, a aba mostra "Pedir acesso pelo WhatsApp".
  *
  * Regras (as mesmas do resto da NEXO):
  *   - Só entra o que aparece no vídeo. Nada de funcionalidade, número ou cliente inventado.
@@ -92,6 +94,7 @@ window.PROJETOS = {
         "Área master: todas as escolinhas, planos, situação do contrato e chamados.",
       ],
       serve: "escolinhas, escolas de dança, música, idiomas e cursos com turmas.",
+      link: "https://nexosportsapp.com.br/",
     },
     {
       id: "nexo-varzea",
@@ -106,6 +109,7 @@ window.PROJETOS = {
         "Pedido de uniforme com tamanho, número e nome, pronto para a confecção.",
       ],
       serve: "times, ligas e grupos que cobram mensalidade pelo grupo do WhatsApp. Tem 14 dias grátis.",
+      link: "https://varzea.nexosportsapp.com.br/",
     },
     {
       id: "nexo-resenha",
