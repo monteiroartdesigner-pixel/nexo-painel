@@ -37,7 +37,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/frames/desktop/f_0001.webp">
-  <link rel="stylesheet" href="estilo.css?v=7">
+  <link rel="stylesheet" href="estilo.css?v=8">
 </head>
 <body>
 
@@ -104,10 +104,17 @@
 
   <!-- APPS: uma aba por app, com o link para abrir (os dados vêm de projetos.js) -->
   <section id="apps" class="secao secao--larga">
-    <div class="painel painel--cabecalho revelar">
-      <span class="rotulo">APPS</span>
-      <h2>Acesse os apps</h2>
-      <p>Escolha um app e abra para conhecer por dentro.</p>
+    <div class="painel painel--cabecalho revelar apps-cabecalho">
+      <div>
+        <span class="rotulo">APPS</span>
+        <h2>Acesse os apps</h2>
+        <p>Escolha um app e abra para conhecer por dentro.</p>
+      </div>
+      <!-- Entrada do NEXO Prospect (pedido do Ricardo, 21/11/2026): o logo leva ao painel -->
+      <a class="prospect-acesso" href="https://nexoprospect.com/" aria-label="Acessar o NEXO Prospect">
+        <img src="../assets/nexo-marca.webp" alt="" width="52" height="52">
+        <span><b>NEXO</b> Prospect<small>Acessar o painel →</small></span>
+      </a>
     </div>
     <div class="painel abas revelar" id="apps-abas"></div>
   </section>
