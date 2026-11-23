@@ -58,7 +58,7 @@ function sdrDesenhar(el, c) {
       <small>${cr.salva ? `Guardado: <b>${esc(cr.final || "••••")}</b> · fica no cofre e não volta para esta tela.` : dica}</small></div>`;
   el.innerHTML = `<div class="sdr">
     <div class="page-h"><div><h1>WhatsApp e SDR</h1><p>Seu atendimento por IA no WhatsApp, com passagem para uma pessoa quando o lead esquenta.</p></div><div>${sdrEstado(c)}</div></div>
-    <div class="alert">${ic("info")}<div><b>Esta tela só configura.</b> Nada é enviado por aqui. O recebimento das mensagens e o atendimento pela IA entram quando o webhook for ligado (próxima etapa).
+    <div class="alert">${ic("info")}<div><b>Esta tela só configura.</b> Nada é enviado por aqui. Em modo sombra a IA só deixa sugestões. O envio automático pelo WhatsApp fica desligado até a NEXO liberar o envio real para a sua empresa.
       ${pode ? "" : "<br>Só o dono ou o administrador da empresa muda estas configurações."}</div></div>
 
     <section class="card sdr-card" aria-labelledby="sdrH1"><h2 id="sdrH1">1. Conexão do WhatsApp</h2>
@@ -74,7 +74,7 @@ function sdrDesenhar(el, c) {
       ${credBloco("sdrTokWa", "Token de acesso do WhatsApp", wa, "Cole o token permanente do app da Meta. Ele vai direto para o cofre.")}
       <div class="field"><label>Endereço do webhook</label>
         <div class="sdr-linha"><input class="input" id="sdrUrl" readonly value="${esc(urlWebhook)}"><button class="btn" type="button" data-sdr-copiar="sdrUrl">${ic("copy")}Copiar</button></div>
-        <small>Cole este endereço na Meta (WhatsApp › Configuração › Webhook). O recebimento liga na próxima etapa.</small></div>
+        <small>Este é o endereço-base. Ao gerar o token abaixo, aparece o endereço completo (com o token) para colar na Meta.</small></div>
       <div class="field"><label>Token de verificação do webhook</label>
         <div class="sdr-linha"><span class="muted peq" style="flex:1">${c.webhook_gerado ? "Já existe um token. Por segurança ele não aparece de novo." : "Ainda não gerado."}</span>
           <button class="btn" type="button" id="sdrGerar" ${dis}>${c.webhook_gerado ? "Gerar outro" : "Gerar token"}</button></div>
@@ -84,7 +84,7 @@ function sdrDesenhar(el, c) {
     <section class="card sdr-card" aria-labelledby="sdrH2"><h2 id="sdrH2">2. Inteligência artificial</h2>
       <div class="sdr-grade">
         <div class="field"><label for="sdrLlm">IA</label>
-          <select class="select" id="sdrLlm" ${dis}>${["anthropic", "openai", "gemini"].map(k => `<option value="${k}" ${(c.llm_provedor || "anthropic") === k ? "selected" : ""}>${SDR_ROTULO_IA[k]}</option>`).join("")}</select></div>
+          <select class="select" id="sdrLlm" ${dis}>${["anthropic", "openai", "gemini"].map(k => `<option value="${k}" ${(c.llm_provedor || "anthropic") === k ? "selected" : ""} ${k === "anthropic" ? "" : "disabled"}>${SDR_ROTULO_IA[k]}${k === "anthropic" ? "" : " (em breve)"}</option>`).join("")}</select></div>
         <div class="field"><label for="sdrModelo">Modelo</label>
           <input class="input" id="sdrModelo" list="sdrModelos" value="${esc(c.llm_modelo || "")}" placeholder="ex.: claude-sonnet-5-5" autocomplete="off" ${dis}><datalist id="sdrModelos">${modelos}</datalist></div>
       </div>
@@ -124,7 +124,7 @@ function sdrDesenhar(el, c) {
         ${c.ativo ? `<button class="btn danger" type="button" id="sdrDesligar" ${dis}>Desligar o SDR</button>`
                   : `<button class="btn" type="button" id="sdrLigar" ${dis || faltas.length ? "disabled" : ""}>Ligar o SDR</button>`}
       </div>
-      <small class="muted">Ao ligar, o SDR só passa a atender quando o webhook estiver recebendo mensagens (próxima etapa).</small>
+      <small class="muted">Ao ligar, o SDR passa a atender as mensagens que chegarem pelo webhook. No modo sombra nada é enviado: a resposta fica como sugestão.</small>
     </section></div>`;
   sdrLigar(el, c);
 }
@@ -160,11 +160,17 @@ function sdrLigar(el, c) {
   $s("#sdrGerar").onclick = async () => {
     if (c.webhook_gerado && !confirm("Gerar outro token invalida o atual: você terá de colar o novo na Meta. Continuar?")) return;
     try {
+      const urlBase = $s("#sdrUrl").value;
       const r = await rpc("nexo_sdr_gerar_webhook", { p_agente: S.agente }), box = $s("#sdrTokenNovo");
       box.classList.remove("oculto");
-      box.innerHTML = `<div class="alert warn">${ic("alert")}<div><b>Copie agora: este token não aparece de novo.</b>
-        <div class="sdr-linha" style="margin-top:8px"><input class="input" id="sdrTokenValor" readonly value="${esc(r.token)}"><button class="btn" type="button" id="sdrCopiarToken">${ic("copy")}Copiar</button></div></div></div>`;
+      const completa = `${urlBase}?t=${r.token}`;
+      box.innerHTML = `<div class="alert warn">${ic("alert")}<div><b>Copie agora: o token e o endereço completo não aparecem de novo.</b>
+        <div class="field" style="margin-top:8px"><label for="sdrUrlCompleta">1. URL de callback (cole na Meta)</label>
+          <div class="sdr-linha"><input class="input" id="sdrUrlCompleta" readonly value="${esc(completa)}"><button class="btn" type="button" id="sdrCopiarUrl">${ic("copy")}Copiar</button></div></div>
+        <div class="field" style="margin-top:8px"><label for="sdrTokenValor">2. Token de verificação (cole na Meta, no campo Verify token)</label>
+          <div class="sdr-linha"><input class="input" id="sdrTokenValor" readonly value="${esc(r.token)}"><button class="btn" type="button" id="sdrCopiarToken">${ic("copy")}Copiar</button></div></div></div></div>`;
       $s("#sdrCopiarToken").onclick = async () => { await copiarTexto(r.token); toast("Token copiado."); };
+      $s("#sdrCopiarUrl").onclick = async () => { await copiarTexto(completa); toast("Endereço copiado."); };
       c.webhook_gerado = true;
     } catch (e) { toast(msgErro(e), true); }
   };
