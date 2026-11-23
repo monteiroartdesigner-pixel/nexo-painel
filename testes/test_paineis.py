@@ -80,6 +80,17 @@ def sdr_cfg_pronto():
     return c
 
 
+CONVERSAS_SDR = []   # nexo_sdr_conversas: cada teste monta
+MENSAGENS_SDR = {}   # conversa -> mensagens
+
+
+def conv_sdr(i, nome, estado_ia="ia_ativa", temp="frio", aguardando=False, lead_id=None, resumo=None):
+    return {"id": f"cv{i}", "telefone": f"554199999000{i}", "lead_id": lead_id, "lead_nome": nome, "estado_ia": estado_ia, "temperatura": temp,
+            "resumo_transbordo": resumo, "dor_interesse": "Agenda só no WhatsApp" if resumo else None, "motivo_transbordo": "pediu valores" if resumo else None,
+            "transferido_em": None, "nao_lida_humano": aguardando, "ultima_msg_em": "2026-11-24T12:00:00Z", "janela_24h_ate": None,
+            "ultima_msg": f"última mensagem de {nome}", "link_whatsapp": f"https://wa.me/554199999000{i}"}
+
+
 SUPORTE = {"whatsapp": "5541998460993"}  # nexo_suporte (o Master troca)
 SITUACAO = {}  # situação do plano por empresa (vazio = sem assinatura = tudo liberado)
 PLANOS_CLIENTE = [
@@ -166,6 +177,19 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return {"ok": True}
     if nome == "nexo_pedir_ideias":
         return {"id": "ped-novo"}
+    if nome == "nexo_sdr_conversas":
+        est = args.get("p_estado")
+        return [c for c in CONVERSAS_SDR if not est or c["estado_ia"] == est]
+    if nome == "nexo_sdr_mensagens":
+        return MENSAGENS_SDR.get(args["p_conversa"], [])
+    if nome == "nexo_sdr_assumir":
+        c = next(c for c in CONVERSAS_SDR if c["id"] == args["p_conversa"])
+        c["estado_ia"] = "atendimento_humano"; c["nao_lida_humano"] = False
+        return {"ok": True, "link_whatsapp": c["link_whatsapp"]}
+    if nome == "nexo_sdr_devolver_ia":
+        c = next(c for c in CONVERSAS_SDR if c["id"] == args["p_conversa"])
+        c["estado_ia"] = "ia_ativa"; c["temperatura"] = "morno"; c["nao_lida_humano"] = False
+        return {"ok": True}
     if nome == "nexo_sdr_config":
         return json.loads(json.dumps(SDR_CFG))
     if nome == "nexo_sdr_salvar":
@@ -1911,3 +1935,132 @@ class WhatsappSdrConfig(unittest.TestCase):
                 self.assertTrue(pg.is_disabled(sel), sel)
         finally:
             p.fechar(); contexto = original
+
+
+class ConversasSdr(unittest.TestCase):
+    """Aba Conversas (F5, 24/11/2026): quem espera uma pessoa, resumo da IA, sugestões não enviadas, assumir e devolver."""
+
+    PLANO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "recursos": ["prospect", "prospect_sdr_whatsapp"], "limites": {}}
+
+    def setUp(self):
+        SITUACAO.clear(); SITUACAO["emp-p"] = dict(self.PLANO)
+        CONVERSAS_SDR[:] = [
+            conv_sdr(1, "Clínica Alfa", "atendimento_humano", "quente", True, lead_id="q1", resumo="Quer proposta de agenda online."),
+            conv_sdr(2, "Clínica Beta", "ia_ativa", "morno"),
+            conv_sdr(3, "Clínica Gama", "encerrada", "frio")]
+        MENSAGENS_SDR.clear()
+        MENSAGENS_SDR["cv1"] = [
+            {"id": 1, "direcao": "entrada", "autor": "lead", "texto": "Quanto custa a agenda online?", "status": None, "criado_em": "2026-11-24T11:50:00Z"},
+            {"id": 2, "direcao": "saida", "autor": "ia", "texto": "Vou chamar alguém da equipe para te passar os valores.", "status": "sugerida", "criado_em": "2026-11-24T11:51:00Z"}]
+
+    def tearDown(self):
+        SITUACAO.clear(); CONVERSAS_SDR.clear(); MENSAGENS_SDR.clear()
+
+    def test_aba_so_aparece_com_o_recurso_e_mostra_o_numero_de_quem_espera(self):
+        SITUACAO["emp-p"] = {**self.PLANO, "recursos": ["prospect"]}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/inicio", 1500)
+            self.assertNotIn("Conversas", pg.inner_text("#nav"))
+        finally:
+            p.fechar()
+        SITUACAO["emp-p"] = dict(self.PLANO)
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/inicio", 1800)
+            self.assertIn("Conversas", pg.inner_text("#nav"))
+            self.assertEqual(pg.inner_text('#nav a[href="#/conversas"] .cnt'), "1", "um lead quente aguardando")
+            self.assertTrue(pg.title().startswith("(1) "), "o título da aba avisa")
+        finally:
+            p.fechar()
+
+    def test_lista_mostra_primeiro_quem_aguarda_e_abre_o_resumo_e_a_transcricao(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/conversas", 1800)
+            txt = pg.inner_text("#main")
+            self.assertIn("Aguardando você", txt); self.assertIn("Clínica Alfa", txt)
+            self.assertNotIn("Clínica Beta", pg.inner_text(".cv-lista"), "a aba inicial é só de quem aguarda")
+            pg.click('[data-cv-aba="todas"]'); pg.wait_for_timeout(200)
+            nomes = pg.eval_on_selector_all(".cv-item b", "xs => xs.map(x => x.textContent)")
+            self.assertEqual(nomes[0], "Clínica Alfa"); self.assertEqual(len(nomes), 3)
+            pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
+            det = pg.inner_text("#cvDet")
+            self.assertIn("Resumo da IA", det); self.assertIn("Quer proposta de agenda online.", det); self.assertIn("Agenda só no WhatsApp", det)
+            self.assertIn("Quanto custa a agenda online?", det)
+            self.assertIn("Sugestão da IA, não enviada", det)
+            self.assertIn("+55 41 99999-0001", det)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_assumir_pausa_a_ia_abre_o_whatsapp_e_apaga_o_alerta(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/conversas", 1800)
+            pg.evaluate("window.__abertas = []; window.open = (u) => { window.__abertas.push(u); return null; }")
+            pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
+            pg.click("#cvAssumir"); pg.wait_for_timeout(700)
+            self.assertEqual([u for u in pg.evaluate("window.__abertas") if u], ["https://wa.me/5541999990001"])   # (o Playwright chama window.open uma vez com null ao avaliar)
+            self.assertIn("nexo_sdr_assumir", p.chamadas)
+            self.assertEqual(len(pg.query_selector_all('#nav a[href="#/conversas"] .cnt')), 0, "o número some da aba")
+            self.assertFalse(pg.title().startswith("("))
+        finally:
+            p.fechar()
+
+    def test_devolver_para_a_ia_pede_confirmacao_e_chama_o_banco(self):
+        CONVERSAS_SDR[0]["nao_lida_humano"] = False
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/conversas", 1800)
+            pg.click('[data-cv-aba="voce"]'); pg.wait_for_timeout(200)
+            pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
+            pg.once("dialog", lambda d: d.dismiss())
+            pg.click("#cvDevolver"); pg.wait_for_timeout(400)
+            self.assertNotIn("nexo_sdr_devolver_ia", p.chamadas, "cancelar não chama o banco")
+            pg.once("dialog", lambda d: d.accept())
+            pg.click("#cvDevolver"); pg.wait_for_timeout(700)
+            args = [a for n, a in p.args if n == "nexo_sdr_devolver_ia"][-1]
+            self.assertEqual(args["p_conversa"], "cv1")
+            self.assertEqual(CONVERSAS_SDR[0]["estado_ia"], "ia_ativa")
+        finally:
+            p.fechar()
+
+    def test_copiar_a_sugestao_e_o_selo_no_card_do_kanban(self):
+        EMPRESAS_P.append({"id": "q1", "nome": "Clínica Alfa", "status": "quente", "pontuacao": 90, "cidade": "Curitiba", "estado": "PR", "pais": "BR",
+                           "segmento": "clínica", "whatsapp": "5541999990001", "campanhas": [{"id": "c1", "nome": "Sites", "prioridade": "alta"}]})
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/crm", 2000)
+            card = pg.query_selector('.kc[data-id="q1"]')
+            self.assertIsNotNone(card); self.assertIn("Aguardando você", card.inner_text())
+            self.assertIn("aguardando", card.get_attribute("class"))
+            pg = p.abrir("/#/conversas", 1800)
+            pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
+            self.assertEqual(len(pg.query_selector_all("[data-cv-copiar]")), 1)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar(); EMPRESAS_P[:] = [e for e in EMPRESAS_P if e["id"] != "q1"]
+
+    def test_leitor_ve_mas_nao_assume_nem_devolve(self):
+        global contexto
+        original = contexto
+        contexto = lambda com_onca=True, master=False: {**original(com_onca, master), "empresas": [{**e, "papel": "leitor"} for e in original(com_onca, master)["empresas"]]}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/conversas", 1800)
+            pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
+            self.assertIn("Resumo da IA", pg.inner_text("#cvDet"))
+            self.assertEqual(len(pg.query_selector_all("#cvAssumir, #cvDevolver")), 0)
+        finally:
+            p.fechar(); contexto = original
+
+    def test_sem_conversas_explica_o_que_vai_aparecer(self):
+        CONVERSAS_SDR.clear()
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/conversas", 1800)
+            self.assertIn("Ainda não chegou nenhuma conversa", pg.inner_text("#main"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()

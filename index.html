@@ -41,7 +41,7 @@
 <link rel="stylesheet" href="assets/links.css?v=20261117c">
 <link rel="stylesheet" href="assets/leads.css?v=20261118a">
 <link rel="stylesheet" href="assets/leads-prospect.css?v=20261118a">
-<link rel="stylesheet" href="assets/sdr.css?v=20261124a">
+<link rel="stylesheet" href="assets/sdr.css?v=20261124b">
 <link rel="stylesheet" href="assets/explicador.css?v=20261117e">
 <script src="assets/aparencia.js?v=20261119w"></script>
 <style>
@@ -338,7 +338,8 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="assets/vendas-equipe.js?v=20261123a"></script>
 <script src="assets/links.js?v=20261119n"></script>
 <script src="assets/leads.js?v=20261118k"></script>
-<script src="assets/sdr.js?v=20261124a"></script>
+<script src="assets/sdr.js?v=20261124b"></script>
+<script src="assets/conversas.js?v=20261124a"></script>
 <script src="assets/plano.js?v=20261119v"></script>
 <script src="assets/conta.js?v=20261119c"></script>
 <script src="assets/explicador.js?v=20261119t"></script>
@@ -471,27 +472,28 @@ function confirmar(titulo, texto, acao, rot = "Confirmar", perigo = false) {
 /* ============================================================ navegação */
 const MODS = [["inicio", "Início", "home"], ["crm", "Clientes", "crm"], ["tarefas", "Tarefas", "task"], ["campanhas", "Buscas", "camp"], ["ajuda", "Ajuda", "help"]];
 // "Leads Instagram" (NEXO VÁRZEA, achados pela onça Faro) entra antes da Ajuda só para quem tem acesso à Onça.
+const MOD_CONV = ["conversas", "Conversas", "mail", "Conversas"];   // F5 (24/11/2026): conversas do SDR, junto com o WhatsApp e SDR
 const MOD_SDR = ["whatsapp", "WhatsApp e SDR", "wa", "WhatsApp"];   // 24/11/2026: só aparece para quem tem o recurso no plano (ou é Master)
 const sdrVisivel = () => S.papel === "plataforma" || !!(PL.sits[S.empresaId]?.recursos || []).includes("prospect_sdr_whatsapp");
 const MOD_LEADS = ["leads", "Leads Instagram", "ig", "Leads IG"]; // 4º item: nome curto na barra de baixo do celular
 function rotaAtual() { const r = (location.hash.replace(/^#\/?/, "") || "inicio").split("?")[0]; return MODS.some(m => m[0] === r) ? r : "inicio"; }
 function pintarNav() {
   const r = rotaAtual(), pend = S.tarefas.filter(t => !t.feita && t.vence_em <= hoje()).length;
-  const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""} class="${modTrancado(k) ? "trancado" : ""}">${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}</a>`;
+  const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""} class="${modTrancado(k) ? "trancado" : ""}">${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}${k === "conversas" && typeof cvAguardando === "function" && cvAguardando() ? `<b class="cnt" title="Leads quentes aguardando você">${cvAguardando()}</b>` : ""}</a>`;
   $("#nav").innerHTML = MODS.map(item).join(""); $("#bottom").innerHTML = MODS.map(m => item([m[0], m[3] || m[1], m[2]])).join("");
 }
 window.addEventListener("hashchange", () => { pintarNav(); render(); window.scrollTo(0, 0); });
 // Plano (assets/plano.js): o Prospect inteiro pede o recurso "prospect"; os Leads do Instagram são da empresa da Onça.
-const PRO_RECURSO = { inicio: "prospect", crm: "prospect", tarefas: "prospect", campanhas: "prospect", leads: "marketing_instagram", whatsapp: "prospect_sdr_whatsapp" };
+const PRO_RECURSO = { inicio: "prospect", crm: "prospect", tarefas: "prospect", campanhas: "prospect", leads: "marketing_instagram", whatsapp: "prospect_sdr_whatsapp", conversas: "prospect_sdr_whatsapp" };
 const empresaDoModulo = k => k === "leads" ? st.empresaId : S.empresaId;
 const modTrancado = k => !!PRO_RECURSO[k] && !planoTem(PRO_RECURSO[k], empresaDoModulo(k));
 function render() {
   const r = rotaAtual(), el = $("#main");
   if (modTrancado(r)) el.innerHTML = planoBloqueio(PRO_RECURSO[r], empresaDoModulo(r));
-  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, leads: vLeads, whatsapp: sdrTela, ajuda: vAjuda })[r](el);
+  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, leads: vLeads, whatsapp: sdrTela, conversas: cvTela, ajuda: vAjuda })[r](el);
   planoFaixa(S.empresaId, el);
   if (!modTrancado(r) && typeof vendasEquipe === "function") vendasEquipe(el);   // onças da equipe nesta aba (23/11/2026)
-  document.title = `${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
+  document.title = `${typeof cvTitulo === "function" ? cvTitulo() : ""}${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
 }
 
 /* ============================================================ leads do Instagram (assets/leads.js) */
@@ -660,11 +662,11 @@ function corpoCrm() {
 }
 function cardLead(e) {
   const t = tarefaDe(e), p = melhorPrio(e), rt = retornoDe(e);
-  return `<div class="kc${rt ? " retorno " + tomRetorno(rt) : ""}" draggable="true" data-id="${e.id}" tabindex="0">
+  return `<div class="kc${rt ? " retorno " + tomRetorno(rt) : ""}${typeof cvDoLead === "function" && cvDoLead(e)?.nao_lida_humano ? " aguardando" : ""}" draggable="true" data-id="${e.id}" tabindex="0">
     ${rt ? `<div class="ret-faixa" title="${esc(rt.titulo)} · ${dataBR(rt.vence_em)}">${ic("cal")}<b>${esc(rotRetorno(rt))}</b></div>` : ""}
     <div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><span class="nm">${esc(e.nome)}</span><span class="score ${scoreCls(e.pontuacao)}">${e.pontuacao ?? "–"}</span></div>
     <div class="meta">${esc([e.segmento, e.cidade].filter(Boolean).join(" · "))}</div>
-    <div class="meta">${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : ""}${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${e._dup ? `<span class="badge warn" title="Parecida com: ${esc(e._dup.join(", "))}">possível duplicado</span>` : ""}${duvidaDe(e) ? `<span class="badge warn" title="${esc(duvidaDe(e).pergunta)}">dúvida para você</span>` : ""}</div>
+    <div class="meta">${typeof cvBadge === "function" ? cvBadge(e) : ""}${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : ""}${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${e._dup ? `<span class="badge warn" title="Parecida com: ${esc(e._dup.join(", "))}">possível duplicado</span>` : ""}${duvidaDe(e) ? `<span class="badge warn" title="${esc(duvidaDe(e).pergunta)}">dúvida para você</span>` : ""}</div>
     ${t && t !== rt ? `<div class="meta"><span class="badge ${t.vence_em < hoje() ? "bad" : t.vence_em === hoje() ? "warn" : ""}">${ic("cal")}${dataBR(t.vence_em)}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo)}</span></div>` : ""}
     <div class="meta"><select class="select kc-st" data-st="${e.id}" draggable="false" ${["leitor"].includes(S.papel) ? "disabled" : ""} aria-label="Classificar ${esc(e.nome)}">${Object.entries(ST).map(([k, [n]]) => `<option value="${k}" ${e.status === k ? "selected" : ""}>${n}</option>`).join("")}</select></div>
   </div>`;
@@ -1174,7 +1176,7 @@ async function iniciar() {
   const empV = (ctx.empresas || []).find(e => (e.agentes || []).some(a => a.slug === "onca"));
   if (empV) { st.agente = empV.agentes.find(a => a.slug === "onca").id; st.papel = empV.papel; st.marca = empV.nome; st.empresaId = empV.id; if (!MODS.includes(MOD_LEADS)) MODS.splice(MODS.length - 1, 0, MOD_LEADS); }
   await Promise.all([planoCarregar(S.empresaId), empV ? planoCarregar(empV.id) : null]);
-  if (sdrVisivel() && !MODS.includes(MOD_SDR)) MODS.splice(MODS.length - 1, 0, MOD_SDR);
+  if (sdrVisivel() && !MODS.includes(MOD_SDR)) { MODS.splice(MODS.length - 1, 0, MOD_CONV, MOD_SDR); cvIniciar(); }
   rpc("nexo_resumo", { p_agente: S.agente }).then(r => { S.logo = r?.identidade?.logo_painel || null; aplicarLogo(); }).catch(() => aplicarLogo());
   try { S.crm.vista = localStorage.getItem("prospect.vista") || "kanban"; } catch {}
   $("#main").innerHTML = `<div class="sk" style="height:34px;width:260px"></div><div class="grid g-kpi">${"<div class='sk' style='height:92px'></div>".repeat(5)}</div><div class="sk" style="height:280px"></div>`;
