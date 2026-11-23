@@ -695,6 +695,24 @@ class RodadasDaEquipe(unittest.TestCase):
         self.assertEqual(pg.eval_on_selector_all(".btn.emergencia", "x => x.length"), 0, "cliente não vê a busca de emergência")
         self.assertEqual(p.erros, [])
 
+    def test_selo_da_automacao_nao_diz_sem_erro_com_rodada_vermelha(self):
+        p, pg, _ = self.abrir(False)
+        selo = pg.inner_text(".card-h:has(h2:text-is('Automação')) .badge")
+        self.assertIn("rodada não chegou", selo)
+        self.assertNotIn("sem erro", selo)
+        self.assertIn("bad", pg.get_attribute(".card-h:has(h2:text-is('Automação')) .badge", "class"))
+        self.assertEqual(p.erros, [])
+
+    def test_selo_da_automacao_continua_verde_com_as_rodadas_em_dia(self):
+        em_dia = {"rodadas": [{"horario": "2026-11-18T15:10:00Z", "estado": "gravada", "gravado_em": "2026-11-18T16:27:00Z", "empresas_novas": 8, "leads_novos": 7}], "pedidos": []}
+        original = self.ST
+        self.ST = em_dia
+        try:
+            p, pg, _ = self.abrir(False)
+            self.assertIn("Rodando sem erro", pg.inner_text(".card-h:has(h2:text-is('Automação')) .badge"))
+        finally:
+            self.ST = original
+
     def test_master_tem_busca_de_emergencia_no_topo(self):
         p, pg, pedidos = self.abrir(True)
         pg.click(".page-h .btn.emergencia"); pg.wait_for_timeout(500)

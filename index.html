@@ -861,9 +861,11 @@ function quadroAutomacao() {
   const daVez = prox ? (o.campanhas || []).filter(c => c.status === "ativa" && ((c.modo === "automatico" && (c.turnos || []).includes(prox.turno) && (c.dias || []).includes(prox.dia) && c.rodadas_sem_novas < 3) || c.pedida)) : [];
   const paradas = (o.campanhas || []).filter(c => c.status === "ativa" && c.modo === "automatico" && c.rodadas_sem_novas >= 3);
   const h = o.hoje || {}, em = o.empresas || {};
+  // O selo não pode dizer "sem erro" com rodada vermelha embaixo: se o robô cai antes de registrar o erro, só as rodadas mostram (23/11/2026).
+  const atrasadas = ((S.rodadas && S.rodadas.rodadas) || []).filter(x => x.estado === "atrasada").length;
   const k = (n, v, sub) => `<div class="auto-k"><span>${n}</span><b class="num">${v}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
   return `<section class="card stack"><div class="card-h" style="margin:0"><h2>Automação</h2>
-      <span class="badge ${o.erros && o.erros.length ? "warn" : "ok"}"><span class="dot"></span>${o.erros && o.erros.length ? pl(o.erros.length, "aviso", "avisos") + " em 48 h" : "Rodando sem erro"}</span></div>
+      <span class="badge ${atrasadas ? "bad" : o.erros && o.erros.length ? "warn" : "ok"}"><span class="dot"></span>${atrasadas ? pl(atrasadas, "rodada não chegou", "rodadas não chegaram") : o.erros && o.erros.length ? pl(o.erros.length, "aviso", "avisos") + " em 48 h" : "Rodando sem erro"}</span></div>
     <div class="auto-grid">
       ${k("Pesquisas hoje", h.rodadas || 0, `${h.buscas || 0} buscas`)}
       ${k("Encontradas hoje", h.encontradas || 0, `${h.novas || 0} novas`)}
