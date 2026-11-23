@@ -7,7 +7,7 @@
 // Só fatos do que está construído. Narração: "a onça" + nome (regra do Ricardo).
 // ============================================================================
 
-// base: "" no Marketing, "../" em Vendas (que fica na pasta prospect/)
+// base: "" nas duas páginas (Marketing e Prospect ficam na raiz do site)
 let EXP_BASE = "";
 const EXP_IMG = n => `${EXP_BASE}assets/explicador/${n}.webp`;
 const EXP_AUDIO = n => `${EXP_BASE}assets/explicador/audio2/cena_${String(n).padStart(2, "0")}.mp3`;

@@ -7,8 +7,8 @@
 // ============================================================================
 
 const VQ_ONCA = {
-  faro: { nome: "Faro", cargo: "Pesquisa e prospecção", img: "../assets/equipe/faro-rosto.webp" },
-  lupa: { nome: "Lupa", cargo: "Análise", img: "../assets/equipe/lupa-rosto.webp" }
+  faro: { nome: "Faro", cargo: "Pesquisa e prospecção", img: "assets/equipe/faro-rosto.webp" },
+  lupa: { nome: "Lupa", cargo: "Análise", img: "assets/equipe/lupa-rosto.webp" }
 };
 const vqHora = d => new Date(d).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
 const vqNum = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;

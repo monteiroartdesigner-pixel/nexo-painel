@@ -230,8 +230,8 @@ class Estatico(unittest.TestCase):
     """Conferências no código, sem abrir o navegador."""
 
     def setUp(self):
-        self.sys = (RAIZ / "index.html").read_text(encoding="utf-8")
-        self.pro = (RAIZ / "prospect" / "index.html").read_text(encoding="utf-8")
+        self.sys = (RAIZ / "marketing.html").read_text(encoding="utf-8")
+        self.pro = (RAIZ / "index.html").read_text(encoding="utf-8")
         self.js = {p.name: p.read_text(encoding="utf-8") for p in (RAIZ / "assets").glob("*.js")}
 
     def test_biblioteca_supabase_com_integridade(self):
@@ -273,7 +273,7 @@ class FiltroDeLinks(unittest.TestCase):
     def test_url_segura(self):
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/")
+            pg = p.abrir("/marketing.html")
             casos = {"javascript:alert(1)": "", " JaVaScRiPt:x": "", "data:text/html,x": "", "vbscript:x": "", "//evil.com": "",
                      "": "", None: "", "https://exemplo.com/a b": "https://exemplo.com/a%20b", "http://x.com": "http://x.com/"}
             for entrada, esperado in casos.items():
@@ -287,7 +287,7 @@ class System(unittest.TestCase):
     def test_login_abre_sem_erros(self):
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertTrue(pg.is_visible("#email"))
             self.assertEqual(p.erros, [])
         finally:
@@ -296,7 +296,7 @@ class System(unittest.TestCase):
     def test_todas_as_abas_abrem_sem_erros(self):
         p = Pagina()
         try:
-            pg = p.abrir("/", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             abas = pg.eval_on_selector_all(".menu [data-aba]", "bs => bs.filter(b => b.offsetParent).map(b => b.dataset.aba)")   # o Master fica escondido para cliente
             self.assertGreaterEqual(len(abas), 8)
             self.assertNotIn("leads", abas)
@@ -313,7 +313,7 @@ class System(unittest.TestCase):
     def test_aba_antiga_salva_volta_para_equipe(self):
         p = Pagina(local={"nexo.aba": "prospect"})
         try:
-            pg = p.abrir("/", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertFalse(pg.eval_on_selector('[data-sec="equipe"]', "s => s.classList.contains('oculto')"))
             self.assertEqual(p.erros, [])
         finally:
@@ -322,9 +322,9 @@ class System(unittest.TestCase):
     def test_atalho_de_leads_leva_ao_prospect(self):
         p = Pagina()
         try:
-            pg = p.abrir("/", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.evaluate("abrirAba('leads')")
-            pg.wait_for_url(re.compile(r"/prospect/#/leads$"), timeout=5000)
+            pg.wait_for_url(re.compile(r"/#/leads$"), timeout=5000)
         finally:
             p.fechar()
 
@@ -335,7 +335,7 @@ class Prospect(unittest.TestCase):
     def test_login_abre_sem_erros(self):
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/prospect/", 1500)
+            pg = p.abrir("/", 1500)
             self.assertTrue(pg.is_visible("#lEmail"))
             self.assertEqual(p.erros, [])
         finally:
@@ -344,7 +344,7 @@ class Prospect(unittest.TestCase):
     def test_todos_os_modulos_abrem_sem_erros(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/", 1500)
+            pg = p.abrir("/", 1500)
             nav = pg.eval_on_selector_all("#nav a", "as => as.map(a => a.getAttribute('href'))")
             self.assertEqual(nav, [f"#/{m}" for m in self.MODULOS])
             for m in self.MODULOS:
@@ -357,7 +357,7 @@ class Prospect(unittest.TestCase):
     def test_leads_do_instagram_aparecem_e_link_malicioso_some(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/leads", 1800)
+            pg = p.abrir("/#/leads", 1800)
             self.assertIn("nexo_leads", p.chamadas)
             texto = pg.inner_text("#main")
             self.assertIn("Leads do Instagram", texto)
@@ -372,7 +372,7 @@ class Prospect(unittest.TestCase):
     def test_sem_acesso_a_onca_nao_mostra_leads_instagram(self):
         p = Pagina(com_onca=False)
         try:
-            pg = p.abrir("/prospect/", 1500)
+            pg = p.abrir("/", 1500)
             nav = pg.eval_on_selector_all("#nav a", "as => as.map(a => a.getAttribute('href'))")
             self.assertNotIn("#/leads", nav)
             self.assertEqual(p.erros, [])
@@ -382,7 +382,7 @@ class Prospect(unittest.TestCase):
     def test_ficha_nao_cria_link_malicioso(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/crm", 1500)
+            pg = p.abrir("/#/crm", 1500)
             pg.evaluate("abrirFicha && abrirFicha('e1')") if pg.evaluate("typeof abrirFicha") == "function" else pg.click("text=Clínica Teste")
             pg.wait_for_timeout(800)
             self.assertIn("nexo_prospect_ficha", p.chamadas)
@@ -396,12 +396,12 @@ class Aparencia(unittest.TestCase):
     """Visual NEXO: botão de paleta, três modos e cor de destaque, nos dois painéis."""
 
     def test_visual_carrega_depois_do_estilo_da_pagina(self):
-        for nome in ("index.html", "prospect/index.html"):
+        for nome in ("marketing.html", "index.html"):
             h = (RAIZ / nome).read_text(encoding="utf-8")
             self.assertGreater(h.find("visual.css"), h.find("</style>"), f"{nome}: visual.css precisa vir depois do <style>")
 
     def test_paleta_troca_modo_e_cor(self):
-        for url in ("/index.html", "/prospect/"):
+        for url in ("/marketing.html", "/"):
             p = Pagina()
             try:
                 pg = p.abrir(url, 1500)
@@ -423,7 +423,7 @@ class Aparencia(unittest.TestCase):
     def test_equipe_mostra_onca_inteira_com_a_cor_dela(self):
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             cartoes = pg.eval_on_selector_all(".est", "es => es.map(e => [e.style.getPropertyValue('--cor'), e.querySelector('.onca').getAttribute('src')])")
             self.assertEqual(len(cartoes), 7)
             for cor, src in cartoes:
@@ -435,7 +435,7 @@ class Aparencia(unittest.TestCase):
             p.fechar()
 
     def test_assinatura_nexo_sempre_na_base(self):
-        for url, logado in (("/index.html", True), ("/prospect/", True), ("/index.html", False), ("/prospect/", False)):
+        for url, logado in (("/marketing.html", True), ("/", True), ("/marketing.html", False), ("/", False)):
             p = Pagina(logado=logado)
             try:
                 pg = p.abrir(url, 1500)
@@ -452,7 +452,7 @@ class Master(unittest.TestCase):
     """Etapa 4: a aba Master só para o administrador da plataforma."""
 
     def abrir_master(self, p):
-        pg = p.abrir("/index.html", 1500)
+        pg = p.abrir("/marketing.html", 1500)
         pg.click('.menu [data-aba="master"]')
         pg.wait_for_timeout(600)
         return pg
@@ -508,7 +508,7 @@ class Master(unittest.TestCase):
     def test_cliente_comum_nao_ve_o_master(self):
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertFalse(pg.is_visible('.menu [data-aba="master"]'))
             self.assertNotIn("nexo_master_empresas", p.chamadas)
             self.assertEqual(p.erros, [])
@@ -518,7 +518,7 @@ class Master(unittest.TestCase):
     def test_aba_master_salva_no_aparelho_nao_abre_para_cliente(self):
         p = Pagina(local={"nexo.aba": "master"})
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertTrue(pg.is_visible('[data-sec="equipe"]'))
             self.assertFalse(pg.is_visible('[data-sec="master"]'))
         finally:
@@ -619,7 +619,7 @@ class RodadasDaEquipe(unittest.TestCase):
         self.addCleanup(p.fechar)
         pedidos = []
         p.page.on("request", lambda r: "/functions/v1/nexo-rodada" in r.url and pedidos.append(r.post_data))
-        pg = p.abrir("/prospect/", 1800)
+        pg = p.abrir("/", 1800)
         return p, pg, pedidos
 
     def test_cliente_ve_a_rodada_sem_os_botoes(self):
@@ -675,7 +675,7 @@ class AnexosPedirPeca(unittest.TestCase):
         try:
             p = Pagina()
             try:
-                pg = p.abrir("/index.html", 1500)
+                pg = p.abrir("/marketing.html", 1500)
                 pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
                 self.assertTrue(pg.is_visible("#axZona"), "o bloco de anexos aparece")
                 self.assertIn("&lt;b&gt;gol&lt;/b&gt;", pg.inner_html(".ax-tiras"), "legenda do anexo vai escapada")
@@ -707,7 +707,7 @@ class AnexosPedirPeca(unittest.TestCase):
         import tempfile
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
             arq = pathlib.Path(tempfile.mkdtemp(), "planilha.xlsx"); arq.write_bytes(b"PK")
             pg.set_input_files("#axArq", [str(arq)]); pg.wait_for_timeout(300)
@@ -733,7 +733,7 @@ class NomeNoTopo(unittest.TestCase):
         try:
             p = Pagina()
             try:
-                pg = p.abrir("/index.html", 1500)
+                pg = p.abrir("/marketing.html", 1500)
                 self.assertEqual(pg.inner_text("#nomeEmpresa").upper(), "NEXO VÁRZEA (TESTE) · ONÇA")
                 self.assertEqual(p.erros, [])
             finally:
@@ -746,7 +746,7 @@ class PaginasLegais(unittest.TestCase):
     """Privacidade e Termos (exigidos pelo Google e pela Meta) e o link no rodapé de todas as telas."""
 
     def test_links_no_rodape_e_paginas_abrem(self):
-        for url, logado in (("/index.html", False), ("/prospect/", True)):
+        for url, logado in (("/marketing.html", False), ("/", True)):
             p = Pagina(logado=logado)
             try:
                 pg = p.abrir(url, 1500)
@@ -775,7 +775,7 @@ class AvisoMensalidade(unittest.TestCase):
         SITUACAO.update({"emp-v": {"tem_assinatura": True, "plano": "inicial", "plano_nome": "Inicial", **situacao}})
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1800)
+            pg = p.abrir("/marketing.html", 1800)
             el = pg.query_selector(".plano-faixa")
             r = (el.get_attribute("class"), el.inner_text()) if el else (None, "")
             self.assertEqual(p.erros, [])
@@ -826,7 +826,7 @@ class EmpresaEmVendas(unittest.TestCase):
     def abrir(self, ctx_json):
         p = Pagina(master=True)
         p.ctx.route("**/rest/v1/rpc/nexo_contexto", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(ctx_json)))
-        return p, p.abrir("/prospect/", 2000)
+        return p, p.abrir("/", 2000)
 
     def test_master_abre_a_nexo_e_troca_de_proposito(self):
         p, pg = self.abrir(self.CTX_MASTER)
@@ -864,7 +864,7 @@ class MeuPlano(unittest.TestCase):
         MEU_PLANO.clear()
 
     def abrir_plano(self, p):
-        pg = p.abrir("/index.html", 1500)
+        pg = p.abrir("/marketing.html", 1500)
         pg.click('.menu [data-aba="plano"]'); pg.wait_for_timeout(500)
         return pg
 
@@ -963,7 +963,7 @@ class MeuPlano(unittest.TestCase):
                 pedidos.append(json.loads(r.request.post_data or "{}"))
                 r.fulfill(status=200, content_type="application/json", body='{"resultado":"pago","pago_ate":"2026-12-19T12:00:00Z"}')
             p.ctx.route("**/functions/v1/nexo-pagamento", servidor)
-            pg = p.abrir("/index.html?pagamento=volta&order_nsu=ABCDEFGHIJKLMNOPQRSTUVWXYZ12&transaction_nsu=T-1&slug=fat9&capture_method=pix", 2500)
+            pg = p.abrir("/marketing.html?pagamento=volta&order_nsu=ABCDEFGHIJKLMNOPQRSTUVWXYZ12&transaction_nsu=T-1&slug=fat9&capture_method=pix", 2500)
             self.assertEqual(pedidos[0], {"acao": "conferir", "order_nsu": "ABCDEFGHIJKLMNOPQRSTUVWXYZ12", "transaction_nsu": "T-1", "slug": "fat9"})
             self.assertIn("Pagamento confirmado", pg.inner_text("#toast"))
             self.assertTrue(pg.is_visible('[data-sec="plano"]'), "abre a aba Meu plano")
@@ -978,7 +978,7 @@ class MeuPlano(unittest.TestCase):
                                 "status_gravado": "teste", "plano_pedido": "inicial", "pedido_em": "2026-11-19T12:00:00Z"}})
         p = Pagina(master=True)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
             pg.click('[data-m-filtro="pedidos"]'); pg.wait_for_timeout(300)
             nomes = pg.eval_on_selector_all(".m-lista .m-emp-txt b", "bs => bs.map(b => b.textContent)")
@@ -1013,7 +1013,7 @@ class Retorno(unittest.TestCase):
                         "empresa": "e1", "empresa_nome": "Clínica Teste", "empresa_status": "qualificado"})
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/crm", 1800)
+            pg = p.abrir("/#/crm", 1800)
             card = pg.query_selector('.kc[data-id="e1"]')
             self.assertIsNotNone(card)
             self.assertIn("retorno", card.get_attribute("class"))
@@ -1026,7 +1026,7 @@ class Retorno(unittest.TestCase):
     def test_ficha_marca_retorno_com_data(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/crm", 1800)
+            pg = p.abrir("/#/crm", 1800)
             pg.click('.kc[data-id="e1"]')
             pg.wait_for_timeout(600)
             pg.click('[data-reg="retorno"]')
@@ -1058,9 +1058,9 @@ class PlanoDaEmpresa(unittest.TestCase):
     def test_sem_assinatura_tudo_liberado(self):
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertEqual(pg.evaluate("document.querySelectorAll('.trancado').length"), 0)
-            pg = p.abrir("/prospect/", 1500)
+            pg = p.abrir("/", 1500)
             self.assertEqual(pg.evaluate("document.querySelectorAll('.trancado').length"), 0)
             self.assertIsNone(pg.query_selector(".plano-trava"))
         finally:
@@ -1070,15 +1070,15 @@ class PlanoDaEmpresa(unittest.TestCase):
         SITUACAO.update({"emp-v": self.INICIAL, "emp-p": self.INICIAL})
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertIn("trancado", pg.get_attribute('.menu [data-aba="ideias"]', "class"))
             pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(300)
             txt = pg.inner_text('[data-sec="ideias"]')
             self.assertIn("disponível no plano profissional", txt.lower())
             self.assertNotIn("nexo_ideias", [n for n, a in p.args][-1:], "a função trancada não é carregada")
-            pg = p.abrir("/prospect/#/leads", 1500)
+            pg = p.abrir("/#/leads", 1500)
             self.assertIsNotNone(pg.query_selector(".plano-trava"), "Leads IG fora do plano Inicial")
-            pg = p.abrir("/prospect/#/crm", 1500)
+            pg = p.abrir("/#/crm", 1500)
             self.assertIsNone(pg.query_selector(".plano-trava"), "CRM está no plano Inicial")
             self.assertEqual(p.erros, [])
         finally:
@@ -1088,7 +1088,7 @@ class PlanoDaEmpresa(unittest.TestCase):
         SITUACAO.update({"emp-p": {**self.INICIAL, "status": "teste_vencido", "acesso": "leitura"}})
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/crm", 1500)
+            pg = p.abrir("/#/crm", 1500)
             self.assertIn("Seu teste grátis acabou", pg.inner_text("#main"))
             self.assertIsNotNone(pg.query_selector(".plano-faixa.urgente"), "faixa vermelha")
             self.assertIsNone(pg.query_selector(".kanban"), "o CRM não aparece")
@@ -1108,7 +1108,7 @@ class CopiaAoAbrir(unittest.TestCase):
         p = Pagina()
         try:
             p.ctx.grant_permissions(["clipboard-read", "clipboard-write"])
-            pg = p.abrir("/prospect/#/crm", 1800)
+            pg = p.abrir("/#/crm", 1800)
             pg.click('.kc[data-id="e1"]')
             pg.wait_for_timeout(700)
             link = pg.query_selector('a[data-copia][href="https://www.instagram.com/clinicateste/"]')
@@ -1144,7 +1144,7 @@ class ArquivoDePublicados(unittest.TestCase):
         PUBLICADOS.extend(x for x in CONTEUDOS if x["status"] == "publicado")   # o arquivo completo vem de nexo_publicados
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
             sec = '[data-sec="aprovar"]'
             fila = pg.eval_on_selector_all(sec + " article h3", "hs => hs.map(h => h.textContent)")
@@ -1167,7 +1167,7 @@ class Suporte(unittest.TestCase):
     def test_system_responde_e_leva_ao_whatsapp(self):
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click("#spAbrir"); pg.wait_for_timeout(300)
             self.assertIn("onça Pintada", pg.inner_text("#spConversa"))
             pg.fill("#spTxt", "como faço para aprovar uma peça?"); pg.press("#spTxt", "Enter"); pg.wait_for_timeout(200)
@@ -1187,7 +1187,7 @@ class Suporte(unittest.TestCase):
         SUPORTE["whatsapp"] = ""
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click("#spAbrir"); pg.fill("#spTxt", "xyzw"); pg.press("#spTxt", "Enter"); pg.wait_for_timeout(200)
             self.assertIsNone(pg.query_selector(".sp-zap"))
             self.assertEqual(p.erros, [])
@@ -1197,7 +1197,7 @@ class Suporte(unittest.TestCase):
     def test_prospect_tem_a_faro(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/", 2000)
+            pg = p.abrir("/", 2000)
             pg.click("#spAbrir"); pg.wait_for_timeout(300)
             self.assertIn("onça Faro", pg.inner_text("#spConversa"))
             pg.click("#spSug button >> nth=1"); pg.wait_for_timeout(200)
@@ -1209,7 +1209,7 @@ class Suporte(unittest.TestCase):
     def test_master_troca_o_numero(self):
         p = Pagina(master=True)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(500)
             self.assertIn("(41) 99846-0993", pg.inner_text('[data-sec="master"]'))
             pg.click("#mSuporte"); pg.fill('input[name="whatsapp"]', "41 91234-5678"); pg.click('.m-janela [type="submit"]'); pg.wait_for_timeout(400)
@@ -1236,7 +1236,7 @@ class PecaSemArte(unittest.TestCase):
         ])
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
             txt = lambda i: pg.inner_text(f'article[data-id="{i}"] .sem-arte')
             self.assertIn("Arte travada", txt("a")); self.assertIn('"200"', txt("a"))
@@ -1257,7 +1257,7 @@ class Conta(unittest.TestCase):
         PLANOS_PUB.clear(); PUBLICADOS.clear(); CONTEUDOS.clear(); FALHAR.clear()
 
     def test_login_tem_esqueci_e_criar_conta(self):
-        for url in ("/index.html", "/prospect/"):
+        for url in ("/marketing.html", "/"):
             p = Pagina(logado=False)
             try:
                 pg = p.abrir(url, 1500)
@@ -1272,7 +1272,7 @@ class Conta(unittest.TestCase):
     def test_cadastro_fechado_sem_plano_publico(self):
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/prospect/", 1500)
+            pg = p.abrir("/", 1500)
             pg.click("[data-criar]"); pg.wait_for_timeout(400)
             self.assertIn("ainda não está aberto", pg.inner_text(".ct-janela"))
         finally:
@@ -1282,7 +1282,7 @@ class Conta(unittest.TestCase):
         PLANOS_PUB.append({"chave": "inicial", "nome": "Inicial", "descricao": "Prospect", "preco_centavos": 9700, "recursos": ["prospect"], "dias_teste": 3})
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click("[data-criar]"); pg.wait_for_timeout(400)
             self.assertIn("R$ 97,00/mês", pg.inner_text(".ct-janela").replace(" ", " "))
             pg.fill(".ct-janela [name=responsavel]", "Ana"); pg.fill(".ct-janela [name=empresa]", "Clínica Sorriso")
@@ -1300,7 +1300,7 @@ class Conta(unittest.TestCase):
         PLANOS_PUB.extend([
             {"chave": "inicial", "nome": "Inicial", "descricao": "Prospect", "preco_centavos": 20000, "recursos": ["prospect"], "dias_teste": 3},
             {"chave": "completo", "nome": "Completo", "descricao": "Tudo", "preco_centavos": 80000, "recursos": ["prospect"], "dias_teste": 3}])
-        for url in ("/index.html", "/prospect/"):
+        for url in ("/marketing.html", "/"):
             p = Pagina(logado=False)
             try:
                 pg = p.abrir(url, 1800)
@@ -1321,7 +1321,7 @@ class Conta(unittest.TestCase):
     def test_sem_plano_publico_a_vitrine_nao_aparece(self):
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertIsNone(pg.query_selector(".ct-vitrine"))
         finally:
             p.fechar()
@@ -1329,7 +1329,7 @@ class Conta(unittest.TestCase):
     def test_master_abre_equipe_e_convida(self):
         p = Pagina(master=True)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
             pg.click('[data-m-equipe="emp-v"]'); pg.wait_for_timeout(500)
             txt = pg.inner_text(".ct-janela")
@@ -1349,7 +1349,7 @@ class Conta(unittest.TestCase):
         PUBLICADOS.extend([{**base, "id": f"p{i}", "pauta": f"Antiga {i}", "agendado_para": f"2026-10-{10 + i}T21:00:00Z"} for i in range(5)])
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
             pg.click('[data-sec="aprovar"] [data-vista="arquivo"]'); pg.wait_for_timeout(500)
             self.assertIn("nexo_publicados", p.chamadas)
@@ -1362,7 +1362,7 @@ class Conta(unittest.TestCase):
         FALHAR["nexo_conteudos"] = True
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertTrue(pg.is_visible('[data-sec="equipe"]'), "o painel abre normalmente")
             self.assertEqual([e for e in p.erros if "console" not in e], [])
         finally:
@@ -1375,7 +1375,7 @@ class ConviteSemEmail(unittest.TestCase):
     def test_convite_pendente_tem_whatsapp_email_e_copiar(self):
         p = Pagina(master=True)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
             pg.click('[data-m-equipe="emp-v"]'); pg.wait_for_timeout(500)
             wa = pg.get_attribute('.ct-pend a[href^="https://wa.me/"]', "href")
@@ -1390,7 +1390,7 @@ class ConviteSemEmail(unittest.TestCase):
     def test_link_do_convite_abre_conta_de_convidado(self):
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/prospect/?convite=ana%40cliente.com", 1800)
+            pg = p.abrir("/?convite=ana%40cliente.com", 1800)
             self.assertIn("Criar sua conta", pg.inner_text(".ct-janela"))
             self.assertEqual(pg.input_value(".ct-janela [name=email]"), "ana@cliente.com")
             pg.fill(".ct-janela [name=nome]", "Ana"); pg.fill(".ct-janela [name=senha]", "senha-de-teste-123")
@@ -1403,7 +1403,7 @@ class ConviteSemEmail(unittest.TestCase):
     def test_cadastro_fechado_ainda_deixa_convidado_criar_conta(self):
         p = Pagina(logado=False)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click("[data-criar]"); pg.wait_for_timeout(400)
             pg.click(".ct-janela [data-convidado]"); pg.wait_for_timeout(300)
             self.assertIn("Criar sua conta", pg.inner_text(".ct-janela"))
@@ -1415,7 +1415,7 @@ class AbaAgenteSimples(unittest.TestCase):
     """Aba Agente em 4 passos com um botão só, que grava apenas o que mudou."""
 
     def abrir(self, p):
-        pg = p.abrir("/index.html", 1500)
+        pg = p.abrir("/marketing.html", 1500)
         pg.click('.menu [data-aba="agente"]'); pg.wait_for_timeout(400)
         return pg
 
@@ -1465,7 +1465,7 @@ class MarketingAuditoria(unittest.TestCase):
                            "motivo": "Meta 400 (código 9007)"}])
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
             a = pg.inner_text('article[data-id="a"]'); b = pg.inner_text('article[data-id="b"]')
             self.assertIn("NEXO Prospect", a); self.assertIn("aguardando aprovação", a)
@@ -1480,7 +1480,7 @@ class MarketingAuditoria(unittest.TestCase):
                           "status": "revisar", "agendado_para": "2026-12-20T21:00:00Z"})
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
             pg.click('article[data-id="a"] [data-dec="recusado"]'); pg.wait_for_timeout(200)
             self.assertIn("juiz pago do bolso", pg.inner_text("dialog.mk-dialogo"))
@@ -1499,7 +1499,7 @@ class MarketingAuditoria(unittest.TestCase):
                           "agendado_para": "2026-12-20T21:00:00Z"})
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
             pg.click('article[data-id="a"] [data-dec="recusado"]'); pg.wait_for_timeout(200)
             pg.click('dialog.mk-dialogo button[value="cancelar"]'); pg.wait_for_timeout(300)
@@ -1514,7 +1514,7 @@ class MarketingAuditoria(unittest.TestCase):
             {"id": "h3", "pauta": "<img src=x onerror=alert(1)>", "formato": "post", "status": "cancelado", "motivo": "recusado no painel: ", "atualizado_em": "2026-11-18T21:00:00Z"}])
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="aprovar"]'); pg.wait_for_timeout(300)
             pg.click('[data-sec="aprovar"] [data-vista="historico"]'); pg.wait_for_timeout(500)
             txt = pg.inner_text('[data-sec="aprovar"]')
@@ -1535,7 +1535,7 @@ class MarketingAuditoria(unittest.TestCase):
         for master in (False, True):
             p = Pagina(master=master)
             try:
-                pg = p.abrir("/index.html", 1500)
+                pg = p.abrir("/marketing.html", 1500)
                 pg.click('.menu [data-aba="inicio"]'); pg.wait_for_timeout(600)
                 box = pg.inner_text("[data-mk-redes]")
                 self.assertIn("Redes conectadas", box); self.assertIn("@nexo.rm", box); self.assertIn("conectada", box)
@@ -1549,7 +1549,7 @@ class MarketingAuditoria(unittest.TestCase):
     def test_pedir_peca_com_marca(self):
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
             pg.fill("#idTexto", "campanha do NEXO Prospect")
             pg.select_option("#idMarca", "prospect")
@@ -1563,7 +1563,7 @@ class MarketingAuditoria(unittest.TestCase):
     def test_pedir_sem_marca_nao_chama_o_banco_a_mais(self):
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="ideias"]'); pg.wait_for_timeout(500)
             pg.click("#idPedir"); pg.wait_for_timeout(500)
             self.assertIn("nexo_pedir_ideias", p.chamadas)
@@ -1592,7 +1592,7 @@ class MasterExcluiUsuario(unittest.TestCase):
     def test_lista_mostra_quem_nao_tem_empresa_e_so_oferece_excluir_a_quem_pode(self):
         p = Pagina(master=True)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(700)
             txt = pg.inner_text(".m-usuarios")
             self.assertIn("teste@cadastro.com", txt); self.assertIn("cadastro que não terminou", txt)
@@ -1605,7 +1605,7 @@ class MasterExcluiUsuario(unittest.TestCase):
     def test_exclui_pedindo_o_email(self):
         p = Pagina(master=True)
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(700)
             pg.click('[data-m-excluir-us="t1"]'); pg.wait_for_timeout(300)
             self.assertIn("Não tem como desfazer", pg.inner_text(".m-janela"))
@@ -1629,7 +1629,7 @@ class VendasEquipeDeOncas(unittest.TestCase):
         p = Pagina()
         try:
             for rota, nomes in esperado.items():
-                pg = p.abrir(f"/prospect/#/{rota}", 1500)
+                pg = p.abrir(f"/#/{rota}", 1500)
                 faixa = pg.inner_text(".vq")
                 self.assertIn("quem trabalha aqui", faixa.lower(), rota)
                 for n in nomes:
@@ -1642,7 +1642,7 @@ class VendasEquipeDeOncas(unittest.TestCase):
     def test_fala_usa_os_dados_da_tela_sem_inventar(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/crm", 1500)
+            pg = p.abrir("/#/crm", 1500)
             faixa = pg.inner_text(".vq")
             self.assertIn("Achei 1 empresa", faixa)          # EMPRESAS_P tem 1 empresa com contato
             self.assertIn("1 tem contato público", faixa)
@@ -1654,7 +1654,7 @@ class VendasEquipeDeOncas(unittest.TestCase):
     def test_faixa_continua_depois_de_trocar_kanban_e_tabela(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/crm", 1500)
+            pg = p.abrir("/#/crm", 1500)
             pg.click('[data-v="tabela"]'); pg.wait_for_timeout(400)
             self.assertEqual(len(pg.query_selector_all(".vq")), 1)
             pg.click('[data-v="kanban"]'); pg.wait_for_timeout(400)
@@ -1666,7 +1666,7 @@ class VendasEquipeDeOncas(unittest.TestCase):
     def test_ajuda_nao_tem_faixa(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/ajuda", 1500)
+            pg = p.abrir("/#/ajuda", 1500)
             self.assertIsNone(pg.query_selector(".vq"))
         finally:
             p.fechar()
@@ -1678,7 +1678,7 @@ class ProdutosSeparados(unittest.TestCase):
     def test_marketing_tem_nome_proprio_e_so_um_atalho_para_o_prospect(self):
         p = Pagina()
         try:
-            pg = p.abrir("/index.html", 1500)
+            pg = p.abrir("/marketing.html", 1500)
             self.assertIn("NEXO Marketing", pg.inner_text(".areas.produto"))
             self.assertEqual(len(pg.query_selector_all(".areas a.pro")), 0, "não existe mais a aba Vendas dentro do Marketing")
             self.assertNotIn("Vendas", pg.inner_text(".areas"))
@@ -1693,7 +1693,7 @@ class ProdutosSeparados(unittest.TestCase):
     def test_prospect_tem_nome_proprio_e_o_atalho_depende_de_ter_o_marketing(self):
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/inicio", 1500)
+            pg = p.abrir("/#/inicio", 1500)
             self.assertIn("NEXO Prospect", pg.inner_text(".side .areas.produto"))
             self.assertNotIn("Vendas", pg.inner_text(".side .areas"))
             self.assertTrue(pg.is_visible(".side [data-outro-produto]"), "quem tem o Marketing vê o atalho")
@@ -1702,7 +1702,7 @@ class ProdutosSeparados(unittest.TestCase):
             p.fechar()
         p = Pagina(com_onca=False)
         try:
-            pg = p.abrir("/prospect/#/inicio", 1500)
+            pg = p.abrir("/#/inicio", 1500)
             self.assertFalse(pg.is_visible(".side [data-outro-produto]"), "sem o Marketing não aparece atalho nenhum")
         finally:
             p.fechar()
@@ -1712,7 +1712,7 @@ class ProdutosSeparados(unittest.TestCase):
                            "segmento": "clínica", "whatsapp": "5541999990001", "campanhas": [{"id": "c1", "nome": "Sites", "prioridade": "alta"}]})
         p = Pagina()
         try:
-            pg = p.abrir("/prospect/#/crm", 1600)
+            pg = p.abrir("/#/crm", 1600)
             col = pg.query_selector('section[data-col="quente"]')
             self.assertIsNotNone(col, "existe a coluna Lead quente")
             self.assertIn("Lead quente", col.inner_text())
@@ -1723,3 +1723,33 @@ class ProdutosSeparados(unittest.TestCase):
             self.assertEqual(p.erros, [])
         finally:
             p.fechar(); EMPRESAS_P[:] = [e for e in EMPRESAS_P if e["id"] != "q1"]
+
+
+class EnderecosSeparados(unittest.TestCase):
+    """nexoprospect.com é o NEXO Prospect e nexoprospect.com/marketing é o NEXO Marketing (23/11/2026)."""
+
+    def test_endereco_antigo_do_prospect_leva_para_a_raiz_e_guarda_a_rota(self):
+        p = Pagina()
+        try:
+            p.page.goto(BASE + "/prospect/#/crm")
+            p.page.wait_for_url(re.compile(r"/#/crm$"), timeout=5000)
+            self.assertNotIn("/prospect", p.page.url)
+        finally:
+            p.fechar()
+
+    def test_volta_do_login_da_meta_e_do_google_vai_para_o_marketing(self):
+        p = Pagina()
+        try:
+            p.page.goto(BASE + "/?conexao=ok&servico=google#integracoes")
+            p.page.wait_for_url(re.compile(r"/marketing\?conexao=ok&servico=google#integracoes$"), timeout=5000)
+        finally:
+            p.fechar()
+
+    def test_so_a_raiz_aparece_no_google(self):
+        raiz = (RAIZ / "index.html").read_text(encoding="utf-8"); mk = (RAIZ / "marketing.html").read_text(encoding="utf-8")
+        self.assertIn('content="index,follow"', raiz)
+        self.assertIn('rel="canonical" href="https://nexoprospect.com/"', raiz)
+        self.assertIn('content="noindex,nofollow"', mk)
+        self.assertNotIn("canonical", mk)
+        self.assertNotIn("application/ld+json", mk)
+        self.assertIn("Disallow: /marketing", (RAIZ / "robots.txt").read_text(encoding="utf-8"))

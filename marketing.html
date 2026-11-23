@@ -1,0 +1,968 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<!-- Política de conteúdo: scripts só daqui e da versão fixa do supabase-js; dados só do Supabase do NEXO. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' https://rtjcvvjmmljizkjnztlb.supabase.co wss://rtjcvvjmmljizkjnztlb.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; worker-src 'self' blob:">
+<meta name="theme-color" content="#050B15">
+<title>NEXO Marketing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="assets/plataforma.css?v=20261119r">
+<link rel="stylesheet" href="assets/equipe.css?v=20261117c">
+<link rel="stylesheet" href="assets/temas.css?v=20261117c">
+<link rel="stylesheet" href="assets/ideias.css?v=20261117c">
+<link rel="stylesheet" href="assets/explicador.css?v=20261117e">
+<script src="assets/aparencia.js?v=20261119w"></script>
+<link rel="icon" href="assets/nexo-marca.webp">
+<style>
+:root{
+  --bg:#050B15; --panel:#0c1a33; --card:#112447; --line:#2B8CEB; --cyan:#3CC4E6;
+  --fg:#eaf1fa; --muted:#9db1cf; --dark:#0a1630;
+  --ok:#4cc27a; --warn:#f2c94c; --bad:#ff5a4e; --onca:#f2b632; --onca-out:#13234d; --cream:#fff4dc; --gorro:#2a56d6;
+  --f:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --ft:"Syne","Inter",sans-serif; --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --borda:color-mix(in srgb,var(--line) 40%,transparent); --fina:color-mix(in srgb,var(--line) 18%,transparent);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);margin:0}
+body{color:var(--fg);font-family:var(--f);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:var(--cyan)}
+button,input,select,textarea{font:inherit;color:inherit}
+.oculto{display:none!important}
+
+/* estrutura: menu lateral (computador) e menu no topo (celular) */
+.app{display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100dvh;--destaque-fundo:#13233F;--destaque-borda:rgba(43,140,235,.55)}
+.lado{position:sticky;top:0;height:100dvh;overflow-y:auto;border-right:1px solid var(--fina);background:#060E1C;padding:18px 12px;display:flex;flex-direction:column;gap:14px}
+.lado .rot{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);opacity:.75;padding:0 4px}
+.lado select{background:var(--panel);border:1px solid var(--borda);border-radius:10px;padding:8px 10px;width:100%;font-size:13.5px}
+.menu{display:flex;flex-direction:column;gap:2px}
+.menu .grupo{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);opacity:.7;padding:12px 12px 4px}
+.menu button{display:flex;align-items:center;gap:10px;text-align:left;background:none;border:0;font-size:14px;font-weight:600;color:var(--muted);padding:9px 12px;border-radius:9px;white-space:nowrap;cursor:pointer;transition:background .16s,color .16s}
+.menu button svg{width:17px;height:17px;flex:0 0 auto}
+.menu button:hover{background:var(--panel);color:var(--fg)}
+.menu button[aria-current="page"]{background:color-mix(in srgb,var(--onca) 14%,transparent);color:var(--onca)}
+.menu button b{margin-left:auto;font-family:var(--mono);font-size:11px;background:var(--onca);color:#1a1200;border-radius:999px;padding:1px 7px}
+.menu button b:empty{display:none}
+.lado-pe{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid var(--fina)}
+.sair{background:none;border:1px solid var(--borda);border-radius:10px;padding:8px 12px;color:var(--muted);cursor:pointer;text-align:left}
+.sair:hover{color:var(--fg)}
+.conteudo{min-width:0;width:100%;max-width:1280px;padding:22px 28px 60px;display:flex;flex-direction:column;gap:18px}
+.cab{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--fina)}
+.marca{display:flex;align-items:center;gap:10px;min-width:0}
+.marca svg{width:40px;height:40px;flex:0 0 auto}
+.eyebrow{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan)}
+h1{margin:0;font-family:var(--ft);font-size:clamp(20px,2.2vw,26px);font-weight:800;line-height:1.1;letter-spacing:-.01em}
+h2{margin:0 0 4px;font-family:var(--ft);font-size:18px;font-weight:700}
+h3{margin:0;font-size:15.5px;font-weight:700}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .lado{position:static;height:auto;border-right:0;border-bottom:1px solid var(--fina);padding:max(12px,env(safe-area-inset-top,0px)) 16px 10px;gap:10px}
+  .lado .topo-m{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .lado .rot{display:none}
+  .menu{flex-direction:row;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:2px 16px 4px;position:sticky;top:0}
+  .menu::-webkit-scrollbar{display:none}
+  .menu .grupo{display:none}
+  .menu button{padding:8px 12px;border-radius:999px}
+  .lado-pe{display:none}
+  .conteudo{padding:16px 16px 48px}
+}
+@media (min-width:901px){ .sair-m{display:none} }
+
+/* blocos */
+.grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.card{background:var(--panel);border:1px solid var(--fina);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card.destaque{border-color:var(--borda)}
+.num{font-size:30px;font-weight:900;font-stretch:115%;line-height:1}
+.muted{color:var(--muted)}
+.peq{font-size:13px}
+.mono{font-family:var(--mono);font-size:12px}
+.linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.entre{justify-content:space-between}
+.passos{list-style:none;padding:0;margin:4px 0;display:flex;flex-direction:column;gap:8px}.passos li{display:flex;gap:8px;align-items:flex-start;min-width:0}.passos li>span:last-child{min-width:0;overflow-wrap:anywhere}.grade .card.largo{grid-column:1/-1}
+.pill{font-family:var(--mono);font-size:11.5px;border-radius:999px;padding:3px 9px;border:1.5px solid currentColor;white-space:nowrap}
+/* Marketing (auditoria 21/11/2026): marca da peça, motivo da recusa, histórico e redes */
+.mk-marca{border-style:dashed}
+.mk-dialogo{border:0;border-radius:18px;padding:22px;max-width:min(440px,calc(100vw - 32px));width:100%}
+.mk-dialogo::backdrop{background:rgba(10,14,30,.45)}
+.mk-dialogo form{display:flex;flex-direction:column;gap:12px}
+.mk-motivos{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px}
+.mk-motivos legend{margin-bottom:6px}
+.mk-motivos label{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1.5px solid var(--linha,#ccd);border-radius:10px;cursor:pointer}
+.mk-motivos label:has(input:checked){border-color:currentColor;font-weight:600}
+.mk-hist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.mk-redes{display:flex;flex-direction:column;gap:10px}
+.mk-rede{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--linha,#e3e3ea)}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)} .info{color:var(--cyan)} .onca{color:var(--onca)}
+.aviso{border-left:4px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--panel));padding:12px 14px;border-radius:10px}
+.aviso.info{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 7%,var(--panel));color:var(--fg)}
+
+/* interruptores */
+.chave{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--fina)}
+.chave:first-of-type{border-top:0}
+.chave .txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sw{position:relative;width:50px;height:28px;flex:0 0 auto}
+.sw input{opacity:0;width:100%;height:100%;margin:0;cursor:pointer;position:absolute;inset:0;z-index:1}
+.sw span{position:absolute;inset:0;border-radius:999px;background:#2a3b5c;transition:background .2s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+.sw input:checked+span{background:var(--ok)}
+.sw input:checked+span::after{transform:translateX(22px)}
+.sw input:disabled{cursor:not-allowed}.sw input:disabled+span{opacity:.45}
+.sw input:focus-visible+span{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* botões e campos */
+.btn{border:0;border-radius:10px;padding:9px 14px;font-weight:800;cursor:pointer;background:var(--card);color:var(--fg);border:1px solid var(--borda)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sim{background:var(--ok);color:#04220f;border-color:transparent}
+.btn.onca{background:var(--onca);color:#1a1200;border-color:transparent}
+.kpis{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.kpi{padding:10px 12px;gap:2px}.kpi-n{font-size:26px;font-weight:800;line-height:1.1}
+.btn.nao{background:none;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 60%,transparent)}
+.btn.prim{background:var(--onca);color:#1b1300;border-color:transparent}
+label.campo{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--muted)}
+input[type=text],input[type=email],input[type=password],input[type=url],input[type=datetime-local],select,textarea{
+  background:var(--dark);border:1px solid var(--borda);border-radius:10px;padding:10px 12px;width:100%;min-width:0;color:var(--fg);font-size:16px}
+textarea{min-height:110px;resize:vertical}
+input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visible,.menu button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* conteúdos */
+.dia{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cyan);margin:6px 0 -4px}
+.peca{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}
+@media (max-width:560px){.peca{grid-template-columns:1fr}}
+.peca.sem{grid-template-columns:1fr}
+.sem-arte{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px dashed var(--borda,#3a3a3a);border-radius:12px;font-size:13px;line-height:1.45;width:100%}
+.sem-arte b{font-size:14px}
+.sem-arte details{margin-top:4px}.sem-arte summary{cursor:pointer;font-weight:600}
+.sem-arte ol{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.sem-arte i{display:block;opacity:.7;font-size:12px}
+.midia{display:flex;gap:6px;overflow-x:auto;border-radius:12px}
+.midia img,.midia video{width:120px;aspect-ratio:4/5;object-fit:cover;border-radius:10px;background:var(--dark);flex:0 0 auto}
+@media (max-width:560px){.midia img,.midia video{width:46%}}
+.legenda{white-space:pre-wrap;font-size:13.5px;color:var(--muted);max-height:4.4em;overflow:hidden}
+.legenda.aberta{max-height:none;color:var(--fg)}
+.acoes{display:flex;gap:8px;flex-wrap:wrap}
+
+/* leads e atividade */
+.filtros{display:flex;gap:8px;flex-wrap:wrap}
+.filtros input{flex:1 1 220px}.filtros select{flex:0 1 200px}
+.lead{display:flex;flex-direction:column;gap:6px}
+.lead .msg{background:var(--dark);border-radius:10px;padding:10px;font-size:13px;white-space:pre-wrap}
+.tempo{display:flex;flex-direction:column}
+.tempo .it{display:grid;grid-template-columns:88px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--fina);font-size:13.5px}
+.tempo .it:first-child{border-top:0}
+
+/* níveis */
+.niveis{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.nivel{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1.5px solid var(--fina);border-radius:12px;cursor:pointer}
+.nivel:has(input:checked){border-color:var(--onca);background:color-mix(in srgb,var(--onca) 8%,transparent)}
+.nivel input{margin-top:3px;accent-color:var(--onca)}
+
+/* login */
+.login{min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) 360px;align-items:start;gap:28px;padding:24px max(16px,3vw) 40px;max-width:1440px;margin:0 auto;box-sizing:border-box}.login .exp{width:100%}.login>.card{width:100%!important;position:sticky;top:20px}@media (max-width:900px){.login{grid-template-columns:1fr;gap:22px}.login>.card{order:-1;max-width:420px;justify-self:center;position:static}}
+.login h1{text-align:center}
+.login .card{width:min(100%,400px);gap:14px;padding:24px}
+.login .marca svg{width:56px;height:56px}
+
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--card);border:1px solid var(--borda);border-radius:12px;padding:12px 16px;z-index:20;max-width:calc(100% - 32px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.toast.erro{border-color:var(--bad)}
+.vazio{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--fina);border-radius:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="assets/visual.css?v=20261119y">
+<link rel="stylesheet" href="assets/master.css?v=20261119q">
+<link rel="stylesheet" href="assets/suporte.css?v=20261119a">
+</head>
+<body>
+
+<template id="mascote">
+<svg viewBox="104 130 112 120" aria-hidden="true">
+  <circle cx="122" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/><circle cx="198" cy="170" r="14" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
+  <ellipse cx="160" cy="204" rx="48" ry="42" fill="var(--onca)" stroke="var(--onca-out)" stroke-width="4"/>
+  <ellipse cx="160" cy="226" rx="26" ry="18" fill="var(--cream)" stroke="var(--onca-out)" stroke-width="3.5"/>
+  <path d="M151 214 h18 l-9 9z" fill="var(--onca-out)"/><path d="M148 229 q12 10 24 0" fill="none" stroke="var(--onca-out)" stroke-width="3" stroke-linecap="round"/>
+  <rect x="124" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/><rect x="163" y="188" width="33" height="21" rx="8" fill="var(--onca-out)"/>
+  <path d="M112 186 C110 136 210 136 208 186 Z" fill="var(--gorro)" stroke="var(--onca-out)" stroke-width="4"/>
+  <rect x="106" y="174" width="108" height="18" rx="9" fill="#1c3c9e" stroke="var(--onca-out)" stroke-width="4"/>
+</svg>
+</template>
+
+<!-- LOGIN -->
+<main id="telaLogin" class="login oculto">
+  <div id="explicador"></div>
+  <form class="card" id="formLogin" autocomplete="on">
+    <div style="text-align:center"><div class="eyebrow">NEXO Marketing</div><h1>Entrar</h1></div>
+    <p class="muted peq" style="margin:0;text-align:center">Um login só para o Marketing e as Vendas.</p>
+    <label class="campo">E-mail<input type="email" id="email" autocomplete="username" required></label>
+    <label class="campo">Senha<input type="password" id="senha" autocomplete="current-password" required></label>
+    <button class="btn prim" type="submit" id="btnEntrar">Entrar</button>
+    <p class="bad peq oculto" id="erroLogin" role="alert" style="margin:0"></p>
+  </form>
+</main>
+
+<!-- APP -->
+<div id="telaApp" class="app oculto">
+  <aside class="lado" aria-label="Navegação da plataforma">
+    <div class="topo-m">
+      <button class="plat-marca botao" id="btnMarca" type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Marketing</span></span></button>
+      <button class="sair sair-m" type="button" data-sair>Sair</button>
+    </div>
+    <nav class="areas produto" aria-label="Produto">
+      <span class="produto-atual" aria-current="page" title="NEXO Marketing: a equipe de onças que cria e publica conteúdo"><i></i>NEXO Marketing</span>
+      <a class="produto-outro oculto" id="irOutroProduto" href="./" title="Abrir o NEXO Prospect: clientes, buscas, WhatsApp e SDR">NEXO Prospect ↗</a>
+    </nav>
+    <div class="rot">Agente</div>
+    <select id="selAgente" aria-label="Escolher agente"></select>
+    <nav class="menu" aria-label="Seções do Marketing">
+      <span class="grupo">Operação</span>
+      <button data-aba="equipe" aria-current="page">Equipe</button>
+      <button data-aba="inicio">Início</button>
+      <button data-aba="ideias">Pedir peça</button>
+      <button data-aba="aprovar">Aprovar <b id="nAprovar"></b></button>
+      <button data-aba="atividade">Histórico</button>
+      <span class="grupo">Configuração</span>
+      <button data-aba="agente">Identidade</button>
+      <button data-aba="funcoes">Permissões</button>
+      <button data-aba="conhecimento">Base da marca</button>
+      <button data-aba="integracoes">Contas conectadas</button>
+      <span class="grupo m-so-master oculto">Plataforma</span>
+      <button data-aba="master" class="m-so-master oculto">Master</button>
+      <span class="grupo">Suporte</span>
+      <button data-aba="ajuda">Ajuda</button>
+      <button data-aba="plano">Meu plano</button>
+    </nav>
+    <div class="lado-pe">
+      <button class="sair" id="btnSair" type="button" data-sair>Sair</button>
+    </div>
+  </aside>
+  <main class="conteudo">
+  <header class="cab">
+    <div><div class="eyebrow" id="nomeEmpresa">NEXO Marketing</div><h1 id="tituloAba">Painel</h1><p class="sub-aba" id="subAba"></p></div>
+  </header>
+
+  <section data-sec="equipe" aria-label="Equipe"></section>
+  <section data-sec="inicio" class="oculto" aria-label="Início"></section>
+  <section data-sec="ideias" class="oculto" aria-label="Pedir peça"></section>
+  <section data-sec="aprovar" class="oculto" aria-label="Aprovar"></section>
+  <section data-sec="agente" class="oculto" aria-label="Identidade"></section>
+  <section data-sec="funcoes" class="oculto" aria-label="Permissões"></section>
+  <section data-sec="conhecimento" class="oculto" aria-label="Base da marca"></section>
+  <section data-sec="integracoes" class="oculto" aria-label="Contas conectadas"></section>
+  <section data-sec="atividade" class="oculto" aria-label="Histórico"></section>
+  <section data-sec="ajuda" class="oculto" aria-label="Ajuda"></section>
+  <section data-sec="plano" class="oculto" aria-label="Meu plano"></section>
+  <section data-sec="master" class="oculto" aria-label="Master da plataforma"></section>
+  </main>
+</div>
+
+<div id="toast" class="toast oculto" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
+<script src="assets/base.js?v=20261118k"></script>
+<script src="assets/equipe.js?v=20261119n"></script>
+<script src="assets/master.js?v=20261119w"></script>
+<script src="assets/plano.js?v=20261119v"></script>
+<script src="assets/conta.js?v=20261119c"></script>
+<script src="assets/anexos.js?v=20261119a"></script>
+<script src="assets/ideias.js?v=20261121a"></script>
+<script src="assets/marketing.js?v=20261121a"></script>
+<script src="assets/explicador.js?v=20261119t"></script>
+<script src="assets/suporte.js?v=20261119n"></script>
+<script src="assets/meuplano.js?v=20261119v"></script>
+<script>
+"use strict";
+// Supabase (sb), $, $$, esc, urlSegura, hrefSeguro e FUSO vêm de assets/base.js (comum ao System e ao Prospect).
+const st = { ctx: null, agente: null, resumo: null, conteudos: [], leads: [], aba: "inicio" };
+
+document.querySelectorAll("[data-mascote]").forEach(el => el.replaceWith($("#mascote").content.cloneNode(true)));
+
+// ---------------------------------------------------------------- utilidades
+function quando(iso, comHora = true) {
+  if (!iso) return "sem data";
+  const d = new Date(iso);
+  return d.toLocaleString("pt-BR", { timeZone: FUSO, weekday: "short", day: "2-digit", month: "2-digit", ...(comHora ? { hour: "2-digit", minute: "2-digit" } : {}) });
+}
+function diaChave(iso) { return iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: FUSO, weekday: "long", day: "2-digit", month: "long" }) : "Sem data"; }
+function paraInput(iso) {
+  if (!iso) return "";
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: FUSO, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(iso)).map(x => [x.type, x.value]));
+  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+}
+function deInput(v) { return v ? new Date(`${v}:00-03:00`).toISOString() : null; } // horário de Brasília (sem horário de verão)
+const ERROS = {
+  sem_permissao: "Seu papel nesta empresa não permite essa ação.",
+  sem_login: "Sua sessão acabou. Entre de novo.",
+  horario_passou: "O horário já passou. Escolha uma data futura antes de aprovar.",
+  peca_sem_midia: "Essa peça ainda não tem arte ou vídeo. Não dá para aprovar.",
+  so_aprova_peca_em_revisao: "Só dá para aprovar peças que estão esperando revisão.",
+  ja_publicado: "Essa peça já foi publicada.",
+  nivel_insuficiente: "Essa função pede um nível de autonomia maior. Mude o nível na aba Agente primeiro.",
+  sensivel_exige_aprovacao: "Publicar, mandar mensagem e anúncio só saem sem aprovação no nível 4 (Autônomo).",
+  nao_reagenda_neste_status: "Essa peça não pode mais mudar de data.",
+  nome_vazio: "O nome não pode ficar vazio.", texto_vazio: "Escreva as instruções antes de salvar.",
+  nao_posta_neste_status: "Essa peça já foi publicada, está publicando ou foi recusada.",
+  versao_nao_encontrada: "Essa versão não existe mais.",
+  conteudo_invalido: "O conteúdo não está no formato esperado. Confira e tente de novo.",
+  tipo_nao_suportado: "O banco ainda não aceita essa conexão. Falta aplicar a migração do Google.",
+  campanha_invalida: "Confira os campos da campanha.", campanha_nao_encontrada: "Essa campanha não existe mais.",
+  campanha_pausada: "Ative a campanha antes de pedir a pesquisa.", registro_invalido: "Confira o registro.", empresa_nao_encontrada: "Essa empresa não existe mais.", status_invalido: "Status inválido."
+};
+function msgErro(e) {
+  const m = (e && (e.message || e.error_description)) || String(e);
+  for (const k in ERROS) if (m.includes(k)) return ERROS[k];
+  if (/Invalid login/i.test(m)) return "E-mail ou senha errados.";
+  if (/Failed to fetch|NetworkError/i.test(m)) return "Sem internet ou servidor fora do ar. Tente de novo.";
+  return "Não deu certo: " + m;
+}
+let toastT;
+function aviso(txt, erro = false) {
+  const t = $("#toast"); t.textContent = txt; t.className = "toast" + (erro ? " erro" : ""); clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.add("oculto"), erro ? 6000 : 3200);
+}
+async function rpc(fn, args) {
+  const { data, error } = await sb.rpc(fn, args);
+  if (error) { if (/sem_login|JWT/i.test(error.message)) { await sb.auth.signOut(); mostrarLogin(); } throw error; }
+  return data;
+}
+const PAPEL = { plataforma: "Administrador da plataforma", dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor" };
+const podeMudar = () => ["plataforma", "dono", "admin"].includes(st.resumo?.papel);
+const podeEditar = () => ["plataforma", "dono", "admin", "editor"].includes(st.resumo?.papel);
+
+// ---------------------------------------------------------------- login
+let expVideo = null;
+function mostrarLogin() { $("#telaApp").classList.add("oculto"); $("#telaLogin").classList.remove("oculto");
+  if (typeof explicadorMontar === "function") expVideo = explicadorMontar($("#explicador"), {}) || expVideo; }
+contaLigarLogin($("#formLogin"), $("#email"));
+$("#formLogin").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const b = $("#btnEntrar"); b.disabled = true; b.textContent = "Entrando…"; $("#erroLogin").classList.add("oculto");
+  const { error } = await sb.auth.signInWithPassword({ email: $("#email").value.trim(), password: $("#senha").value });
+  b.disabled = false; b.textContent = "Entrar";
+  if (error) { $("#erroLogin").textContent = msgErro(error); $("#erroLogin").classList.remove("oculto"); return; }
+  $("#senha").value = "";
+  iniciar();
+});
+$("#btnMarca").addEventListener("click", abrirAparencia);
+$$("[data-sair]").forEach(b => b.addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); }));
+// Ícones do menu (um traço só, o mesmo estilo do NEXO Prospect).
+const ICONES_MENU = { ideias: "M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z", equipe: "M7 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM17 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 21v-3a5 5 0 0 1 9-3M22 21v-3a5 5 0 0 0-9-3M12 21v-2a4 4 0 0 1 4-4h0a4 4 0 0 1 4 4v2", inicio: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", aprovar: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
+  leads: "M16 20v-1a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v1M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 20v-1a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8",
+  atividade: "M22 12h-4l-3 9L9 3l-3 9H2", agente: "M12 8V4H8M4 8h16v12H4zM2 14h2M20 14h2M9 13v2M15 13v2",
+  funcoes: "M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6",
+  conhecimento: "M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5zM4 19.5A2.5 2.5 0 0 0 6.5 22H20v-5",
+  integracoes: "M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1",
+  master: "M12 2l8 3v6c0 5-3.4 9.3-8 11-4.6-1.7-8-6-8-11V5zM9 12l2 2 4-4",
+  plano: "M3 6h18v13H3zM3 10h18M7 15h4",
+  ajuda: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5M12 17.5h.01" };
+$$(".menu button").forEach(b => { const d = ICONES_MENU[b.dataset.aba]; if (d) b.insertAdjacentHTML("afterbegin", `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${d}"/></svg>`); });
+
+// ---------------------------------------------------------------- abas
+$$(".menu button").forEach(b => b.addEventListener("click", () => abrirAba(b.dataset.aba)));
+// Tela vazia com a oncinha responsável (descontraído, sem "Nada ainda").
+const vazioOnca = (quem, titulo, texto) => `<div class="vazio-onca">${typeof rosto === "function" && PESSOA[quem] ? rosto(PESSOA[quem], "vo-rosto") : ""}<div><b>${esc(titulo)}</b><span>${esc(texto)}</span></div></div>`;
+// Título e linha de explicação de cada aba (o nome do agente fica pequeno, em cima).
+const TITULO_ABA = {
+  equipe: ["Equipe", "Quem está trabalhando agora e o que cada oncinha entregou."],
+  inicio: ["Início", "O resumo do dia e os interruptores da equipe."],
+  ideias: ["Pedir peça", "Peça peças novas à equipe: com tema, material ou só no improviso."],
+  aprovar: ["Aprovar", "Peças esperando você antes de ir ao ar. As publicadas ficam no arquivo."],
+  atividade: ["Histórico", "Tudo o que a equipe fez e quem mudou o quê."],
+  agente: ["Identidade", "Nome, identidade, nível de autonomia e instruções."],
+  funcoes: ["Permissões", "O que a equipe pode fazer e o que pede o seu OK."],
+  conhecimento: ["Base da marca", "Respostas prontas, fatos aprovados e o jeito de falar da marca."],
+  integracoes: ["Contas conectadas", "Contas conectadas: Instagram, Google e as próximas."],
+  master: ["Master", "Empresas clientes, planos e assinaturas."],
+  ajuda: ["Ajuda", "Como usar o painel e quem tem acesso."],
+  plano: ["Meu plano", "O seu plano de hoje e os outros planos da NEXO Prospect."],
+};
+function abrirAba(aba) {
+  // Os leads moram no NEXO Prospect desde 18/11/2026 (um lugar só para leads).
+  if (aba === "leads") { location.href = "./#/leads"; return; }
+  st.aba = aba;
+  const [tit, sub] = TITULO_ABA[aba] || [aba, ""];
+  $("#tituloAba").textContent = tit; $("#subAba").textContent = sub;
+  $$(".menu button").forEach(b => b.dataset.aba === aba ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  $$("[data-sec]").forEach(s => s.classList.toggle("oculto", s.dataset.sec !== aba));
+  try { localStorage.setItem("nexo.aba", aba); } catch {}
+  desenhar();
+}
+
+// ---------------------------------------------------------------- carga
+async function iniciar() {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) return mostrarLogin();
+  await contaPosLogin();   // aceita convites e termina um cadastro que esperava a confirmação do e-mail (assets/conta.js)
+  try { st.ctx = await rpc("nexo_contexto"); } catch (e) { aviso(msgErro(e), true); return mostrarLogin(); }
+  // Atalho para o outro produto: só aparece para quem tem o Prospect na empresa (os produtos são separados; o login é um só).
+  if ((st.ctx?.empresas || []).some(e => (e.agentes || []).some(a => a.slug === "prospect"))) $("#irOutroProduto")?.classList.remove("oculto");
+  Suporte.iniciar({ produto: "Marketing", onca: { nome: "Pintada", img: "assets/equipe/gestora-rosto.webp" }, rpc,
+    empresa: () => (($("#nomeEmpresa").textContent || "").split(" · ")[0] || "").replace(/^NEXO( System| Prospect)?$/, ""),
+    abas: $$(".menu [data-aba]").map(b => b.dataset.aba), ir: abrirAba });
+  // O Master enxerga todas as empresas: as da casa vêm primeiro e as de cliente ficam marcadas, para nunca abrir
+  // (nem somar no Início) a empresa de um cliente por acaso. Cliente só recebe a própria empresa do banco.
+  const CASA = ["nexo-varzea", "nexo-inteligencia"];
+  const empresas = st.ctx.plataforma ? [...st.ctx.empresas].sort((a, b) => CASA.includes(b.slug) - CASA.includes(a.slug)) : st.ctx.empresas;
+  const todosAgentes = empresas.flatMap(e => e.agentes.map(a => ({ ...a, empresa: e.nome, papel: e.papel, casa: CASA.includes(e.slug) })));
+  st.prospect = todosAgentes.find(a => a.slug === "prospect" && (!st.ctx.plataforma || a.casa)) || todosAgentes.find(a => a.slug === "prospect") || null;
+  const agentes = todosAgentes.filter(a => a.slug !== "prospect");
+  if (!agentes.length) {
+    $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
+    $("[data-sec=inicio]").innerHTML = `<div class="vazio">Seu login (${esc(st.ctx.email)}) ainda não tem acesso a nenhuma empresa. Peça ao administrador para incluir você.</div>`;
+    return;
+  }
+  let salvo = null; try { salvo = localStorage.getItem("nexo.agente"); } catch {}
+  $("#selAgente").innerHTML = agentes.map(a => `<option value="${a.id}">${esc(a.empresa)} · ${esc(a.nome)}${st.ctx.plataforma && !a.casa ? " (cliente)" : ""}</option>`).join("");
+  st.agente = agentes.find(a => a.id === salvo)?.id || agentes[0].id;
+  $("#selAgente").value = st.agente;
+  $("#selAgente").onchange = () => { st.agente = $("#selAgente").value; try { localStorage.setItem("nexo.agente", st.agente); } catch {} carregar(); };
+  $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
+  $$(".m-so-master").forEach(x => x.classList.toggle("oculto", !st.ctx.plataforma));   // só o Master vê (o banco confere de novo)
+  let aba = "equipe"; try { aba = localStorage.getItem("nexo.aba") || "equipe"; } catch {}
+  if (location.hash === "#plano") { aba = "plano"; history.replaceState(null, "", location.pathname + location.search); }   // "Ver os planos" vindo de Vendas
+  if (aba === "master" && !st.ctx.plataforma) aba = "equipe";
+  if (!document.querySelector(`.menu [data-aba="${aba}"]`)) aba = "equipe"; // aba que não existe mais (ex.: a antiga "prospect") volta para a Equipe
+  // Volta do "Entrar com Facebook": mostra o resultado e limpa o endereço.
+  const volta = new URLSearchParams(location.search);
+  if (volta.get("conexao")) {
+    aba = "integracoes";
+    const nomeServ = volta.get("servico") === "google" ? "Google conectado pelo login oficial do Google" : "Instagram conectado pelo login oficial da Meta";
+    setTimeout(() => aviso(volta.get("conexao") === "ok" ? nomeServ + ". A chave foi para o cofre."
+                                                         : "A conexão não terminou: " + (volta.get("motivo") || "tente de novo."), volta.get("conexao") !== "ok"), 400);
+    history.replaceState(null, "", location.pathname);
+  }
+  await carregar();
+  // Volta do checkout da InfinitePay (assets/meuplano.js): confere o pagamento e abre Meu plano.
+  if (await mpRetornoPagamento()) { aba = "plano"; await carregar(); }
+  abrirAba($(`.menu button[data-aba="${aba}"]`) ? aba : "equipe");
+}
+async function carregar() {
+  try {
+    // Conteúdos e leads são do recurso Marketing: fora do plano o banco recusa, e o painel segue com a lista vazia (a aba mostra o convite do plano).
+    const [r, c, l] = await Promise.all([rpc("nexo_resumo", { p_agente: st.agente }), rpc("nexo_conteudos", { p_agente: st.agente }).catch(() => []), rpc("nexo_leads", { p_agente: st.agente }).catch(() => [])]);
+    st.resumo = r; st.conteudos = c || []; st.leads = l || []; st.publicados = null;   // o arquivo recarrega ao abrir
+    // Plano da empresa do agente: o que não está no plano fica trancado (assets/plano.js).
+    st.empresaId = (st.ctx.empresas || []).find(e => (e.agentes || []).some(a => a.id === st.agente))?.id || null;
+    await planoCarregar(st.empresaId);
+    planoFaixa(st.empresaId, $(".conteudo"));
+    $$(".menu button[data-aba]").forEach(b => { const rec = SYS_RECURSO[b.dataset.aba]; b.classList.toggle("trancado", !!rec && !planoTem(rec, st.empresaId)); });
+    const ident = r.identidade || {};
+    const nomeEmp = r.empresa?.nome || (st.ctx.empresas || []).find(e => e.id === st.empresaId)?.nome || "";
+    // Sem repetir: o nome de exibição pode já trazer o nome da empresa ("Onça · NEXO VÁRZEA").
+    const partes = [nomeEmp, ...String(ident.nome_exibicao || r.agente?.nome || "").split(/\s*·\s*/)].map(s => (s || "").trim()).filter(Boolean);
+    $("#nomeEmpresa").textContent = partes.filter((p, i) => partes.findIndex(q => q.toLocaleLowerCase("pt-BR") === p.toLocaleLowerCase("pt-BR")) === i).join(" · ") || "NEXO";
+    aplicarLogo();
+    const n = st.conteudos.filter(x => x.status === "revisar").length;
+    $("#nAprovar").textContent = n ? n : "";
+    desenhar();
+  } catch (e) { aviso(msgErro(e), true); }
+}
+// Abas que dependem de um recurso pago. As outras (equipe, início, agente, ajuda...) ficam sempre.
+const SYS_RECURSO = { ideias: "marketing_instagram", aprovar: "marketing_instagram" };
+function desenhar() {
+  if (!st.resumo) return;
+  const rec = SYS_RECURSO[st.aba];
+  if (rec && !planoTem(rec, st.empresaId)) { $(`[data-sec="${st.aba}"]`).innerHTML = planoBloqueio(rec, st.empresaId); return; }
+  ({ equipe, ideias, inicio, aprovar, agente, funcoes, conhecimento, integracoes, atividade, ajuda, master, plano: meuPlano })[st.aba]?.($(`[data-sec="${st.aba}"]`));
+}
+
+// ---------------------------------------------------------------- INÍCIO
+const CHAVES = [
+  ["pausado", "Pausar tudo", "Para o agente na hora. Nada roda até você retomar."],
+  ["publicar", "Publicar no Instagram", "Publica só as peças que você aprovou, no horário marcado."],
+  ["responder", "Responder comentários", "Responde pelo FAQ aprovado e manda o link no direct de quem comentou."],
+  ["pesquisar", "Pesquisar clientes", "Procura clientes com contato público para a aba Clientes, em Vendas."]
+];
+function inicio(el) {
+  const r = st.resumo, c = r.controle || {}, cont = r.conteudos || {}, ld = r.leads || {};
+  const prontos = cont.pronto || 0, revisar = cont.revisar || 0;
+  const totalLeads = Object.values(ld).reduce((a, b) => a + b, 0);
+  const estado = c.pausado ? `<span class="pill bad">pausado</span>` : `<span class="pill ok">ativo</span>`;
+  const falhou = cont.erro || 0;
+  const alertaErro = falhou ? `<div class="aviso">${pl(falhou, "peça falhou", "peças falharam")} ao publicar. Veja o motivo em <button class="btn peq" data-ir="aprovar">Aprovar</button>.</div>` : "";
+  const alerta = (!c.publicar && prontos) ? `<div class="aviso">${pl(prontos, "peça aprovada", "peças aprovadas")} esperando: <b>Publicar</b> está desligado. Ligue quando quiser que elas saiam.</div>` : "";
+  el.innerHTML = `
+    ${alerta}${alertaErro}
+    <div class="grade">
+      <div class="card destaque">
+        <div class="linha entre"><h2>Estado</h2>${estado}</div>
+        <div class="muted peq">Última atividade: ${quando(r.ultima_execucao)} · erros em 24 h: <b class="${r.erros_24h ? "bad" : "ok"}">${r.erros_24h || 0}</b></div>
+        <div class="muted peq">Seu papel: ${esc(PAPEL[r.papel] || r.papel)} · nível do agente: <b>${r.agente?.nivel_autonomia}</b></div>
+      </div>
+      <div class="card"><span class="muted peq">Esperando sua aprovação</span><span class="num onca">${revisar}</span><button class="btn" data-ir="aprovar">Ver peças</button></div>
+      <div class="card"><span class="muted peq">Aprovadas na fila</span><span class="num ok">${prontos}</span><span class="muted peq">Publicadas: ${cont.publicado || 0}</span></div>
+      ${r.conta ? `<div class="card"><span class="muted peq">Seguidores (${quando(r.conta.dia, false)})</span><span class="num">${r.conta.seguidores ?? "–"}</span><span class="muted peq">Alcance: ${r.conta.alcance ?? "–"} · visitas: ${r.conta.visitas_perfil ?? "–"}</span></div>` : ""}
+    </div>
+    <div class="card">
+      <h2>Interruptores</h2>
+      <p class="muted peq" style="margin:0">Valem na próxima atualização da equipe (até 1 hora). Tudo fica registrado no Histórico.</p>
+      ${CHAVES.map(([k, t, d]) => `
+        <div class="chave"><div class="txt"><b>${t}</b><span class="muted peq">${d}</span></div>
+          <label class="sw"><input type="checkbox" data-chave="${k}" ${c[k] ? "checked" : ""} ${podeMudar() ? "" : "disabled"} aria-label="${t}"><span></span></label></div>`).join("")}
+      <div class="muted mono">Última mudança: ${esc(c.atualizado_por || "–")} · ${quando(c.atualizado_em)}</div>
+    </div>
+    <div data-mk-redes><div class="card"><span class="muted peq">Conferindo as redes…</span></div></div>`;
+  mkRedesHtml().then(h => { const box = $("[data-mk-redes]", el); if (box) { box.innerHTML = h; mkRedesLigar(box, carregar); } });
+  $$("[data-ir]", el).forEach(b => b.onclick = () => abrirAba(b.dataset.ir));
+  $$("[data-chave]", el).forEach(inp => inp.onchange = async () => {
+    const k = inp.dataset.chave, v = inp.checked;
+    if (k === "publicar" && v && !confirm("Ligar a publicação?\n\nO agente vai publicar só as peças que você aprovou, no horário marcado de cada uma.")) { inp.checked = false; return; }
+    inp.disabled = true;
+    try { await rpc("nexo_mudar_controle", { p_agente: st.agente, p_campo: k, p_valor: v }); aviso("Salvo."); await carregar(); }
+    catch (e) { inp.checked = !v; inp.disabled = false; aviso(msgErro(e), true); }
+  });
+}
+
+// ---------------------------------------------------------------- APROVAR
+// Estados com nome claro (auditoria 21/11/2026): rascunho › aguardando aprovação › agendada › publicando › publicada | falhou.
+const ST_PECA = { rascunho: ["em produção", "muted"], revisar: ["aguardando aprovação", "warn"], pronto: ["agendada", "ok"], publicando: ["publicando", "info"], publicado: ["publicada", "info"], erro: ["falhou", "bad"] };
+function midiaHtml(m) {
+  return (m || []).slice(0, 10).map(x => x.tipo === "video"
+    ? `<video src="${esc(x.url)}" preload="metadata" controls playsinline muted></video>`
+    : `<a href="${hrefSeguro(x.url)}" target="_blank" rel="noopener" aria-label="Abrir a arte em tamanho real"><img src="${esc(x.mini || x.url)}" alt="" loading="lazy"></a>`).join("");
+}
+// Peça sem arte: diz o porquê e o que fazer, em vez de só "sem mídia" (pedido do Ricardo, 17/11/2026).
+function semArte(c) {
+  const ajuste = String(c.motivo || "").startsWith("ajustar:");
+  const probs = (c.checagem?.problemas || []).filter(p => p && p.trecho);
+  let t, d;
+  if (ajuste) { t = "Ajuste pedido"; d = "A equipe refaz na rodada da manhã e a arte sai junto."; }
+  else if (c.formato === "reel") { t = "Reel é vídeo"; d = "Você grava seguindo o roteiro. Quer arte? Peça ajuste com \"fazer a arte\" e ele vira carrossel."; }
+  else if (probs.length) { t = "Arte travada"; d = `O texto cita ${probs.slice(0, 3).map(p => `"${esc(p.trecho)}"`).join(", ")}, que não está nos fatos aprovados. Clique em Pedir ajuste e a equipe reescreve.`; }
+  else { t = "Arte a caminho"; d = "Sai na próxima atualização da equipe."; }
+  const cenas = c.formato === "reel" && !ajuste ? (c.arte?.cenas || []).slice(0, 12) : [];
+  return `<div class="sem-arte"><b>${t}</b><span>${ajuste || c.formato === "reel" ? esc(d) : d}</span>${cenas.length ? `<details><summary>Ver roteiro (${pl(cenas.length, "cena", "cenas")})</summary><ol>${cenas.map(s => `<li><span class="mono">${esc(s.tempo || "")}</span> ${esc(s.fala || "")}${s.imagem ? `<i>${esc(s.imagem)}</i>` : ""}</li>`).join("")}</ol></details>` : ""}</div>`;
+}
+// Publicados saem da fila e ficam no arquivo (aba "Publicados"), do mais recente para o mais antigo. Nada é apagado.
+let aprovarVista = "fila";
+function aprovar(el) {
+  // Arquivo completo vem de nexo_publicados (todas as publicadas); sem a migração, usa as dos últimos 14 dias que já vieram.
+  const todos = st.conteudos, arq = st.publicados || todos.filter(c => c.status === "publicado");
+  const lista = aprovarVista === "arquivo" ? [...arq].sort((a, b) => (b.agendado_para || "").localeCompare(a.agendado_para || "")) : todos.filter(c => c.status !== "publicado");
+  const falhas = todos.filter(c => c.status === "erro").length;
+  const pub = st.resumo.controle?.publicar;
+  const abas = `<div class="ap-abas" role="tablist">
+      <button role="tab" data-vista="fila" aria-selected="${aprovarVista === "fila"}">Na fila <b>${todos.filter(c => c.status !== "publicado").length}</b></button>
+      <button role="tab" data-vista="arquivo" aria-selected="${aprovarVista === "arquivo"}">Publicados (arquivo) <b>${arq.length}</b></button>
+      <button role="tab" data-vista="historico" aria-selected="${aprovarVista === "historico"}">Recusadas e falhas${falhas ? ` <b class="bad">${falhas}</b>` : ""}</button></div>`;
+  const ligarAbas = () => $$("[data-vista]", el).forEach(b => b.onclick = async () => {
+    aprovarVista = b.dataset.vista;
+    if (aprovarVista === "arquivo" && !st.publicados) { try { st.publicados = await rpc("nexo_publicados", { p_agente: st.agente }) || []; } catch { st.publicados = null; } }
+    if (aprovarVista === "historico") st.historico = await mkHistorico();
+    aprovar(el);
+  });
+  if (aprovarVista === "historico") {
+    el.innerHTML = abas + (st.historico ? mkHistoricoHtml(st.historico) : `<div class="vazio">Carregando…</div>`);
+    ligarAbas();
+    if (!st.historico) mkHistorico().then(h => { st.historico = h; if (aprovarVista === "historico") aprovar(el); });
+    return;
+  }
+  if (!lista.length) { el.innerHTML = abas + (aprovarVista === "arquivo" ? vazioOnca("vitrine", "Nada publicado ainda.", "A Vitrine guarda aqui tudo o que for ao ar.") : vazioOnca("pauta", "Fila zerada.", "Quando a Pauta preparar algo novo, aparece aqui para o seu OK.")); ligarAbas(); return; }
+  let html = abas + (pub || aprovarVista === "arquivo" ? "" : `<div class="aviso info">Publicar está <b>desligado</b>. Aprovar deixa a peça pronta; ela só vai ao ar quando você ligar Publicar no Início.</div>`);
+  let diaAtual = "";
+  for (const c of lista) {
+    const d = diaChave(c.agendado_para);
+    if (d !== diaAtual) { html += `<div class="dia">${esc(d)}</div>`; diaAtual = d; }
+    const [rot, cls] = ST_PECA[c.status] || [c.status, "muted"];
+    const editavel = ["revisar", "erro", "rascunho", "pronto"].includes(c.status);
+    html += `
+      <article class="card peca${c.midias?.length ? "" : " sem"}" data-id="${c.id}">
+        <div class="midia">${midiaHtml(c.midias) || semArte(c)}</div>
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <div class="linha entre"><h3>${esc(c.pauta)}</h3><span class="pill ${cls}">${rot}</span></div>
+          <div class="linha muted peq">${mkMarca(c.marca)}<span class="mono">${esc(c.formato)}</span><span>· ${quando(c.agendado_para)}</span><span>· ${c.origem === "ricardo" ? "feita com você" : "feita pelo agente"}</span></div>
+          ${c.motivo ? `<div class="peq warn">${esc(c.motivo)}</div>` : ""}
+          ${c.legenda ? `<div class="legenda" data-leg>${esc(c.legenda)}</div><button class="btn peq" type="button" data-abrir style="align-self:flex-start;padding:4px 10px">Ver legenda inteira</button>` : ""}
+          ${urlSegura(c.permalink) ? `<a href="${hrefSeguro(c.permalink)}" target="_blank" rel="noopener">Ver no Instagram</a>` : ""}
+          ${editavel ? `
+          <div class="linha"><label class="campo" style="flex:1 1 220px">Data e hora (Brasília)<input type="datetime-local" data-quando value="${paraInput(c.agendado_para)}" ${podeEditar() ? "" : "disabled"}></label></div>
+          <div class="acoes">
+            ${c.status !== "pronto" && !c.midias?.length ? "" : c.status !== "pronto" ? `<button class="btn sim" data-dec="aprovado" ${podeMudar() ? "" : "disabled"}>Aprovar</button>` : `<button class="btn" data-reag ${podeEditar() ? "" : "disabled"}>Salvar nova data</button>`}
+            ${c.midias?.length ? `<button class="btn onca" data-postar ${podeMudar() ? "" : "disabled"}>Postar agora</button>` : ""}
+            <button class="btn" data-dec="ajustar" ${podeEditar() ? "" : "disabled"}>Pedir ajuste</button>
+            <button class="btn nao" data-dec="recusado" ${podeMudar() ? "" : "disabled"}>Recusar</button>
+          </div>` : ""}
+        </div>
+      </article>`;
+  }
+  el.innerHTML = html;
+  ligarAbas();
+  $$("[data-abrir]", el).forEach(b => b.onclick = () => { const l = b.previousElementSibling; l.classList.toggle("aberta"); b.textContent = l.classList.contains("aberta") ? "Fechar legenda" : "Ver legenda inteira"; });
+  $$("article[data-id]", el).forEach(art => {
+    const id = art.dataset.id, q = $("[data-quando]", art);
+    $$("[data-dec]", art).forEach(b => b.onclick = async () => {
+      const dec = b.dataset.dec; let obs = null;
+      if (dec === "ajustar") { obs = prompt("O que precisa mudar?"); if (obs === null) return; }
+      if (dec === "recusado") { obs = await mkRecusar(st.conteudos.find(x => x.id === id)?.pauta); if (obs === null) return; st.historico = null; }
+      b.disabled = true;
+      try { await rpc("nexo_decidir_conteudo", { p_conteudo: id, p_decisao: dec, p_obs: obs, p_quando: deInput(q?.value) }); aviso(dec === "aprovado" ? "Aprovada." : "Registrado."); await carregar(); }
+      catch (e) { b.disabled = false; aviso(msgErro(e), true); }
+    });
+    const pa = $("[data-postar]", art);
+    if (pa) pa.onclick = async () => {
+      const c = st.conteudos.find(x => x.id === id) || {};
+      const ctl = st.resumo.controle || {};
+      const extra = !ctl.publicar ? "\n\nAtenção: Publicar está DESLIGADO no Início. A peça fica aprovada para agora, mas só sai quando você ligar."
+                  : ctl.pausado ? "\n\nAtenção: o agente está PAUSADO. A peça só sai quando ele voltar." : "";
+      if (!confirm(`Postar agora "${c.pauta || "esta peça"}"?\n\n${c.status === "pronto" ? "" : "Isso também APROVA a peça. "}Ela vai ao ar na próxima rodada do agente (em até 1 hora), depois de passar de novo no checador de fatos. Depois de publicada, só dá para apagar no Instagram.${extra}`)) return;
+      pa.disabled = true;
+      try {
+        const r = await rpc("nexo_postar_agora", { p_conteudo: id });
+        aviso(!r.publicar ? "Aprovada para agora. Ligue Publicar no Início para ela sair." :
+              r.pausado ? "Aprovada para agora. O agente está pausado." :
+              r.modo !== "automatico" ? "Aprovada para agora. O agente está em modo ensaio: ele só registra, não publica." :
+              "Combinado: sai na próxima rodada do agente (em até 1 hora).");
+        await carregar();
+      } catch (e) { pa.disabled = false; aviso(msgErro(e), true); }
+    };
+    const rg = $("[data-reag]", art);
+    if (rg) rg.onclick = async () => {
+      rg.disabled = true;
+      try { await rpc("nexo_reagendar", { p_conteudo: id, p_quando: deInput(q.value) }); aviso("Data salva."); await carregar(); }
+      catch (e) { rg.disabled = false; aviso(msgErro(e), true); }
+    };
+  });
+}
+
+// ---------------------------------------------------------------- LEADS
+let filtroLead = { q: "", s: "" };
+// Leads: ficam no NEXO Prospect (prospect/#/leads, arquivo assets/leads.js). Aqui só o resumo do Início e da Equipe.
+
+// ---------------------------------------------------------------- AGENTE
+const NIVEIS = [
+  [1, "Análise", "Só consulta e sugere. Não faz nada sozinho."],
+  [2, "Assistido", "Prepara peças e ações e pede sua aprovação."],
+  [3, "Operacional", "Executa o que você aprovou e as rotinas autorizadas."],
+  [4, "Autônomo", "Roda as rotinas autorizadas dentro dos limites que você definiu."]
+];
+// Aba Agente simplificada (pedido do Ricardo em 18/11/2026: "mais simples e fácil de usar").
+// 4 passos numerados e um botão só, que grava apenas o que mudou (nexo_salvar_agente / identidade / instruções).
+const AG_TOM = ["Descontraído", "Profissional", "Direto", "Bem-humorado", "Acolhedor", "Técnico", "Frases curtas", "Sem gírias"];
+function agente(el) {
+  const r = st.resumo, a = r.agente || {}, i = r.identidade || {}, ins = r.instrucao;
+  const dis = podeMudar() ? "" : "disabled", disE = podeEditar() ? "" : "disabled";
+  const cor = (v, p) => /^#[0-9A-Fa-f]{6}$/.test(v || "") ? v : p;
+  el.innerHTML = `
+    <form class="ag" id="agForm">
+      <section class="card ag-passo"><span class="ag-n">1</span><div class="ag-c">
+        <h2>Nome da sua equipe</h2><p class="muted peq">Como a equipe se apresenta para você no painel.</p>
+        <input class="ag-in" type="text" id="agNome" value="${esc(a.nome)}" maxlength="60" placeholder="Ex.: Onça" ${dis}></div></section>
+
+      <section class="card ag-passo"><span class="ag-n">2</span><div class="ag-c">
+        <h2>Quanto ela faz sozinha</h2><p class="muted peq">Publicar, mandar mensagem e anúncio sempre pedem o seu OK (exceto no nível 4, se você liberar).</p>
+        <div class="ag-niveis">${NIVEIS.map(([n, t, d]) => `<label class="ag-nivel"><input type="radio" name="nivel" value="${n}" ${a.nivel_autonomia === n ? "checked" : ""} ${dis}>
+          <b>${t}</b><span>${d}</span>${n === 2 ? `<em>recomendado</em>` : ""}</label>`).join("")}</div></div></section>
+
+      <section class="card ag-passo"><span class="ag-n">3</span><div class="ag-c">
+        <h2>Jeito de falar</h2><p class="muted peq">Toque nos estilos para montar a personalidade. Dá para escrever do seu jeito também.</p>
+        <div class="ag-chips">${AG_TOM.map(t => `<button type="button" class="ag-chip" data-tom="${esc(t)}" ${disE}>${esc(t)}</button>`).join("")}</div>
+        <textarea class="ag-in" id="idPers" maxlength="4000" rows="3" placeholder="Ex.: descontraído, direto, bem-humorado. Nunca arrogante." ${disE}>${esc(i.personalidade)}</textarea>
+        <label class="ag-rot">Assinatura das mensagens <input class="ag-in" type="text" id="idAss" value="${esc(i.assinatura)}" maxlength="200" placeholder="Ex.: Equipe NEXO" ${disE}></label></div></section>
+
+      <section class="card ag-passo"><span class="ag-n">4</span><div class="ag-c">
+        <h2>O que a equipe precisa saber da sua empresa</h2>
+        <p class="muted peq">${ins ? `Versão ${ins.versao}, salva ${quando(ins.criado_em)}. ` : ""}Produto, público, o que pode e o que não pode prometer. As regras de segurança valem sempre.</p>
+        <textarea class="ag-in" id="insTxt" rows="8" maxlength="20000" placeholder="O que vendemos:&#10;Para quem:&#10;O que podemos prometer:&#10;O que nunca dizer:" ${disE}>${esc(ins?.texto)}</textarea></div></section>
+
+      <details class="card ag-mais"><summary>Mais opções: nome na marca, logo, cores e linguagem</summary>
+        <div class="grade">
+          <label class="ag-rot">Nome que aparece na marca<input class="ag-in" type="text" id="idNome" value="${esc(i.nome_exibicao)}" maxlength="80" ${disE}></label>
+          <label class="ag-rot">Link do logotipo<input class="ag-in" type="url" id="idLogo" value="${esc(i.logo_url)}" placeholder="https://…" ${disE}></label>
+          <label class="ag-rot">Cor principal<span class="ag-cor"><input type="color" id="idCor1p" value="${cor(i.cor_primaria, "#F2B632")}" ${disE}><input class="ag-in" type="text" id="idCor1" value="${esc(i.cor_primaria)}" placeholder="#F2B632" maxlength="7" ${disE}></span></label>
+          <label class="ag-rot">Cor secundária<span class="ag-cor"><input type="color" id="idCor2p" value="${cor(i.cor_secundaria, "#2B8CEB")}" ${disE}><input class="ag-in" type="text" id="idCor2" value="${esc(i.cor_secundaria)}" placeholder="#2B8CEB" maxlength="7" ${disE}></span></label>
+        </div>
+        <label class="ag-rot">Linguagem<textarea class="ag-in" id="idLing" rows="2" maxlength="4000" placeholder="Ex.: português do Brasil, frases curtas." ${disE}>${esc(i.linguagem)}</textarea></label>
+      </details>
+
+      <div class="ag-salvar"><span class="muted peq" id="agMud">Nada mudou ainda.</span><button class="btn prim" type="submit" id="agSalvar" ${disE}>Salvar tudo</button></div>
+    </form>`;
+  const f = $("#agForm", el), mud = $("#agMud", el);
+  const valor = () => ({ nome: $("#agNome").value.trim(), nivel: Number($("input[name=nivel]:checked", el)?.value || a.nivel_autonomia),
+    id: { nome_exibicao: $("#idNome").value, logo_url: $("#idLogo").value, cor_primaria: $("#idCor1").value.trim(), cor_secundaria: $("#idCor2").value.trim(),
+          personalidade: $("#idPers").value, linguagem: $("#idLing").value, assinatura: $("#idAss").value }, ins: $("#insTxt").value });
+  const ini = JSON.stringify(valor());
+  const marcar = () => { const m = JSON.stringify(valor()) !== ini; mud.textContent = m ? "Você tem mudanças sem salvar." : "Nada mudou ainda."; mud.classList.toggle("onca", m); };
+  f.addEventListener("input", marcar); f.addEventListener("change", marcar);
+  $$("[data-tom]", el).forEach(b => b.onclick = () => {
+    const t = $("#idPers"), atual = t.value.trim(), tom = b.dataset.tom.toLowerCase();
+    if (atual.toLowerCase().includes(tom)) return;
+    t.value = atual ? `${atual.replace(/[.\s]+$/, "")}, ${tom}.` : `${b.dataset.tom}.`; b.classList.add("on"); marcar();
+  });
+  [["idCor1p", "idCor1"], ["idCor2p", "idCor2"]].forEach(([p, t]) => { $("#" + p).oninput = e => { $("#" + t).value = e.target.value.toUpperCase(); marcar(); }; });
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    const v = valor(), o = JSON.parse(ini), b = $("#agSalvar"), feito = [];
+    for (const c of [v.id.cor_primaria, v.id.cor_secundaria]) if (c && !/^#[0-9A-Fa-f]{6}$/.test(c)) return aviso("Cor no formato #RRGGBB, ex.: #F2B632.", true);
+    b.disabled = true;
+    try {
+      if (!dis && (v.nome !== o.nome || v.nivel !== o.nivel)) { await rpc("nexo_salvar_agente", { p_agente: st.agente, p_nome: v.nome, p_nivel: v.nivel }); feito.push("nome e nível"); }
+      if (JSON.stringify(v.id) !== JSON.stringify(o.id)) { await rpc("nexo_salvar_identidade", { p_agente: st.agente, p_dados: v.id }); feito.push("jeito de falar"); }
+      if (v.ins !== o.ins) { const r2 = await rpc("nexo_salvar_instrucoes", { p_agente: st.agente, p_texto: v.ins }); feito.push(`instruções (versão ${r2.versao})`); }
+      aviso(feito.length ? `Salvo: ${feito.join(", ")}.` : "Nada mudou."); if (feito.length) await carregar();
+    } catch (e) { aviso(msgErro(e), true); } finally { b.disabled = false; }
+  };
+}
+
+// ---------------------------------------------------------------- FUNÇÕES
+function funcoes(el) {
+  const r = st.resumo, nivel = r.agente?.nivel_autonomia || 1, dis = podeMudar() ? "" : "disabled";
+  el.innerHTML = `
+    <div class="card">
+      <h2>O que este agente pode fazer</h2>
+      <p class="muted peq" style="margin:0">Nível atual: <b>${nivel}. ${NIVEIS[nivel - 1][1]}</b>. Funções acima do nível ficam travadas até você subir o nível na aba Identidade. "Publicar", "Responder" e "Pesquisar" também mudam nos interruptores do Início.</p>
+      <div class="aviso info">Preparar peças e pesquisar clientes já seguem estas chaves. Para publicar e responder, a trava está em teste: o agente só anota no Histórico o que ela desligaria, até você mandar valer.</div>
+      ${r.funcoes.map(f => {
+        const acima = f.nivel_minimo > nivel;
+        return `<div class="chave" data-acao="${f.acao}">
+          <div class="txt"><b>${esc(f.nome)} ${f.sensivel ? `<span class="pill warn">sensível</span>` : ""} <span class="pill info">nível ${f.nivel_minimo}+</span></b>
+            <span class="muted peq">${esc(f.descricao || "")}</span>
+            <label class="peq muted linha"><input type="checkbox" data-aprov ${f.exige_aprovacao ? "checked" : ""} ${dis}> pede minha aprovação antes</label>
+            ${acima && f.ligada ? `<span class="warn peq">Ligada antes do nível atual. Continua valendo; para religar depois de desligar, suba o nível.</span>` : ""}</div>
+          <label class="sw"><input type="checkbox" data-lig ${f.ligada ? "checked" : ""} ${dis || (acima && !f.ligada ? "disabled" : "")} aria-label="${esc(f.nome)}"><span></span></label>
+        </div>`; }).join("")}
+    </div>`;
+  $$("[data-acao]", el).forEach(row => {
+    const salvar = async () => {
+      const lig = $("[data-lig]", row), ap = $("[data-aprov]", row);
+      try { await rpc("nexo_salvar_funcao", { p_agente: st.agente, p_acao: row.dataset.acao, p_ligada: lig.checked, p_exige_aprovacao: ap.checked }); aviso("Salvo."); await carregar(); }
+      catch (e) { aviso(msgErro(e), true); await carregar(); }
+    };
+    $("[data-lig]", row).onchange = salvar; $("[data-aprov]", row).onchange = salvar;
+  });
+}
+
+// ---------------------------------------------------------------- CONHECIMENTO (FAQ, fatos, voz)
+const NOME_CON = { faq: "FAQ (respostas automáticas)", fatos: "Fatos aprovados", voz: "Voz da marca" };
+let conhec = null, faqEdit = null;
+function situacaoCon(x) {
+  const a = x?.ativa;
+  if (!a) return `<span class="pill info">em uso: arquivo</span> <span class="muted peq">${x?.base ? "atualizado " + quando(x.base.atualizado_em) : "a equipe ainda não enviou a versão inicial"}</span>`;
+  const conf = a.aceito === true ? `<span class="pill ok">aceita pela Onça</span>` :
+               a.aceito === false ? `<span class="pill bad">recusada: a Onça segue com o arquivo</span>` :
+               `<span class="pill warn">esperando a conferência (próxima rodada)</span>`;
+  return `<span class="pill onca">em uso: versão ${a.versao} do painel</span> ${conf}
+    <div class="muted peq">salva ${quando(a.criado_em)} por ${esc((a.criado_por || "").replace("painel: ", ""))}</div>
+    ${a.motivo ? `<div class="bad peq">Motivo: ${esc(a.motivo)}</div>` : ""}`;
+}
+function historicoCon(tipo, x) {
+  const h = x?.historico || [];
+  if (!h.length) return "";
+  return `<details class="peq"><summary>Versões anteriores (${h.length})</summary><div class="tempo">${h.map(v => `
+    <div class="it"><span class="mono muted">v${v.versao} · ${quando(v.criado_em)}</span><span>${v.ativa ? `<span class="pill onca">ativa</span>` : ""}
+      ${v.aceito === true ? `<span class="pill ok">aceita</span>` : v.aceito === false ? `<span class="pill bad">recusada</span>` : ""}
+      ${!v.ativa && podeMudar() ? `<button class="btn peq" data-reativar="${tipo}:${v.versao}" style="padding:2px 8px">Reativar</button>` : ""}</span></div>`).join("")}</div></details>`;
+}
+function fonteCon(x) { return x?.ativa?.conteudo || x?.base?.conteudo || null; }
+async function conhecimento(el) {
+  el.innerHTML = `<div class="card"><h2>Base da marca</h2><div class="muted peq">Carregando…</div></div>`;
+  try { conhec = await rpc("nexo_conhecimento", { p_agente: st.agente }) || {}; }
+  catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; return; }
+  const dis = podeMudar() ? "" : "disabled";
+  const faq = fonteCon(conhec.faq), fatos = fonteCon(conhec.fatos), voz = fonteCon(conhec.voz);
+  faqEdit = faq ? JSON.parse(JSON.stringify(faq)) : null;
+  el.innerHTML = `
+    <div class="aviso info">É daqui que a Onça tira as respostas automáticas (FAQ), os fatos que pode citar e o jeito de falar (voz). Cada vez que você salva, vira uma versão nova. Antes de usar, a Onça confere o formato e passa todas as respostas no checador de fatos. Se recusar, ela continua com o arquivo e o motivo aparece aqui. <b>Nunca escreva preço, número ou promessa que não esteja nos fatos aprovados.</b></div>
+
+    <div class="card" data-tipo="faq">
+      <div class="linha entre"><h2>${NOME_CON.faq}</h2><div>${situacaoCon(conhec.faq)}</div></div>
+      ${faqEdit ? `
+      <p class="muted peq" style="margin:0">Cada pergunta tem palavras que disparam a resposta (uma por linha, sem acento, como as que já existem). Use {site} onde entra o link oficial.</p>
+      <div id="faqItens"></div>
+      <button class="btn" id="faqMais" style="align-self:flex-start" ${dis}>+ Pergunta</button>
+      <details class="peq"><summary>Avançado: o FAQ inteiro em JSON (palavra-chave, seguir, críticas…)</summary>
+        <textarea id="faqJson" rows="14" class="mono" style="width:100%" ${dis}></textarea>
+        <button class="btn peq" id="faqJsonUsar" ${dis}>Usar este JSON no editor</button></details>
+      <div class="acoes"><button class="btn sim" data-salvar="faq" ${dis}>Salvar nova versão</button>
+        ${conhec.faq?.ativa ? `<button class="btn" data-voltar="faq" ${dis}>Voltar ao arquivo</button>` : ""}</div>` :
+      `<div class="muted peq">A equipe ainda não enviou a versão inicial do FAQ. Ela chega na próxima atualização do dia.</div>`}
+      ${historicoCon("faq", conhec.faq)}
+    </div>
+
+    <div class="card" data-tipo="voz">
+      <div class="linha entre"><h2>${NOME_CON.voz}</h2><div>${situacaoCon(conhec.voz)}</div></div>
+      <p class="muted peq" style="margin:0">Como a marca fala: tom, exemplos, o que nunca dizer. O cérebro lê antes de escrever qualquer peça.</p>
+      <textarea id="vozTexto" rows="16" style="width:100%" ${dis}>${esc(voz?.texto || "")}</textarea>
+      <div class="acoes"><button class="btn sim" data-salvar="voz" ${dis}>Salvar nova versão</button>
+        ${conhec.voz?.ativa ? `<button class="btn" data-voltar="voz" ${dis}>Voltar ao arquivo</button>` : ""}</div>
+      ${historicoCon("voz", conhec.voz)}
+    </div>
+
+    <div class="card" data-tipo="fatos">
+      <div class="linha entre"><h2>${NOME_CON.fatos}</h2><div>${situacaoCon(conhec.fatos)}</div></div>
+      <p class="muted peq" style="margin:0">Preços, planos, contato, links e o que a equipe pode afirmar. É a trava contra informação inventada: mude com cuidado. Formato JSON.</p>
+      <textarea id="fatosJson" rows="16" class="mono" style="width:100%" ${dis}>${esc(fatos ? JSON.stringify(fatos, null, 1) : "")}</textarea>
+      <div class="acoes"><button class="btn sim" data-salvar="fatos" ${dis}>Salvar nova versão</button>
+        ${conhec.fatos?.ativa ? `<button class="btn" data-voltar="fatos" ${dis}>Voltar ao arquivo</button>` : ""}</div>
+      ${historicoCon("fatos", conhec.fatos)}
+    </div>`;
+  if (faqEdit) { pintarFaq(); $("#faqMais").onclick = () => { lerFaq(); faqEdit.itens.push({ id: "nova_" + (faqEdit.itens.length + 1), gatilhos: [], resposta: "" }); pintarFaq(); };
+    $("#faqJsonUsar").onclick = () => { try { faqEdit = JSON.parse($("#faqJson").value); pintarFaq(); aviso("JSON carregado no editor. Confira e salve."); } catch (e) { aviso("JSON com erro: " + e.message, true); } }; }
+  $$("[data-salvar]", el).forEach(b => b.onclick = async () => {
+    const tipo = b.dataset.salvar; let conteudo;
+    try {
+      if (tipo === "voz") conteudo = { texto: $("#vozTexto").value };
+      if (tipo === "fatos") conteudo = JSON.parse($("#fatosJson").value);
+      if (tipo === "faq") { lerFaq(); conteudo = faqEdit; const vazio = conteudo.itens.find(i => !i.gatilhos.length || !i.resposta.trim()); if (vazio) { aviso(`A pergunta "${vazio.id}" precisa de palavras e de resposta.`, true); return; } }
+    } catch (e) { aviso("JSON com erro: " + e.message, true); return; }
+    if (!confirm(`Salvar uma versão nova de ${NOME_CON[tipo]}? A Onça confere e passa a usar na próxima rodada.`)) return;
+    b.disabled = true;
+    try { const r = await rpc("nexo_salvar_conhecimento", { p_agente: st.agente, p_tipo: tipo, p_conteudo: conteudo }); aviso(`Versão ${r.versao} salva. A Onça confere na próxima rodada.`); await conhecimento(el); }
+    catch (e) { b.disabled = false; aviso(msgErro(e) + " " + ((e.message || "").split("conteudo_invalido:")[1] || ""), true); }
+  });
+  $$("[data-voltar]", el).forEach(b => b.onclick = async () => {
+    const tipo = b.dataset.voltar;
+    if (!confirm(`Voltar ${NOME_CON[tipo]} ao arquivo? As versões do painel ficam guardadas.`)) return;
+    try { await rpc("nexo_voltar_conhecimento", { p_agente: st.agente, p_tipo: tipo, p_versao: null }); aviso("Feito: a Onça volta ao arquivo na próxima rodada."); await conhecimento(el); }
+    catch (e) { aviso(msgErro(e), true); }
+  });
+  $$("[data-reativar]", el).forEach(b => b.onclick = async () => {
+    const [tipo, v] = b.dataset.reativar.split(":");
+    if (!confirm(`Reativar a versão ${v} de ${NOME_CON[tipo]}?`)) return;
+    try { await rpc("nexo_voltar_conhecimento", { p_agente: st.agente, p_tipo: tipo, p_versao: Number(v) }); aviso(`Versão ${v} reativada.`); await conhecimento(el); }
+    catch (e) { aviso(msgErro(e), true); }
+  });
+}
+function pintarFaq() {
+  const dis = podeMudar() ? "" : "disabled";
+  $("#faqItens").innerHTML = faqEdit.itens.map((it, i) => `
+    <div class="card" data-item="${i}" style="padding:10px">
+      <div class="linha entre"><label class="campo" style="flex:1">Nome curto<input type="text" data-id value="${esc(it.id)}" maxlength="40" ${dis}></label>
+        <button class="btn nao peq" data-tirar="${i}" ${dis} style="padding:4px 10px">Tirar</button></div>
+      <label class="campo">Palavras que disparam (uma por linha)<textarea data-gat rows="3" ${dis}>${esc((it.gatilhos || []).join("\n"))}</textarea></label>
+      <label class="campo">Resposta<textarea data-resp rows="3" ${dis}>${esc(it.resposta || "")}</textarea></label>
+    </div>`).join("");
+  $("#faqJson").value = JSON.stringify(faqEdit, null, 1);
+  $$("[data-tirar]").forEach(b => b.onclick = () => { if (!confirm("Tirar esta pergunta?")) return; lerFaq(); faqEdit.itens.splice(Number(b.dataset.tirar), 1); pintarFaq(); });
+}
+function lerFaq() {
+  $$("#faqItens [data-item]").forEach(c => {
+    const it = faqEdit.itens[Number(c.dataset.item)];
+    it.id = $("[data-id]", c).value.trim() || it.id;
+    it.gatilhos = $("[data-gat]", c).value.split("\n").map(x => x.trim()).filter(Boolean);
+    it.resposta = $("[data-resp]", c).value.trim();
+  });
+}
+
+// ---------------------------------------------------------------- INTEGRAÇÕES
+const NOME_INT = { instagram: "Instagram", facebook_pagina: "Página do Facebook", meta_business: "Meta Business", whatsapp_business: "WhatsApp Business", google: "Google", telegram: "Telegram", crm: "CRM", api_externa: "API externa", sistema: "Sistema" };
+const ST_INT = { conectado: ["conectado", "ok"], pendente: ["pendente", "warn"], erro: ["erro", "bad"], desconectado: ["desconectado", "muted"], revogado: ["revogado", "bad"] };
+// Os 8 passos da conexão do Instagram, na ordem do agente (agente/conexao.py). Nunca pede senha aqui.
+const PASSOS_IG = [
+  ["conta_profissional", "Conta profissional no Instagram", "No app do Instagram: Configurações › Tipo de conta e ferramentas › Mudar para conta profissional (Empresa ou Criador de conteúdo)."],
+  ["pagina_facebook", "Página do Facebook ligada", "Na Página do Facebook: Configurações › Contas vinculadas › Instagram › Conectar conta. A Página e o Instagram precisam ser da mesma empresa."],
+  ["app_meta", "Autorização do app NEXO Agente", "Você autoriza o app na própria Meta (nunca digite senha neste painel). Se o token vencer, gere um novo e guarde no cofre."],
+  ["permissoes", "Permissões que o fluxo usa", "Ao autorizar, marque todas as permissões que a Meta mostrar: perfil, publicação, comentários, mensagens e a Página."],
+  ["publicar", "Publicar no feed e nos stories", "Depende da permissão de publicação. O agente só publica o que você aprovou e com a chave Publicar ligada."],
+  ["comentarios", "Ler e responder comentários", "Depende da permissão de comentários. As respostas saem do FAQ aprovado, dentro do limite por hora."],
+  ["mensagens", "Mensagens (direct)", "Depende da permissão de mensagens e da conta conectada às mensagens da Página. Direct comum para quem não tem papel no app só depois do Acesso Avançado da Meta (Etapa 5)."],
+  ["teste_real", "Teste real", "O agente pergunta à Meta qual é a conta e confere se é a certa. Roda 3 vezes por dia, junto com o retrato do cérebro."]
+];
+const PASSOS_GOOGLE = [
+  ["autorizacao", "Autorização no Google", "Você autoriza na tela oficial do Google, marcando todas as caixas. Este painel nunca vê sua senha."],
+  ["conta", "Conta Google", "A conta que vai cuidar do canal, do Perfil da Empresa, das planilhas e da agenda."],
+  ["youtube", "YouTube (Shorts)", "Precisa de um canal nesta conta. Vídeos enviados pela API ficam privados até a auditoria do Google."],
+  ["perfil_empresa", "Perfil da Empresa (Google Meu Negócio)", "O Google libera esta API por pedido de acesso, em alguns dias. Até lá fica como 'aguardando'."],
+  ["planilhas", "Planilhas", "Para copiar leads e calendário para o Google Sheets."],
+  ["agenda", "Agenda", "Para pôr as publicações aprovadas e os retornos de leads no Google Agenda."]
+];
+function passosHtml(x, lista = PASSOS_IG) {
+  const PASSOS_IG_ = lista;
+  const ps = new Map(((x.checagem || {}).passos || []).map(p => [p.chave, p]));
+  if (!ps.size) return `<div class="muted peq">O agente ainda não testou esta conexão passo a passo.</div>`;
+  return `<ol class="passos">${PASSOS_IG_.map(([k, t, como]) => {
+    let p = ps.get(k) || { ok: null, detalhe: "não testado" };
+    // Perfil da Empresa ainda sem liberação: frase curta no lugar do erro técnico do Google (que estourava o cartão).
+    if (k === "perfil_empresa" && p.ok === null && /aguardando|quota/i.test(p.detalhe || "")) p = { ...p, detalhe: "aguardando o Google liberar o acesso (pedido enviado)" };
+    const [ic, cls] = p.ok === true ? ["✔", "ok"] : p.ok === false ? ["✘", "bad"] : ["·", "muted"];
+    return `<li><span class="pill ${cls}" aria-label="${p.ok === true ? "ok" : p.ok === false ? "falhou" : "sem teste"}">${ic}</span>
+      <span><b>${t}</b><br><span class="peq ${p.ok === false ? "bad" : "muted"}">${esc(p.detalhe || "")}</span>
+      ${p.ok === true ? "" : `<br><span class="peq">${como}</span>`}</span></li>`; }).join("")}</ol>
+    ${PASSOS_IG_.every(([k]) => (ps.get(k) || {}).ok === true) ? "" : `<details class="peq"><summary>Como fazer cada passo</summary><ol>${PASSOS_IG_.map(([, t, como]) => `<li><b>${t}:</b> ${como}</li>`).join("")}</ol></details>`}`;
+}
+async function integracoes(el) {
+  let it = st.resumo.integracoes || [];
+  try { it = await rpc("nexo_integracoes", { p_agente: st.agente }) || it; } catch (e) { /* mostra o resumo */ }
+  const tem = new Set(it.map(x => x.tipo));
+  const faltam = ["whatsapp_business", "google", "crm"].filter(t => !tem.has(t));
+  el.innerHTML = `
+    <div class="aviso info">O agente testa as conexões de verdade 3 vezes por dia (só leitura na Meta) e grava aqui o resultado de cada passo. As chaves ficam num cofre seguro, nunca neste painel. Para conectar ou renovar, use "Entrar com Facebook": a chave vai para o cofre do NEXO.</div>
+    <div class="grade">
+      ${it.map(x => { const espera = x.tipo === "telegram" && x.status === "desconectado";   // Telegram em espera (Ricardo, 19/11/2026)
+        const [rot, cls] = espera ? ["em espera", "muted"] : (ST_INT[x.status] || [x.status, "muted"]); return `
+        <div class="card ${x.tipo === "instagram" ? "largo" : ""}">
+          <div class="linha entre"><h3>${esc(NOME_INT[x.tipo] || x.tipo)}</h3><span class="pill ${cls}">${rot}</span></div>
+          <div class="peq">Conta: <b>${esc(x.conta || "–")}</b></div>
+          ${x.funcionalidades?.length ? `<div class="linha">${x.funcionalidades.map(f => `<span class="pill info">${esc(f.replace(/_/g, " "))}</span>`).join("")}</div>` : ""}
+          <div class="muted peq">Chave guardada em: ${x.segredo === "github_secrets" ? "cofre seguro" : x.segredo === "cofre" ? "cofre do NEXO" : "–"}</div>
+          <div class="muted peq">Último teste real: ${x.ultimo_teste_em ? quando(x.ultimo_teste_em) + (x.ultimo_teste_ok ? " · ok" : " · falhou") : "ainda não testado"}${x.permissoes?.length ? ` · ${x.permissoes.length} permissões` : ""}</div>
+          ${x.ultimo_erro ? `<div class="bad peq">${esc(x.ultimo_erro)}</div>` : ""}
+          ${x.tipo === "instagram" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x)}
+            <div class="acoes"><button class="btn onca" data-conectar ${podeMudar() ? "" : "disabled"}>Entrar com Facebook</button></div>
+            <div class="muted peq">Abre a tela oficial da Meta. Você autoriza lá; este painel nunca vê sua senha. A chave vai para o cofre do NEXO. A Onça continua usando a chave do GitHub até a Etapa 6.</div>` : ""}
+          ${x.tipo === "google" ? `<h3 style="margin-top:6px">Passo a passo da conexão</h3>${passosHtml(x, PASSOS_GOOGLE)}
+            <div class="acoes"><button class="btn onca" data-google ${podeMudar() ? "" : "disabled"}>Entrar com Google</button></div>` : ""}
+          ${x.tipo === "telegram" ? `<div class="muted peq">${espera ? "Em espera: os avisos pelo Telegram voltam quando ele for configurado." : "O Telegram é testado quando o agente manda um aviso."}</div>` : ""}
+        </div>`; }).join("")}
+      ${faltam.map(t => t === "google"
+        ? `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div>
+            <div class="muted peq">YouTube (Shorts), Perfil da Empresa, Planilhas e Agenda. Abre a tela oficial do Google; a chave vai para o cofre.</div>
+            <button class="btn onca" data-google ${podeMudar() ? "" : "disabled"}>Entrar com Google</button></div>`
+        : `<div class="card"><div class="linha entre"><h3>${NOME_INT[t]}</h3><span class="pill">não conectado</span></div><button class="btn" disabled>Conectar (em breve)</button></div>`).join("")}
+    </div>`;
+  const bg = $("[data-google]", el);
+  if (bg) bg.onclick = async () => {
+    if (!confirm("Abrir a tela oficial do Google para conectar YouTube, Perfil da Empresa, Planilhas e Agenda? Marque todas as caixas.")) return;
+    bg.disabled = true;
+    try { const r = await rpc("nexo_iniciar_conexao", { p_agente: st.agente, p_tipo: "google" });
+          location.href = `${SUPABASE_URL}/functions/v1/nexo-google-oauth?acao=iniciar&state=${r.state}`; }
+    catch (e) { bg.disabled = false; aviso(msgErro(e), true); }
+  };
+  const bc = $("[data-conectar]", el);
+  if (bc) bc.onclick = async () => {
+    if (!confirm("Abrir a tela oficial da Meta para conectar o Instagram? Marque todas as permissões que ela mostrar.")) return;
+    bc.disabled = true;
+    try { const r = await rpc("nexo_iniciar_conexao", { p_agente: st.agente, p_tipo: "instagram" });
+          location.href = `${SUPABASE_URL}/functions/v1/nexo-meta-oauth?acao=iniciar&state=${r.state}`; }
+    catch (e) { bc.disabled = false; aviso(msgErro(e), true); }
+  };
+}
+
+// (A antiga tela de Prospect que ficava aqui saiu em 18/11/2026: tudo dela existe, completo, no app prospect/.)
+// ---------------------------------------------------------------- ATIVIDADE
+async function atividade(el) {
+  el.innerHTML = `<div class="card"><div class="muted peq">Carregando…</div></div>`;
+  try {
+    const it = await rpc("nexo_atividades", { p_agente: st.agente });
+    el.innerHTML = `<div class="card"><div class="tempo">
+      ${(it || []).map(x => `<div class="it"><span class="mono muted">${quando(x.em)}</span><span><span class="pill ${x.origem === "painel" ? "onca" : x.nivel === "erro" ? "bad" : x.nivel === "aviso" ? "warn" : "info"}">${esc(x.origem === "painel" ? "painel" : x.quem)}</span> <b>${esc(x.acao.replace(/_/g, " "))}</b> <span class="muted">${esc((x.texto || "").slice(0, 220))}</span></span></div>`).join("") || vazioOnca("lupa", "Ainda sem movimento.", "A Lupa anota aqui cada passo da equipe e cada mudança no painel.")}
+    </div></div>`;
+  } catch (e) { el.innerHTML = `<div class="vazio">${esc(msgErro(e))}</div>`; }
+}
+
+// ---------------------------------------------------------------- AJUDA
+function ajuda(el) {
+  el.innerHTML = `
+    <div class="card"><h2>Como usar</h2>
+      <ol class="peq" style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+        <li><b>Aprovar:</b> veja a peça, ajuste a data se quiser e toque em Aprovar. Ela só vai ao ar se <b>Publicar</b> estiver ligado no Início.</li>
+        <li><b>Pausar tudo</b> no Início para o agente na próxima rodada (até 1 hora).</li>
+        <li><b>Leads:</b> copie a mensagem pronta, mande pelo seu Instagram ou WhatsApp e mude o status para "Abordado".</li>
+        <li><b>Identidade</b> e <b>Permissões:</b> nome, identidade, instruções, nível de autonomia e o que o agente pode fazer.</li>
+        <li><b>Histórico:</b> tudo o que o agente fez e quem mudou o quê no painel.</li>
+      </ol>
+    </div>
+    ${["plataforma", "dono", "admin"].includes(st.resumo?.papel) && st.empresaId ? `<div class="card"><div class="linha entre"><div><h3>Equipe da empresa</h3>
+      <p class="muted peq" style="margin:4px 0 0">Quem acessa o painel, com qual papel. Convide por e-mail ou tire o acesso.</p></div>
+      <button class="btn prim" id="btnEquipe">Abrir equipe</button></div></div>` : ""}
+    <div class="card"><h3>Em breve</h3><p class="muted peq" style="margin:0">Central de Ajuda com manual e vídeos curtos, e conexão guiada do Instagram.</p></div>
+    <div class="muted mono">Logado como ${esc(st.ctx?.email)} · ${esc(PAPEL[st.resumo?.papel] || "")}</div>`;
+  const be = $("#btnEquipe", el);
+  if (be) be.onclick = () => abrirEquipe(st.empresaId, (st.ctx.empresas || []).find(e => e.id === st.empresaId)?.nome);
+}
+
+// ---------------------------------------------------------------- início
+sb.auth.onAuthStateChange((ev) => { if (ev === "SIGNED_OUT") mostrarLogin(); });
+iniciar();
+</script>
+</body>
+</html>

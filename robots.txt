@@ -5,6 +5,7 @@ Allow: /portfolio/
 Allow: /privacidade.html
 Allow: /termos.html
 Disallow: /prospect/
+Disallow: /marketing
 Disallow: /testes/
 Disallow: /prototipo/
 Disallow: /google-retorno.html

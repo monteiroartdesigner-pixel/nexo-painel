@@ -31,7 +31,7 @@ function planoTem(recurso, empresaId) {
 
 const PL_CONTATO = "https://www.instagram.com/nexo.rm/";
 // Onde ativar: no Marketing, a aba Meu plano (paga ali mesmo); em Vendas, a mesma aba do Marketing.
-const PL_ATIVAR = () => typeof abrirAba === "function" ? "#plano" : "../#plano";
+const PL_ATIVAR = () => typeof abrirAba === "function" ? "#plano" : "marketing#plano";
 document.addEventListener("click", ev => {
   const a = ev.target.closest('a[href$="#plano"]');
   if (a && typeof abrirAba === "function") { ev.preventDefault(); abrirAba("plano"); }
