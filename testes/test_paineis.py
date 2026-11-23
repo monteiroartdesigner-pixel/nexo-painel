@@ -61,6 +61,7 @@ HISTORICO = []   # recusadas e com falha (nexo_conteudos_historico)
 INTEGRACOES = []  # nexo_integracoes (redes conectadas)
 PLANOS_PUB = []  # planos no cadastro público
 FALHAR = {}      # funções que o banco recusa neste teste
+FICHA_EXTRA = {}  # campos que a ficha do primeiro lead devolve a mais/a menos neste teste (ex.: whatsapp None)
 SDR_CFG = {}     # nexo_sdr_config: cada teste monta
 
 
@@ -156,9 +157,17 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return {"empresas": 1, "com_contato": 1, "qualificadas": 1, "prioritarias": 1, "abordadas": 0, "responderam": 0, "propostas": 0,
                 "contratos": 0, "propostas_valor": {}, "receita": {}, "pesquisas": {"buscas": 0}, "por_nicho": [], "por_pais": {"BR": 1}}
     if nome == "nexo_prospect_ficha":
-        e = EMPRESAS_P[0]
+        e = {**EMPRESAS_P[0], **FICHA_EXTRA}
         return {"empresa": e, "campanhas": [{**e["campanhas"][0], "oportunidade": "Teste", "evidencias": [{"o_que": "Evidência", "onde": LINK_RUIM}]}],
                 "historico": [], "tarefas": []}
+    if nome == "nexo_prospect_contato":
+        if FALHAR.get("contato"):
+            raise PermissionError(FALHAR["contato"])
+        if args.get("p_whatsapp"):
+            FICHA_EXTRA["whatsapp"] = "5545999123456"
+        if args.get("p_instagram"):
+            FICHA_EXTRA["instagram"] = "clinicateste"
+        return {"ok": True}
     if nome == "nexo_prospect_tarefas":
         return TAREFAS
     if nome == "nexo_situacao":
@@ -2064,3 +2073,107 @@ class ConversasSdr(unittest.TestCase):
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
+
+
+class ContatoNaFicha(unittest.TestCase):
+    """Salvar à mão o WhatsApp (e o Instagram) que o Ricardo achou no perfil, no site ou no Google (25/11/2026)."""
+
+    def setUp(self):
+        FICHA_EXTRA.clear(); FALHAR.pop("contato", None)
+        FICHA_EXTRA.update({"whatsapp": None, "instagram": None})
+
+    def tearDown(self):
+        FICHA_EXTRA.clear(); FALHAR.pop("contato", None)
+
+    def abrir_ficha(self, p):
+        pg = p.abrir("/#/crm", 1800)
+        pg.click('.kc[data-id="e1"]')
+        pg.wait_for_timeout(700)
+        return pg
+
+    def test_botao_aparece_so_quando_falta_contato(self):
+        p = Pagina()
+        try:
+            pg = self.abrir_ficha(p)
+            self.assertIn("Salvar WhatsApp", pg.inner_text("[data-add-contato]"))
+            self.assertIn("Sem contato comercial público", pg.inner_text(".next"))
+            FICHA_EXTRA.update({"whatsapp": "5541999990000"})
+            pg.evaluate("abrirFicha('e1')"); pg.wait_for_timeout(700)
+            self.assertIn("Adicionar Instagram", pg.inner_text("[data-add-contato]"))
+            FICHA_EXTRA.update({"instagram": "clinicateste"})
+            pg.evaluate("abrirFicha('e1')"); pg.wait_for_timeout(700)
+            self.assertIsNone(pg.query_selector("[data-add-contato]"), "com os dois contatos o botão some")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_salva_whatsapp_e_instagram_juntos_e_a_ficha_atualiza(self):
+        p = Pagina()
+        try:
+            pg = self.abrir_ficha(p)
+            pg.click("[data-add-contato]")
+            self.assertTrue(pg.is_visible("#cWa") and pg.is_visible("#cIg"))
+            pg.fill("#cWa", "https://wa.me/5545999123456?text=Oi")
+            pg.fill("#cIg", "https://www.instagram.com/ClinicaTeste/")
+            pg.click("#mSalvar")
+            pg.wait_for_timeout(900)
+            args = [a for n, a in p.args if n == "nexo_prospect_contato"][-1]
+            self.assertEqual(args, {"p_empresa": "e1", "p_whatsapp": "https://wa.me/5545999123456?text=Oi", "p_instagram": "https://www.instagram.com/ClinicaTeste/"})
+            self.assertIn("Contato salvo", pg.inner_text("#toast"))
+            self.assertFalse(pg.eval_on_selector("#modal", "m => m.classList.contains('on')"), "a janelinha fecha")
+            self.assertIsNotNone(pg.query_selector('[data-copia-num="5545999123456"]'), "a ficha já mostra o botão do número salvo")
+            self.assertIn("@clinicateste", pg.inner_text(".next"))
+            self.assertIsNone(pg.query_selector("[data-add-contato]"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_so_pede_o_que_falta_e_manda_nulo_no_resto(self):
+        FICHA_EXTRA.update({"whatsapp": "5541999990000"})
+        p = Pagina()
+        try:
+            pg = self.abrir_ficha(p)
+            pg.click("[data-add-contato]")
+            self.assertIsNone(pg.query_selector("#cWa"), "o WhatsApp que já existe não é pedido de novo")
+            pg.fill("#cIg", "@clinicateste"); pg.press("#cIg", "Enter")
+            pg.wait_for_timeout(900)
+            args = [a for n, a in p.args if n == "nexo_prospect_contato"][-1]
+            self.assertEqual(args, {"p_empresa": "e1", "p_whatsapp": None, "p_instagram": "@clinicateste"})
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_vazio_nao_chama_o_banco(self):
+        p = Pagina()
+        try:
+            pg = self.abrir_ficha(p)
+            pg.click("[data-add-contato]"); pg.click("#mSalvar"); pg.wait_for_timeout(300)
+            self.assertIn("Escreva o WhatsApp ou o Instagram", pg.inner_text("#toast"))
+            self.assertNotIn("nexo_prospect_contato", p.chamadas)
+            self.assertTrue(pg.is_visible("#cWa"), "a janelinha continua aberta")
+        finally:
+            p.fechar()
+
+    def test_recusa_do_banco_aparece_e_a_janelinha_fica_aberta(self):
+        FALHAR["contato"] = "contato_invalido: esse WhatsApp já é de Padaria Alfa"
+        p = Pagina()
+        try:
+            pg = self.abrir_ficha(p)
+            pg.click("[data-add-contato]"); pg.fill("#cWa", "45999123456"); pg.click("#mSalvar"); pg.wait_for_timeout(900)
+            self.assertIn("Confira o contato.", pg.inner_text("#toast"))
+            self.assertIn("já é de Padaria Alfa", pg.inner_text("#toast"))
+            self.assertTrue(pg.is_visible("#cWa"))
+            self.assertFalse(pg.is_disabled("#mSalvar"), "dá para corrigir e tentar de novo")
+        finally:
+            p.fechar()
+
+    def test_leitor_nao_ve_o_botao(self):
+        global contexto
+        original = contexto
+        contexto = lambda com_onca=True, master=False: {**original(com_onca, master), "empresas": [{**e, "papel": "leitor"} for e in original(com_onca, master)["empresas"]]}
+        p = Pagina()
+        try:
+            pg = self.abrir_ficha(p)
+            self.assertIsNone(pg.query_selector("[data-add-contato]"))
+        finally:
+            p.fechar(); contexto = original

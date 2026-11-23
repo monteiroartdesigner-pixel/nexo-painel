@@ -388,7 +388,7 @@ const TURNOS = [["manha", "Manhã · 06:10"], ["tarde", "Tarde · 12:10"], ["noi
 const CANAIS = [["whatsapp", "WhatsApp"], ["instagram", "Instagram (direct)"], ["email", "E-mail"], ["linkedin", "LinkedIn"], ["telefone", "Telefone"]];
 const ERROS = { sem_login: "Sua sessão acabou. Entre de novo.", sem_permissao: "Seu papel não permite esta ação.",
   campanha_invalida: "Confira os campos da busca.", campanha_pausada: "Ative a busca antes de pedir a pesquisa.",
-  registro_invalido: "Confira o registro.", tarefa_invalida: "Confira a tarefa.", empresa_nao_encontrada: "Essa empresa não existe mais.",
+  registro_invalido: "Confira o registro.", contato_invalido: "Confira o contato.", tarefa_invalida: "Confira a tarefa.", empresa_nao_encontrada: "Essa empresa não existe mais.",
   "Invalid login": "E-mail ou senha errados.", "Failed to fetch": "Sem internet ou servidor fora do ar." };
 function msgErro(e) {
   const m = (e && (e.message || e.error_description)) || String(e);
@@ -749,6 +749,7 @@ function pintarFicha(f) {
           ${e.instagram ? `<a class="btn sm" data-copia target="_blank" rel="noopener" href="${esc(perfilIg(e.instagram))}" title="Copia a mensagem e abre o perfil: toque em Mensagem e cole">${ic("ig")}@${esc(usuarioIg(e.instagram))}</a>` : ""}
           ${msgDe(camps) && (e.whatsapp || e.email || e.instagram) ? `<span class="peq muted" style="flex-basis:100%">Ao tocar num contato, a mensagem sugerida já vai copiada: lá é só colar (Ctrl+V).</span>` : ""}
           ${urlSegura(e.site) ? `<a class="btn sm" target="_blank" rel="noopener" href="${hrefSeguro(e.site)}">${ic("web")}Site</a>` : ""}
+          ${pode && (!e.whatsapp || !e.instagram) ? `<button class="btn sm" data-add-contato title="Achou o número no perfil do Instagram, no site ou no Google? Guarde aqui: o WhatsApp é o contato que mais vale">${ic("plus")}${!e.whatsapp ? "Salvar WhatsApp" : "Adicionar Instagram"}</button>` : ""}
           ${!e.whatsapp && !e.email && !e.instagram ? `<span class="peq muted">Sem contato comercial público.</span>` : ""}
           ${msgDe(camps) && !e.whatsapp && !e.email && !e.instagram ? `<button class="btn sm" data-msg-sem-contato>${ic("copy")}Copiar mensagem</button><span class="peq muted" style="flex-basis:100%">A mensagem já está pronta: guarde para quando achar o contato.</span>` : ""}
         </div></div>
@@ -765,6 +766,7 @@ function pintarFicha(f) {
     </div>`;
   $("[data-x]", d).onclick = fecharGaveta;
   ligarCopiaAoAbrir(d, msgDe(camps));
+  const bc = $("[data-add-contato]", d); if (bc) bc.onclick = () => modalContato(f, e);
   const fs = $("#fSt", d); if (fs) fs.onchange = async () => { await mudarStatus(e.id, fs.value); };
   $$("[data-aba]", d).forEach(b => b.onclick = () => { fichaAba = b.dataset.aba; pintarFicha(f); });
   $$("[data-reg]", d).forEach(b => b.onclick = () => b.dataset.reg === "retorno" ? modalRetorno(f) : modalRegistro(f, b.dataset.reg));
@@ -922,6 +924,24 @@ async function recarregarFicha(id) {
   try { f = await rpc("nexo_prospect_ficha", { p_empresa: id }); }
   catch { const e0 = S.empresas.find(x => x.id === id); f = { empresa: e0, campanhas: e0?.campanhas || [], historico: [], tarefas: [], _semCrm: true }; }
   if (f.empresa) pintarFicha(f); if (["inicio", "crm", "tarefas"].includes(rotaAtual())) render();
+}
+// Guardar à mão o WhatsApp (e o Instagram) que você achou: o WhatsApp é o contato que mais vale, e o Instagram fica junto.
+function modalContato(f, e) {
+  abrirModal(`<div class="modal-h"><h2>Salvar contato</h2><p class="muted" style="margin:6px 0 0">${esc(e.nome)} · O WhatsApp é o contato que mais vale; se tiver os dois, salve juntos. Nada é enviado.</p></div>
+    <form class="modal-b" id="mf">
+      ${!e.whatsapp ? `<label class="field"><span>WhatsApp</span><input class="input" id="cWa" inputmode="tel" autocomplete="off" maxlength="200" placeholder="(45) 99999-0000 ou o link wa.me/…"><span class="peq muted">Cole o número ou o link do WhatsApp do perfil do Instagram (wa.me/…). O código tira o resto.</span></label>` : ""}
+      ${!e.instagram ? `<label class="field"><span>Instagram</span><input class="input" id="cIg" autocomplete="off" maxlength="200" placeholder="@usuario ou o link do perfil"></label>` : ""}
+    </form>
+    <div class="modal-f"><button class="btn ghost" data-fechar>Cancelar</button><button class="btn pri" id="mSalvar">Salvar contato</button></div>`, m => {
+    $("#mf", m).onsubmit = ev => { ev.preventDefault(); $("#mSalvar", m).click(); };
+    $("#mSalvar", m).onclick = async () => {
+      const wa = $("#cWa", m)?.value.trim() || null, ig = $("#cIg", m)?.value.trim() || null;
+      if (!wa && !ig) { toast("Escreva o WhatsApp ou o Instagram.", true); return; }
+      $("#mSalvar", m).disabled = true;
+      try { await rpc("nexo_prospect_contato", { p_empresa: e.id, p_whatsapp: wa, p_instagram: ig }); fecharModal(); toast("Contato salvo."); await recarregarFicha(e.id); }
+      catch (err) { $("#mSalvar", m).disabled = false; toast(msgErro(err), true); }
+    };
+  });
 }
 // O lead pediu para você voltar a falar com ele numa data: vira tarefa de retorno e o CRM destaca o lead até ela ser concluída.
 function modalRetorno(f) {
