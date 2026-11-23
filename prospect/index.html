@@ -265,6 +265,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 </style>
 <link rel="stylesheet" href="../assets/visual.css?v=20261119w">
 <link rel="stylesheet" href="../assets/suporte.css?v=20261119a">
+<link rel="stylesheet" href="../assets/vendas-equipe.css?v=20261123a">
 </head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -308,6 +309,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o" crossorigin="anonymous"></script>
 <script src="../assets/base.js?v=20261118k"></script>
+<script src="../assets/vendas-equipe.js?v=20261123a"></script>
 <script src="../assets/links.js?v=20261119n"></script>
 <script src="../assets/leads.js?v=20261118k"></script>
 <script src="../assets/plano.js?v=20261119v"></script>
@@ -459,6 +461,7 @@ function render() {
   if (modTrancado(r)) el.innerHTML = planoBloqueio(PRO_RECURSO[r], empresaDoModulo(r));
   else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, leads: vLeads, ajuda: vAjuda })[r](el);
   planoFaixa(S.empresaId, el);
+  if (!modTrancado(r) && typeof vendasEquipe === "function") vendasEquipe(el);   // onças da equipe nesta aba (23/11/2026)
   document.title = `${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
 }
 
@@ -473,6 +476,7 @@ async function vLeads(el) {
   if (!st.agente) { $("#ldHost").innerHTML = `<div class="alert warn">${ic("alert")}<div>Seu login não tem acesso aos leads do Instagram.</div></div>`; return; }
   try { st.leads = await rpc("nexo_leads", { p_agente: st.agente }) || []; }
   catch (e) { $("#ldHost").innerHTML = `<div class="alert warn">${ic("alert")}<div>${esc(msgErro(e))}</div></div>`; return; }
+  if (rotaAtual() === "leads" && typeof vendasEquipe === "function") { el.querySelector(":scope > .vq")?.remove(); vendasEquipe(el); }   // agora com o número de leads
   if (rotaAtual() === "leads") leadsTela($("#ldHost"));
 }
 

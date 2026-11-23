@@ -1570,3 +1570,103 @@ class MarketingAuditoria(unittest.TestCase):
             self.assertNotIn("nexo_marcar_pedido", p.chamadas)
         finally:
             p.fechar()
+
+
+class MasterExcluiUsuario(unittest.TestCase):
+    """Master: excluir a conta de login (23/11/2026). O banco confere as travas; o painel mostra e pede o e-mail."""
+
+    def setUp(self):
+        self.guardado = list(MASTER_USUARIOS)
+        MASTER_USUARIOS.clear()
+        MASTER_USUARIOS.extend([
+            {"id": "t1", "email": "teste@cadastro.com", "nome": None, "ultimo_login": None, "confirmado": False, "master": False, "sport": False,
+             "eu": False, "motivo_nao_exclui": None, "empresas": []},
+            {"id": "s1", "email": "time@sport.com", "nome": None, "ultimo_login": "2026-11-20T12:00:00Z", "confirmado": True, "master": False, "sport": True,
+             "eu": False, "motivo_nao_exclui": "Tem conta no NEXO SPORT: apagar o login levaria o Sport junto.", "empresas": []},
+            {"id": "m1", "email": "eu@nexo.com", "nome": None, "ultimo_login": "2026-11-23T12:00:00Z", "confirmado": True, "master": True, "sport": False,
+             "eu": True, "motivo_nao_exclui": "É a sua conta.", "empresas": []}])
+
+    def tearDown(self):
+        MASTER_USUARIOS.clear(); MASTER_USUARIOS.extend(self.guardado)
+
+    def test_lista_mostra_quem_nao_tem_empresa_e_so_oferece_excluir_a_quem_pode(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(700)
+            txt = pg.inner_text(".m-usuarios")
+            self.assertIn("teste@cadastro.com", txt); self.assertIn("cadastro que não terminou", txt)
+            self.assertIn("NEXO SPORT", txt); self.assertIn("apagar o login levaria o Sport junto", txt)
+            self.assertEqual(len(pg.query_selector_all("[data-m-excluir-us]")), 1, "só quem pode ser excluído tem o botão")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_exclui_pedindo_o_email(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/index.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(700)
+            pg.click('[data-m-excluir-us="t1"]'); pg.wait_for_timeout(300)
+            self.assertIn("Não tem como desfazer", pg.inner_text(".m-janela"))
+            pg.fill(".m-janela [name=confirmacao]", "outro@email.com")
+            pg.click(".m-janela [type=submit]"); pg.wait_for_timeout(400)
+            self.assertNotIn("nexo_master_excluir_usuario", p.chamadas, "e-mail errado não chega ao banco")
+            pg.fill(".m-janela [name=confirmacao]", "TESTE@cadastro.com")
+            pg.click(".m-janela [type=submit]"); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_master_excluir_usuario"][-1]
+            self.assertEqual(args, {"p_user": "t1", "p_confirmacao": "TESTE@cadastro.com"})
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class VendasEquipeDeOncas(unittest.TestCase):
+    """Vendas: faixa "Quem trabalha aqui" com as onças de cada aba, só com o que a tela já tem (23/11/2026)."""
+
+    def test_cada_aba_mostra_as_oncas_certas(self):
+        esperado = {"inicio": ("Faro", "Lupa"), "crm": ("Faro", "Lupa"), "tarefas": ("Faro",), "campanhas": ("Faro",)}
+        p = Pagina()
+        try:
+            for rota, nomes in esperado.items():
+                pg = p.abrir(f"/prospect/#/{rota}", 1500)
+                faixa = pg.inner_text(".vq")
+                self.assertIn("quem trabalha aqui", faixa.lower(), rota)
+                for n in nomes:
+                    self.assertIn(n, faixa, f"{rota}: {n}")
+                self.assertEqual(len(pg.query_selector_all(".vq .vq-onca")), len(nomes), rota)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_fala_usa_os_dados_da_tela_sem_inventar(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/crm", 1500)
+            faixa = pg.inner_text(".vq")
+            self.assertIn("Achei 1 empresa", faixa)          # EMPRESAS_P tem 1 empresa com contato
+            self.assertIn("1 tem contato público", faixa)
+            self.assertIn("1 está com nota 70 ou mais", faixa)   # pontuacao 80
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_faixa_continua_depois_de_trocar_kanban_e_tabela(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/crm", 1500)
+            pg.click('[data-v="tabela"]'); pg.wait_for_timeout(400)
+            self.assertEqual(len(pg.query_selector_all(".vq")), 1)
+            pg.click('[data-v="kanban"]'); pg.wait_for_timeout(400)
+            self.assertEqual(len(pg.query_selector_all(".vq")), 1, "uma faixa só, sem duplicar")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_ajuda_nao_tem_faixa(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/ajuda", 1500)
+            self.assertIsNone(pg.query_selector(".vq"))
+        finally:
+            p.fechar()

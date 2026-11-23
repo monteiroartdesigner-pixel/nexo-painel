@@ -48,5 +48,7 @@
 .m-us:first-child{border-top:0}
 .m-us-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
 .m-us-txt b{overflow-wrap:anywhere}
-.m-us-lado{text-align:right;flex-shrink:0}
+.m-us-lado{text-align:right;flex-shrink:0;max-width:260px}
+.m-us-trava{display:inline-block;margin-top:4px;font-size:12px;opacity:.85}
+.m-us-lado .btn{margin-top:6px}
 @media (max-width:560px){.m-us{flex-direction:column}.m-us-lado{text-align:left}}

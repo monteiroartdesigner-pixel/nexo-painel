@@ -99,6 +99,7 @@ async function master(el) {
   el.querySelectorAll("[data-m-plano]").forEach(b => b.onclick = () => mEditarAssinatura(mst.empresas.find(e => e.id === b.dataset.mPlano)));
   el.querySelectorAll("[data-m-filtro]").forEach(b => b.onclick = () => { mst.filtro = b.dataset.mFiltro; master(el); });
   el.querySelectorAll("[data-m-excluir]").forEach(b => b.onclick = () => mExcluirCliente(mst.empresas.find(e => e.id === b.dataset.mExcluir)));
+  el.querySelectorAll("[data-m-excluir-us]").forEach(b => b.onclick = () => mExcluirUsuario((mst.usuarios || []).find(u => u.id === b.dataset.mExcluirUs)));
   el.querySelectorAll("[data-m-restaurar]").forEach(b => b.onclick = () => mRestaurarCliente(mst.empresas.find(e => e.id === b.dataset.mRestaurar)));
   el.querySelectorAll("form[data-m-salvar-plano]").forEach(f => f.onsubmit = ev => { ev.preventDefault(); mSalvarPlano(f, el); });
 }
@@ -281,9 +282,29 @@ function mCartaoUsuarios(us) {
   return `<div class="card"><div class="linha entre"><h2>Usuários</h2><span class="muted peq">${pl(us.length, "pessoa", "pessoas")}</span></div>
     <div class="m-usuarios">${us.map(u => `<div class="m-us">
       <div class="m-us-txt"><b>${esc(u.nome || u.email)}</b>${u.nome ? `<span class="muted peq">${esc(u.email)}</span>` : ""}
-        <span class="peq">${u.master ? `<span class="pill ok">Master</span> ` : ""}${(u.empresas || []).map(x => `${esc(x.nome)} · ${esc(M_PAPEL[x.papel] || x.papel)}`).join(" · ") || "sem empresa"}</span></div>
-      <div class="m-us-lado peq muted">${u.confirmado ? "" : `<span class="pill warn">e-mail não confirmado</span><br>`}Último acesso: ${esc(quando(u.ultimo_login))}</div>
+        <span class="peq">${u.master ? `<span class="pill ok">Master</span> ` : ""}${u.sport ? `<span class="pill info">NEXO SPORT</span> ` : ""}${(u.empresas || []).map(x => `${esc(x.nome)} · ${esc(M_PAPEL[x.papel] || x.papel)}`).join(" · ") || (u.sport || u.master ? "" : "sem empresa (cadastro que não terminou)")}</span></div>
+      <div class="m-us-lado peq muted">${u.confirmado ? "" : `<span class="pill warn">e-mail não confirmado</span><br>`}Último acesso: ${esc(quando(u.ultimo_login))}
+        ${"motivo_nao_exclui" in u ? (u.motivo_nao_exclui ? `<br><span class="m-us-trava" title="${esc(u.motivo_nao_exclui)}">${u.eu ? "" : "Não exclui: "}${esc(u.motivo_nao_exclui)}</span>`
+          : `<br><button class="btn nao peq" type="button" data-m-excluir-us="${esc(u.id)}" title="Apaga a conta de login desta pessoa. Não tem como desfazer.">Excluir conta</button>`) : ""}</div>
     </div>`).join("") || `<div class="vazio">Ninguém ainda.</div>`}</div></div>`;
+}
+
+// ---------------------------------------------------------------- excluir usuário (23/11/2026)
+// "Tirar acesso" só tira a pessoa da empresa; aqui é a conta de login mesmo, a confirmação é o e-mail exato.
+// O banco recusa master, a própria conta, quem tem conta no NEXO SPORT e dono de empresa ativa.
+function mExcluirUsuario(u) {
+  if (!u) return;
+  mJanela(`Excluir a conta de ${u.nome || u.email}`, `
+    <div class="aviso"><b>Não tem como desfazer.</b> A conta de login e o acesso a ${pl((u.empresas || []).length, "empresa", "empresas")} saem na hora.
+      Convites pendentes para <b>${esc(u.email)}</b> também. Para voltar, a pessoa precisa se cadastrar de novo.</div>
+    <label class="m-campo"><span>Para confirmar, digite o e-mail: <b>${esc(u.email)}</b></span>
+      <input name="confirmacao" autocomplete="off" required></label>`,
+    async f => {
+      const email = f.elements.confirmacao.value.trim();
+      if (email.toLowerCase() !== String(u.email).trim().toLowerCase()) throw new Error("O e-mail não confere. Digite exatamente como aparece.");
+      await rpc("nexo_master_excluir_usuario", { p_user: u.id, p_confirmacao: email });
+      aviso(`A conta de ${u.email} foi excluída.`);
+    }, "Excluir conta", "nao");
 }
 
 // ---------------------------------------------------------------- excluir e restaurar cliente (18/11/2026)
