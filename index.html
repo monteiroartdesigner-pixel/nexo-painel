@@ -228,12 +228,12 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <div id="telaApp" class="app oculto">
   <aside class="lado" aria-label="Navegação da plataforma">
     <div class="topo-m">
-      <button class="plat-marca botao" id="btnMarca" type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
+      <button class="plat-marca botao" id="btnMarca" type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Marketing</span></span></button>
       <button class="sair sair-m" type="button" data-sair>Sair</button>
     </div>
-    <nav class="areas" aria-label="Áreas da plataforma">
-      <a class="sys" href="./" aria-current="page" title="Marketing: a equipe de onças que cria e publica conteúdo"><i></i>Marketing</a>
-      <a class="pro" href="prospect/" title="Vendas: buscas de empresas, clientes e tarefas"><i></i>Vendas</a>
+    <nav class="areas produto" aria-label="Produto">
+      <span class="produto-atual" aria-current="page" title="NEXO Marketing: a equipe de onças que cria e publica conteúdo"><i></i>NEXO Marketing</span>
+      <a class="produto-outro oculto" id="irOutroProduto" href="prospect/" title="Abrir o NEXO Prospect: clientes, buscas, WhatsApp e SDR">NEXO Prospect ↗</a>
     </nav>
     <div class="rot">Agente</div>
     <select id="selAgente" aria-label="Escolher agente"></select>
@@ -417,6 +417,8 @@ async function iniciar() {
   if (!data.session) return mostrarLogin();
   await contaPosLogin();   // aceita convites e termina um cadastro que esperava a confirmação do e-mail (assets/conta.js)
   try { st.ctx = await rpc("nexo_contexto"); } catch (e) { aviso(msgErro(e), true); return mostrarLogin(); }
+  // Atalho para o outro produto: só aparece para quem tem o Prospect na empresa (os produtos são separados; o login é um só).
+  if ((st.ctx?.empresas || []).some(e => (e.agentes || []).some(a => a.slug === "prospect"))) $("#irOutroProduto")?.classList.remove("oculto");
   Suporte.iniciar({ produto: "Marketing", onca: { nome: "Pintada", img: "assets/equipe/gestora-rosto.webp" }, rpc,
     empresa: () => (($("#nomeEmpresa").textContent || "").split(" · ")[0] || "").replace(/^NEXO( System| Prospect)?$/, ""),
     abas: $$(".menu [data-aba]").map(b => b.dataset.aba), ir: abrirAba });
@@ -512,7 +514,6 @@ function inicio(el) {
       </div>
       <div class="card"><span class="muted peq">Esperando sua aprovação</span><span class="num onca">${revisar}</span><button class="btn" data-ir="aprovar">Ver peças</button></div>
       <div class="card"><span class="muted peq">Aprovadas na fila</span><span class="num ok">${prontos}</span><span class="muted peq">Publicadas: ${cont.publicado || 0}</span></div>
-      <div class="card"><span class="muted peq">Leads em Clientes</span><span class="num">${totalLeads}</span><span class="muted peq">Para abordar: ${(ld.abordar || 0) + (ld.qualificado || 0)}</span></div>
       ${r.conta ? `<div class="card"><span class="muted peq">Seguidores (${quando(r.conta.dia, false)})</span><span class="num">${r.conta.seguidores ?? "–"}</span><span class="muted peq">Alcance: ${r.conta.alcance ?? "–"} · visitas: ${r.conta.visitas_perfil ?? "–"}</span></div>` : ""}
     </div>
     <div class="card">

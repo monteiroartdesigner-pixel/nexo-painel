@@ -1670,3 +1670,56 @@ class VendasEquipeDeOncas(unittest.TestCase):
             self.assertIsNone(pg.query_selector(".vq"))
         finally:
             p.fechar()
+
+
+class ProdutosSeparados(unittest.TestCase):
+    """Marketing e Prospect são produtos separados (23/11/2026): cada um com o seu nome e sem o seletor um do outro; o login é um só."""
+
+    def test_marketing_tem_nome_proprio_e_so_um_atalho_para_o_prospect(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html", 1500)
+            self.assertIn("NEXO Marketing", pg.inner_text(".areas.produto"))
+            self.assertEqual(len(pg.query_selector_all(".areas a.pro")), 0, "não existe mais a aba Vendas dentro do Marketing")
+            self.assertNotIn("Vendas", pg.inner_text(".areas"))
+            self.assertTrue(pg.is_visible("#irOutroProduto"), "quem tem o Prospect vê o atalho")
+            self.assertIn("marketing", pg.inner_text("#btnMarca").lower(), "o nome ao lado do logo é o do produto")
+            pg.click('.menu [data-aba="inicio"]'); pg.wait_for_timeout(500)
+            self.assertNotIn("Leads em Clientes", pg.inner_text('[data-sec="inicio"]'), "leads são do Prospect")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_prospect_tem_nome_proprio_e_o_atalho_depende_de_ter_o_marketing(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/inicio", 1500)
+            self.assertIn("NEXO Prospect", pg.inner_text(".side .areas.produto"))
+            self.assertNotIn("Vendas", pg.inner_text(".side .areas"))
+            self.assertTrue(pg.is_visible(".side [data-outro-produto]"), "quem tem o Marketing vê o atalho")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+        p = Pagina(com_onca=False)
+        try:
+            pg = p.abrir("/prospect/#/inicio", 1500)
+            self.assertFalse(pg.is_visible(".side [data-outro-produto]"), "sem o Marketing não aparece atalho nenhum")
+        finally:
+            p.fechar()
+
+    def test_kanban_do_prospect_tem_a_etapa_lead_quente(self):
+        EMPRESAS_P.append({"id": "q1", "nome": "Clínica Quente", "status": "quente", "pontuacao": 90, "cidade": "Curitiba", "estado": "PR", "pais": "BR",
+                           "segmento": "clínica", "whatsapp": "5541999990001", "campanhas": [{"id": "c1", "nome": "Sites", "prioridade": "alta"}]})
+        p = Pagina()
+        try:
+            pg = p.abrir("/prospect/#/crm", 1600)
+            col = pg.query_selector('section[data-col="quente"]')
+            self.assertIsNotNone(col, "existe a coluna Lead quente")
+            self.assertIn("Lead quente", col.inner_text())
+            self.assertIn("Clínica Quente", col.inner_text())
+            ordem = pg.eval_on_selector_all(".kanban section[data-col]", "xs => xs.map(x => x.dataset.col)")
+            self.assertEqual(ordem.index("quente"), ordem.index("respondeu") + 1, "entre Respondeu e Proposta")
+            self.assertEqual(ordem.index("proposta"), ordem.index("quente") + 1)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar(); EMPRESAS_P[:] = [e for e in EMPRESAS_P if e["id"] != "q1"]

@@ -49,3 +49,12 @@
 .ap-cor{width:38px;height:38px;border-radius:50%;border:3px solid var(--panel);box-shadow:0 0 0 2px var(--fina);cursor:pointer;padding:0}
 .ap-cor[aria-pressed="true"]{box-shadow:0 0 0 3px var(--fg)}
 .ap-nota{font-size:12.5px;color:var(--muted)}
+
+/* Um produto por vez (Marketing e Prospect são separados; o login é um só). O nome do produto no lugar do seletor. */
+.areas.produto{grid-template-columns:1fr;gap:6px;padding:8px 10px}
+.produto-atual{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;letter-spacing:.02em}
+.produto-atual i{width:8px;height:8px;border-radius:50%;background:#2B8CEB;flex:0 0 auto}
+.produto-outro{font-size:.78rem;color:#9fb2d3;text-decoration:none}
+.produto-outro:hover{color:#fff;text-decoration:underline}
+[data-tema="claro"] .produto-atual,[data-tema="cafe"] .produto-atual{color:#0F172A}
+[data-tema="claro"] .produto-outro,[data-tema="cafe"] .produto-outro{color:#5B6577}

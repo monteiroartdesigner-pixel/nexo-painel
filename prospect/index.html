@@ -290,11 +290,11 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
   <header class="topm">
     <div class="l1"><button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="../assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
       <button class="btn ghost sm" data-sair>Sair</button></div>
-    <nav class="areas" aria-label="Áreas da plataforma"><a class="sys" href="../"><i></i>Marketing</a><a class="pro" href="./" aria-current="page"><i></i>Vendas</a></nav>
+    <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span><a class="produto-outro oculto" data-outro-produto href="../" title="Abrir o NEXO Marketing: a equipe de onças que cria e publica conteúdo">NEXO Marketing ↗</a></nav>
   </header>
   <aside class="side">
     <button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="../assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
-    <nav class="areas" aria-label="Áreas da plataforma"><a class="sys" href="../" title="Marketing: a equipe de onças que cria e publica conteúdo"><i></i>Marketing</a><a class="pro" href="./" aria-current="page" title="Vendas: buscas de empresas, clientes e tarefas"><i></i>Vendas</a></nav>
+    <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span><a class="produto-outro oculto" data-outro-produto href="../" title="Abrir o NEXO Marketing: a equipe de onças que cria e publica conteúdo">NEXO Marketing ↗</a></nav>
     <nav class="nav" id="nav" aria-label="Módulos de Vendas"></nav>
     <div class="side-f">
       <label class="emp-sel oculto" id="empresaP"><span class="peq muted">Empresa (Master)</span><select class="select" id="selEmpresaP" aria-label="Empresa que você está vendo"></select></label>
@@ -351,8 +351,8 @@ const fala = (texto, tam = 56) => `<div class="ursa-fala">${ursa(tam)}<div class
 const LOGO =`<svg viewBox="0 0 24 24" fill="none" stroke="#CFE0FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V5l14 14V5"/></svg>`;
 
 const ST = { novo: ["Novo", ""], qualificado: ["Qualificado", "pri"], abordar: ["Abordar", "info"], abordado: ["Abordado", "info"],
-  respondeu: ["Respondeu", "warn"], proposta: ["Proposta", "warn"], cliente: ["Cliente", "ok"], perdido: ["Perdido", "bad"], nao_contatar: ["Não contatar", "bad"] };
-const FUNIL = ["novo", "qualificado", "abordar", "abordado", "respondeu", "proposta", "cliente"];
+  respondeu: ["Respondeu", "warn"], quente: ["Lead quente", "bad"], proposta: ["Proposta", "warn"], cliente: ["Cliente", "ok"], perdido: ["Perdido", "bad"], nao_contatar: ["Não contatar", "bad"] };
+const FUNIL = ["novo", "qualificado", "abordar", "abordado", "respondeu", "quente", "proposta", "cliente"];
 const PRIO = { alta: ["Alta", "ok"], media: ["Média", "warn"], baixa: ["Baixa", ""] };
 const FONTES = [["busca_web", "Busca na web"], ["instagram_publico", "Instagram público (sem login)"], ["site_da_empresa", "Site da empresa"], ["plataformas_de_projetos", "Plataformas de projetos"]];
 const DIAS = [[1, "Seg"], [2, "Ter"], [3, "Qua"], [4, "Qui"], [5, "Sex"], [6, "Sáb"], [7, "Dom"]];
@@ -518,6 +518,7 @@ function proximoPasso(e) {
   if (["perdido", "nao_contatar", "cliente"].includes(e.status)) return { t: e.status === "cliente" ? "Cliente" : "Encerrado", d: e.status === "cliente" ? "Acompanhe a entrega e peça indicação." : "Nenhuma ação pendente.", tom: "" };
   if (["novo", "qualificado", "abordar"].includes(e.status)) return contato ? { t: "Fazer a primeira abordagem", d: k.mensagem_pt || k.mensagem_en || k.oportunidade ? "Abra a ficha: a mensagem sugerida está lá para revisar e enviar." : "Escreva uma mensagem curta citando o que você viu.", tom: "pri" } : { t: "Achar um contato", d: "A empresa ainda não tem contato comercial público.", tom: "" };
   if (e.status === "abordado") return { t: "Fazer follow-up", d: "Sem resposta? Retome a conversa em 2 ou 3 dias.", tom: "pri" };
+  if (e.status === "quente") return { t: "Assumir a conversa agora", d: "A IA passou este lead para você: abra o WhatsApp e continue de onde ela parou.", tom: "pri" };
   if (e.status === "respondeu") return { t: "Enviar proposta", d: "Use a proposta pronta e ajuste o valor.", tom: "pri" };
   if (e.status === "proposta") return { t: "Negociar e fechar", d: "Confirme se a proposta chegou e tire as dúvidas.", tom: "pri" };
   return { t: "Revisar", d: "", tom: "" };
@@ -644,7 +645,7 @@ function kanban(el, l) {
   // Quem pediu retorno sobe para o topo da coluna (o mais urgente primeiro); o resto mantém a ordem.
   const urg = e => retornoDe(e)?.vence_em || "9999";
   el.innerHTML = `<div class="kanban">${cols.map(s => { const itens = l.filter(e => s === "perdido" ? ["perdido", "nao_contatar"].includes(e.status) : e.status === s).map((e, i) => [e, i]).sort((a, b) => urg(a[0]) < urg(b[0]) ? -1 : urg(a[0]) > urg(b[0]) ? 1 : a[1] - b[1]).map(x => x[0]); return `
-    <section class="col" data-col="${s}" aria-label="${ST[s][0]}"><div class="col-h"><span class="dot" style="color:${{ cliente: "var(--ok)", perdido: "var(--bad)", proposta: "var(--warn)", respondeu: "var(--warn)" }[s] || "var(--primary)"}"></span>${ST[s][0]}<span class="n">${itens.length}</span></div>
+    <section class="col" data-col="${s}" aria-label="${ST[s][0]}"><div class="col-h"><span class="dot" style="color:${{ cliente: "var(--ok)", perdido: "var(--bad)", proposta: "var(--warn)", respondeu: "var(--warn)", quente: "var(--bad)" }[s] || "var(--primary)"}"></span>${ST[s][0]}<span class="n">${itens.length}</span></div>
       <div class="col-b">${itens.map(cardLead).join("") || `<div class="muted peq" style="text-align:center;padding:14px 6px">Arraste um lead para cá</div>`}</div></section>`; }).join("")}</div>`;
   $$(".kc", el).forEach(c => {
     c.onclick = () => abrirFicha(c.dataset.id);
@@ -1116,6 +1117,8 @@ async function iniciar() {
   if (!MOCK) { const { data } = await sb.auth.getSession(); if (!data.session) { mostrarLogin(); return; } }
   if (!MOCK) await contaPosLogin();   // aceita convites e termina cadastro pendente (assets/conta.js)
   const ctx = await rpc("nexo_contexto");
+  // Atalho para o outro produto: só aparece para quem tem o Marketing (agente Onça) na empresa.
+  if ((ctx?.empresas || []).some(e => (e.agentes || []).some(a => a.slug === "onca"))) document.querySelectorAll("[data-outro-produto]").forEach(a => a.classList.remove("oculto"));
   S.email = ctx.email || "";
   try { const { data } = await sb.auth.getSession(); S.nome = data.session?.user?.user_metadata?.full_name || ""; } catch { S.nome = ""; }
   // Qual empresa abre em Vendas. O Master enxerga todas: abre sempre a da casa (NEXO Inteligência), e só vê a de
