@@ -61,6 +61,25 @@ HISTORICO = []   # recusadas e com falha (nexo_conteudos_historico)
 INTEGRACOES = []  # nexo_integracoes (redes conectadas)
 PLANOS_PUB = []  # planos no cadastro público
 FALHAR = {}      # funções que o banco recusa neste teste
+SDR_CFG = {}     # nexo_sdr_config: cada teste monta
+
+
+def sdr_cfg_inicial():
+    return {"empresa_id": "emp-p", "ativo": False, "modo": "sombra", "provedor": None, "phone_number_id": None, "instance_id": None,
+            "persona_prompt": "", "llm_provedor": None, "llm_modelo": None, "gestor_whatsapp": None, "horario": None,
+            "max_msgs_hora": 30, "max_novas_conversas_dia": 20, "so_responde_quem_escreveu": True, "aceite_autonomo_em": None,
+            "aceite_abordagem_em": None, "webhook_gerado": False,
+            "credenciais": {"whatsapp_business": {"salva": False}, "llm": {"salva": False}}}
+
+
+def sdr_cfg_pronto():
+    c = sdr_cfg_inicial()
+    c.update({"provedor": "cloud_api", "phone_number_id": "1055", "llm_provedor": "anthropic", "llm_modelo": "claude-sonnet-5-5",
+              "persona_prompt": "Você é a consultora comercial da Empresa: curta e natural.", "gestor_whatsapp": "5541999991111"})
+    c["credenciais"] = {"whatsapp_business": {"salva": True, "final": "••••1234", "status": "pendente"}, "llm": {"salva": True, "final": "••••9876", "status": "pendente"}}
+    return c
+
+
 SUPORTE = {"whatsapp": "5541998460993"}  # nexo_suporte (o Master troca)
 SITUACAO = {}  # situação do plano por empresa (vazio = sem assinatura = tudo liberado)
 PLANOS_CLIENTE = [
@@ -147,6 +166,17 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return {"ok": True}
     if nome == "nexo_pedir_ideias":
         return {"id": "ped-novo"}
+    if nome == "nexo_sdr_config":
+        return json.loads(json.dumps(SDR_CFG))
+    if nome == "nexo_sdr_salvar":
+        SDR_CFG.update({k: v for k, v in (args.get("p_cfg") or {}).items() if not k.startswith("aceite_")})
+        return {"ok": True}
+    if nome == "nexo_sdr_salvar_credencial":
+        SDR_CFG["credenciais"][args["p_tipo"]] = {"salva": True, "final": "••••" + args["p_segredo"][-4:], "status": "pendente"}
+        return {"ok": True, "final": "••••" + args["p_segredo"][-4:]}
+    if nome == "nexo_sdr_gerar_webhook":
+        SDR_CFG["webhook_gerado"] = True
+        return {"ok": True, "token": "ab" * 32, "aviso": "Copie agora: este token não aparece de novo."}
     if nome == "nexo_suporte":
         return SUPORTE
     if nome == "nexo_planos_publicos":
@@ -1753,3 +1783,128 @@ class EnderecosSeparados(unittest.TestCase):
         self.assertNotIn("canonical", mk)
         self.assertNotIn("application/ld+json", mk)
         self.assertIn("Disallow: /marketing", (RAIZ / "robots.txt").read_text(encoding="utf-8"))
+
+
+class WhatsappSdrConfig(unittest.TestCase):
+    """Tela WhatsApp e SDR (F3, 24/11/2026): só configura; segredo nunca volta ao navegador; ligar só com tudo pronto."""
+
+    PLANO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "recursos": ["prospect", "prospect_sdr_whatsapp"], "limites": {}}
+
+    def setUp(self):
+        SDR_CFG.clear(); SDR_CFG.update(sdr_cfg_inicial())
+        SITUACAO.clear(); SITUACAO["emp-p"] = dict(self.PLANO)
+
+    def tearDown(self):
+        SITUACAO.clear(); SDR_CFG.clear()
+
+    def test_menu_so_aparece_para_quem_tem_o_recurso(self):
+        SITUACAO["emp-p"] = {**self.PLANO, "recursos": ["prospect"]}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/inicio", 1500)
+            self.assertNotIn("WhatsApp e SDR", pg.inner_text("#nav"))
+        finally:
+            p.fechar()
+        SITUACAO["emp-p"] = dict(self.PLANO)
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/inicio", 1500)
+            self.assertIn("WhatsApp e SDR", pg.inner_text("#nav"))
+        finally:
+            p.fechar()
+
+    def test_tela_diz_o_que_falta_e_o_campo_do_token_e_so_de_escrita(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            txt = pg.inner_text("#main")
+            self.assertIn("WhatsApp e SDR", txt); self.assertIn("Desligado", txt)
+            self.assertIn("Esta tela só configura", txt)
+            self.assertIn("Falta para ligar", txt); self.assertIn("Guardar o token do WhatsApp", txt)
+            self.assertEqual(pg.get_attribute("#sdrTokWa", "type"), "password")
+            self.assertEqual(pg.get_attribute("#sdrChaveIa", "type"), "password")
+            self.assertTrue(pg.is_disabled("#sdrLigar"), "não liga sem tudo pronto")
+            self.assertIn("/functions/v1/nexo-sdr-webhook", pg.input_value("#sdrUrl"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_guardar_token_vai_para_o_banco_e_o_segredo_nao_fica_na_tela(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            pg.fill("#sdrTokWa", "EAAG-segredo-9999"); pg.click('[data-sdr-cred="sdrTokWa"]'); pg.wait_for_timeout(700)
+            args = [a for n, a in p.args if n == "nexo_sdr_salvar_credencial"][-1]
+            self.assertEqual(args["p_tipo"], "whatsapp_business"); self.assertEqual(args["p_segredo"], "EAAG-segredo-9999")
+            self.assertEqual(pg.input_value("#sdrTokWa"), "", "o campo é limpo")
+            self.assertNotIn("EAAG-segredo-9999", pg.content(), "o segredo não está em lugar nenhum da página")
+            self.assertIn("••••9999", pg.inner_text("#main"), "só o final aparece")
+            self.assertNotIn("Guardar o token do WhatsApp", pg.inner_text("#main"), "a pendência some")
+            pg.fill("#sdrChaveIa", "sk-ant-chave-1234"); pg.click('[data-sdr-cred="sdrChaveIa"]'); pg.wait_for_timeout(700)
+            self.assertEqual([a for n, a in p.args if n == "nexo_sdr_salvar_credencial"][-1]["p_tipo"], "llm")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_token_do_webhook_aparece_so_uma_vez(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            pg.click("#sdrGerar"); pg.wait_for_timeout(600)
+            self.assertEqual(pg.input_value("#sdrTokenValor"), "ab" * 32)
+            self.assertIn("não aparece de novo", pg.inner_text("#sdrTokenNovo"))
+            pg = p.abrir("/#/whatsapp", 1800); pg.reload(); pg.wait_for_timeout(1500)
+            self.assertNotIn("ab" * 32, pg.content(), "depois de recarregar o token não volta")
+            self.assertIn("Já existe um token", pg.inner_text("#main"))
+        finally:
+            p.fechar()
+
+    def test_modo_autonomo_e_ia_puxar_conversa_exigem_confirmacao(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            pg.select_option("#sdrModo", "autonomo")
+            self.assertTrue(pg.is_visible("#sdrAceiteAutBox"))
+            pg.click("#sdrSalvar"); pg.wait_for_timeout(400)
+            self.assertNotIn("nexo_sdr_salvar", p.chamadas, "sem a confirmação nada vai ao banco")
+            self.assertIn("confirmação", pg.inner_text("#toast"))
+            pg.check("#sdrAceiteAut"); pg.click("#sdrSalvar"); pg.wait_for_timeout(600)
+            cfg = [a for n, a in p.args if n == "nexo_sdr_salvar"][-1]["p_cfg"]
+            self.assertEqual(cfg["modo"], "autonomo"); self.assertTrue(cfg["aceite_autonomo"])
+            pg.uncheck("#sdrSoResp")
+            self.assertTrue(pg.is_visible("#sdrAceiteAbBox"))
+            n0 = len([1 for n, a in p.args if n == "nexo_sdr_salvar"])
+            pg.click("#sdrSalvar"); pg.wait_for_timeout(400)
+            self.assertEqual(len([1 for n, a in p.args if n == "nexo_sdr_salvar"]), n0, "puxar conversa sem a confirmação dos contatos não salva")
+        finally:
+            p.fechar()
+
+    def test_ligar_so_quando_tudo_esta_pronto_e_manda_ativo(self):
+        SDR_CFG.update(sdr_cfg_pronto())
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            self.assertIn("Tudo pronto para ligar", pg.inner_text("#main"))
+            self.assertFalse(pg.is_disabled("#sdrLigar"))
+            pg.click("#sdrLigar"); pg.wait_for_timeout(700)
+            cfg = [a for n, a in p.args if n == "nexo_sdr_salvar"][-1]["p_cfg"]
+            self.assertTrue(cfg["ativo"]); self.assertEqual(cfg["modo"], "sombra"); self.assertTrue(cfg["so_responde_quem_escreveu"])
+            self.assertIn("Ligado · modo sombra", pg.inner_text("#main"))
+            pg.click("#sdrDesligar"); pg.wait_for_timeout(700)
+            self.assertFalse([a for n, a in p.args if n == "nexo_sdr_salvar"][-1]["p_cfg"]["ativo"])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_leitor_ve_mas_nao_edita(self):
+        global contexto
+        original = contexto
+        contexto = lambda com_onca=True, master=False: {**original(com_onca, master), "empresas": [{**e, "papel": "leitor"} for e in original(com_onca, master)["empresas"]]}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            self.assertIn("Só o dono ou o administrador", pg.inner_text("#main"))
+            for sel in ("#sdrTokWa", "#sdrPersona", "#sdrSalvar", "#sdrGerar", "#sdrModo"):
+                self.assertTrue(pg.is_disabled(sel), sel)
+        finally:
+            p.fechar(); contexto = original
