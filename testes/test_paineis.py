@@ -2444,9 +2444,13 @@ class PlanosListaFuncoes(unittest.TestCase):
 
 
 class ConectarCanais(unittest.TestCase):
-    """24/11/2026 (pedido do Ricardo): cadastro do cliente + guia rápido para ligar WhatsApp e Instagram. Nunca pede senha nem código."""
+    """24/11/2026 (pedido do Ricardo): cadastro do cliente + guia, uma etapa por vez, salva sozinho, diz o que falta. Nunca pede senha nem código.
+    A função é global: serve para qualquer empresa com WhatsApp e SDR; o Master preenche pelo seletor de empresa."""
 
     PLANO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "recursos": ["prospect", "prospect_sdr_whatsapp"], "limites": {}}
+    COMPLETO = {"dono_nome": "Maria Exemplo", "dono_email": "contato@empresa-exemplo.com.br", "dono_celular": "(45) 99111-2222", "empresa_nome": "Empresa Exemplo",
+                "instagram_arroba": "@empresa.exemplo", "instagram_profissional": "sim", "whatsapp_numero": "(45) 9952-5268", "whatsapp_business": "sim",
+                "lead_quente_whatsapp": "(45) 99999-0000"}
 
     def setUp(self):
         SITUACAO.clear(); SITUACAO["emp-p"] = dict(self.PLANO)
@@ -2454,6 +2458,9 @@ class ConectarCanais(unittest.TestCase):
 
     def tearDown(self):
         SITUACAO.clear(); CANAIS.update({"dados": {}, "passos": {}, "atualizado_em": None})
+
+    def salvas(self, p):
+        return [a for n, a in p.args if n == "nexo_canais_salvar"]
 
     def test_menu_so_aparece_para_quem_tem_o_recurso(self):
         SITUACAO["emp-p"] = {**self.PLANO, "recursos": ["prospect"]}
@@ -2469,81 +2476,156 @@ class ConectarCanais(unittest.TestCase):
         finally:
             p.fechar()
 
-    def test_tela_avisa_que_nao_pede_senha_diz_o_que_falta_e_tem_o_guia(self):
+    def test_comeca_na_primeira_etapa_com_progresso_o_que_falta_e_sem_campo_de_senha(self):
         p = Pagina()
         try:
             pg = p.abrir("/#/canais", 1800)
             txt = pg.inner_text("#main")
+            self.assertIn("etapa 1 de 5", txt.lower()); self.assertIn("0 de 5 etapas", txt)
             self.assertIn("Nunca coloque senha ou código aqui", txt)
-            self.assertIn("Faltam 9 itens", txt)
-            self.assertIn("Falta para conectar", txt)
+            self.assertEqual(len(pg.query_selector_all(".cn-chip")), 5)
+            self.assertIn("Falta preencher: Nome completo e mais 3", pg.inner_text("#cnProximo"))
+            self.assertTrue(pg.is_visible("#cn_dono_nome"))
+            self.assertIsNone(pg.query_selector("#cn_instagram_arroba"), "só os campos da etapa de agora")
             self.assertIsNone(pg.query_selector("#main input[type=password]"), "nenhum campo de senha")
-            self.assertEqual(len(pg.query_selector_all(".cn-passo")), 5)
-            self.assertIn("0 de 5 passos feitos", txt)
-            for palavra in ("Criar ou entrar na conta da Meta", "Conectar o Instagram", "Conectar o WhatsApp"):
-                self.assertIn(palavra, txt)
+            self.assertEqual(pg.inner_text("#cnEstado").strip(), "Salva sozinho enquanto você preenche.")
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
 
-    def test_preencher_salvar_e_marcar_passo_manda_tudo_e_a_tela_atualiza(self):
+    def test_continuar_com_campo_faltando_mostra_no_proprio_campo_e_nao_avanca(self):
         p = Pagina()
         try:
             pg = p.abrir("/#/canais", 1800)
-            for k, v in {"dono_nome": "Rogério Carpowiski", "dono_email": "contato@immunewell.com.br", "dono_celular": "(45) 99111-2222",
-                         "empresa_nome": "Immune Well", "instagram_arroba": "@immune.well", "whatsapp_numero": "(45) 9952-5268",
-                         "lead_quente_whatsapp": "(45) 99999-0000", "nunca_dizer": "promessa de emagrecimento"}.items():
-                pg.fill(f"#cn_{k}", v)
-            pg.select_option("#cn_instagram_profissional", "sim"); pg.select_option("#cn_whatsapp_business", "sim")
-            pg.check('[data-cn-passo="conta_meta"]')
-            pg.click("#cnSalvar"); pg.wait_for_timeout(900)
-            args = [a for n, a in p.args if n == "nexo_canais_salvar"][-1]
-            self.assertEqual(args["p_dados"]["dono_nome"], "Rogério Carpowiski")
-            self.assertEqual(args["p_dados"]["instagram_profissional"], "sim")
-            self.assertTrue(args["p_passos"]["conta_meta"]); self.assertFalse(args["p_passos"]["teste"])
-            self.assertNotIn("senha", json.dumps(args).lower(), "nada de senha na chamada")
-            txt = pg.inner_text("#main")
-            self.assertIn("Cadastro completo", txt)
-            self.assertIn("1 de 5 passos feitos", txt)
-            self.assertEqual(pg.input_value("#cn_empresa_nome"), "Immune Well")
+            pg.fill("#cn_dono_nome", "Maria Exemplo")
+            pg.click("#cnContinuar"); pg.wait_for_timeout(400)
+            self.assertIn("etapa 1 de 5", pg.inner_text("#main").lower(), "não avançou")
+            self.assertEqual(pg.inner_text('[data-erro="dono_email"]').strip(), "Preencha este campo.")
+        finally:
+            p.fechar()
+
+    def test_salva_sozinho_sem_clicar_em_nada_e_so_manda_valores_validos(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            pg.fill("#cn_dono_nome", "Maria Exemplo")
+            pg.fill("#cn_dono_email", "maria@")
+            self.assertIn("Confira o e-mail", pg.inner_text('[data-erro="dono_email"]'))
+            pg.fill("#cn_dono_celular", "123")
+            self.assertIn("use o DDD", pg.inner_text('[data-erro="dono_celular"]'))
+            pg.wait_for_timeout(1500)
+            a = self.salvas(p)[-1]
+            self.assertEqual(a["p_dados"], {"dono_nome": "Maria Exemplo"}, "e-mail e celular pela metade não vão para o banco")
+            self.assertIn("Salvo", pg.inner_text("#cnEstado"))
+            self.assertNotIn("senha", json.dumps(a).lower())
             self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_continuar_salva_avanca_e_marca_a_etapa_como_feita(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            for k in ("dono_nome", "dono_email", "dono_celular", "empresa_nome"):
+                pg.fill(f"#cn_{k}", self.COMPLETO[k])
+            pg.click("#cn_empresa_nome"); pg.press("#cn_empresa_nome", "Tab"); pg.wait_for_timeout(300)
+            self.assertIn("Falta preencher: Perfil do Instagram", pg.inner_text("#cnProximo"), "o aviso do que falta já pula para a próxima etapa")
+            pg.click("#cnContinuar"); pg.wait_for_timeout(900)
+            self.assertIn("etapa 2 de 5", pg.inner_text("#main").lower())
+            self.assertTrue(pg.is_visible("#cn_instagram_arroba"))
+            self.assertEqual(self.salvas(p)[-1]["p_dados"]["dono_nome"], "Maria Exemplo")
+            self.assertIn("✓", pg.inner_text('.cn-chip[data-etapa="0"]'))
+            self.assertIn("1 de 5 etapas", pg.inner_text("#main"))
+            pg.click("#cnVoltar"); pg.wait_for_timeout(400)
+            self.assertEqual(pg.input_value("#cn_dono_nome"), "Maria Exemplo", "voltar mantém o que foi preenchido")
+        finally:
+            p.fechar()
+
+    def test_reabrir_volta_para_a_primeira_etapa_que_falta(self):
+        CANAIS["dados"] = {k: self.COMPLETO[k] for k in ("dono_nome", "dono_email", "dono_celular", "empresa_nome")}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            self.assertIn("etapa 2 de 5", pg.inner_text("#main").lower())
+            self.assertTrue(pg.is_visible("#cn_instagram_arroba"))
         finally:
             p.fechar()
 
     def test_avisos_quando_o_instagram_nao_e_profissional_ou_o_whatsapp_nao_e_business(self):
-        CANAIS["dados"] = {"instagram_profissional": "nao", "whatsapp_business": "nao"}
+        CANAIS["dados"] = dict(self.COMPLETO, instagram_profissional="nao", whatsapp_business="nao")
         p = Pagina()
         try:
-            txt = p.abrir("/#/canais", 1800).inner_text("#main")
-            self.assertIn("Trocar o Instagram para conta profissional", txt)
-            self.assertIn("Instalar o WhatsApp Business", txt)
+            pg = p.abrir("/#/canais", 1800)
+            pg.click('.cn-chip[data-etapa="1"]'); pg.wait_for_timeout(300)
+            self.assertIn("Troque o Instagram para conta profissional", pg.inner_text("#main"))
+            pg.click('.cn-chip[data-etapa="2"]'); pg.wait_for_timeout(300)
+            self.assertIn("Instale o WhatsApp Business", pg.inner_text("#main"))
+            pg.select_option("#cn_whatsapp_business", "sim"); pg.wait_for_timeout(400)
+            self.assertNotIn("Instale o WhatsApp Business", pg.inner_text("#main"), "o aviso some quando a resposta muda")
+        finally:
+            p.fechar()
+
+    def test_mais_dados_ficam_recolhidos_mas_abrem_sozinhos_quando_ja_tem_valor(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            self.assertFalse(pg.is_visible("#cn_cnpj"), "dados extras recolhidos")
+            pg.click(".cn-mais summary"); pg.wait_for_timeout(200)
+            self.assertTrue(pg.is_visible("#cn_cnpj"))
+        finally:
+            p.fechar()
+        CANAIS["dados"] = {"site": "https://exemplo.com.br"}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            self.assertTrue(pg.is_visible("#cn_site"), "abre sozinho quando já tem algo")
+        finally:
+            p.fechar()
+
+    def test_guia_marca_passos_salva_e_mostra_tudo_pronto(self):
+        CANAIS["dados"] = dict(self.COMPLETO)
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            pg.click('.cn-chip[data-etapa="4"]'); pg.wait_for_timeout(300)
+            txt = pg.inner_text("#main")
+            self.assertEqual(len(pg.query_selector_all(".cn-passo")), 5)
+            for palavra in ("Criar ou entrar na conta da Meta", "Conectar o Instagram", "Conectar o WhatsApp"):
+                self.assertIn(palavra, txt)
+            self.assertIsNone(pg.query_selector("#cnContinuar"), "a última etapa não tem Continuar")
+            pg.check('[data-cn-passo="conta_meta"]'); pg.wait_for_timeout(700)
+            self.assertTrue(self.salvas(p)[-1]["p_passos"]["conta_meta"])
+            for k in ("portfolio", "instagram", "whatsapp", "teste"):
+                pg.check(f'[data-cn-passo="{k}"]'); pg.wait_for_timeout(500)
+            self.assertIn("Tudo pronto", pg.inner_text("#main"))
+            self.assertEqual(p.erros, [])
         finally:
             p.fechar()
 
     def test_gera_o_perfil_da_ia_so_com_o_que_foi_preenchido(self):
-        CANAIS["dados"] = {"empresa_nome": "Immune Well", "produtos": "Suplementos", "nunca_dizer": "promessa de emagrecimento ou cura"}
+        CANAIS["dados"] = dict(self.COMPLETO, produtos="Produtos de limpeza", nunca_dizer="promessa de resultado ou desconto")
         p = Pagina()
         try:
             pg = p.abrir("/#/canais", 1800)
+            pg.click('.cn-chip[data-etapa="3"]'); pg.wait_for_timeout(300)
             self.assertFalse(pg.is_visible("#cnPersona"))
             pg.click("#cnGerar"); pg.wait_for_timeout(200)
             t = pg.input_value("#cnPersona")
-            self.assertIn("assistente virtual da Immune Well", t)
-            self.assertIn("Produtos e serviços: Suplementos", t)
-            self.assertIn("NUNCA diga: promessa de emagrecimento ou cura.", t)
+            self.assertIn("assistente virtual da Empresa Exemplo", t)
+            self.assertIn("Produtos e serviços: Produtos de limpeza", t)
+            self.assertIn("NUNCA diga: promessa de resultado ou desconto.", t)
             self.assertNotIn("Preços que podem ser informados", t, "campo vazio não vira linha")
             self.assertIn("você é uma assistente virtual", t)
         finally:
             p.fechar()
 
     def test_texto_do_cliente_nunca_vira_html(self):
-        CANAIS["dados"] = {"empresa_nome": "<b>Imune</b>", "produtos": "<img src=x onerror=alert(1)>"}
+        CANAIS["dados"] = {"empresa_nome": "<b>Imune</b>", "dono_nome": "<img src=x onerror=alert(1)>"}
         p = Pagina()
         try:
             pg = p.abrir("/#/canais", 1800)
-            self.assertIsNone(pg.query_selector("#main .cn b:text('Imune')"))
-            self.assertEqual(pg.input_value("#cn_empresa_nome"), "<b>Imune</b>")
-            self.assertIsNone(pg.query_selector("#main img"))
+            self.assertEqual(pg.input_value("#cn_dono_nome"), "<img src=x onerror=alert(1)>")
+            self.assertIsNone(pg.query_selector("#main img")); self.assertIsNone(pg.query_selector("#main .cn b:text('Imune')"))
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()

@@ -52,3 +52,23 @@
 .cn-corpo{display:grid;gap:8px;min-width:0} .cn-corpo h3{margin:0;font-size:15px}
 .cn-corpo ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:13.5px;line-height:1.45}
 .cn-atencao{margin:0;font-size:12.5px;color:var(--muted);line-height:1.4}
+
+/* Conectar canais: uma etapa por vez, progresso e "o que falta" (24/11/2026) */
+.cn-prog{display:grid;gap:8px}
+.cn-chips{display:flex;gap:8px;flex-wrap:wrap}
+.cn-chip{display:inline-flex;align-items:center;gap:8px;padding:8px 14px 8px 8px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font:600 13.5px var(--f);cursor:pointer}
+.cn-chip b{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:var(--surface-2,rgba(255,255,255,.06));color:var(--text-2,inherit)}
+.cn-chip.on{border-color:var(--primary);color:var(--text);background:var(--primary-soft)}
+.cn-chip.ok b{background:color-mix(in srgb,var(--ok,#42d392) 25%,transparent);color:var(--ok,#42d392)}
+.cn-bar{height:6px;border-radius:999px;background:var(--surface-2,rgba(255,255,255,.08));overflow:hidden}
+.cn-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--ok,#42d392));transition:width .3s cubic-bezier(.23,1,.32,1)}
+.cn-proximo{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r);border:1px solid color-mix(in srgb,var(--warn,#f5b94a) 45%,transparent);background:var(--warn-soft,rgba(245,185,74,.1));font-weight:600}
+.cn-eb{font:700 11.5px var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--primary)}
+.cn-obr{color:var(--bad,#ff6b6b);text-decoration:none;font-weight:800}
+.cn-err{color:var(--bad,#ff6b6b);min-height:0} .cn-err:empty{display:none}
+.cn-bad{color:var(--bad,#ff6b6b)}
+.cn-mais{border:1px dashed var(--border);border-radius:var(--r);padding:10px 14px} .cn-mais summary{cursor:pointer;font-weight:600;font-size:13.5px} .cn-mais[open] summary{margin-bottom:12px}
+.cn-rodape{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding-top:6px;border-top:1px solid var(--border)}
+.cn-persona{display:grid;gap:8px}
+.cn-pronto{margin-top:4px}
+@media (max-width:720px){.cn-chip span{display:none}.cn-chip.on span{display:inline}.cn-rodape .linha{width:100%}.cn-rodape .btn{flex:1}}
