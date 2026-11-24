@@ -2306,23 +2306,25 @@ class ProspectIndependente(unittest.TestCase):
         self.assertNotIn('location.href = "marketing"', h)
         self.assertNotIn("marketing#plano", (RAIZ / "assets/plano.js").read_text(encoding="utf-8"))
 
-    def test_video_da_entrada_so_mostra_o_prospect_no_prospect_e_tudo_no_marketing(self):
+    def test_entrada_do_prospect_mostra_o_video_de_apresentacao_e_o_marketing_segue_com_as_cenas(self):
+        """24/11/2026, Ricardo: "colocar o vídeo criado aqui no login". Um MP4 só (narração Thales + legendas), que não baixa antes do play."""
         p = Pagina(logado=False)
         try:
             pedidos = []
-            p.page.on("request", lambda r: "/assets/explicador/" in r.url and r.url.endswith(".mp3") and pedidos.append(r.url))
+            p.page.on("request", lambda r: ("prospect-apresentacao.mp4" in r.url or "/assets/explicador/" in r.url and r.url.endswith(".mp3")) and pedidos.append(r.url))
             pg = p.abrir("/", 1800)
-            texto = pg.inner_text(".exp")
-            for fora in ("Pedir peça", "Conteúdo", "Atendimento", "A gestora", "Equipe ao vivo", "Suporte", "GitHub", "reserva", "publicado", "Marketing", "Instagram"):
-                self.assertNotIn(fora, texto, f"{fora} não é do NEXO Prospect")
-            cenas = pg.eval_on_selector_all(".exp-cap", "bs => bs.map(b => b.textContent.replace(/^\d+/, ''))")
-            self.assertEqual(cenas, ["Abertura", "Busca", "Análise comercial", "Quando trabalha", "Dúvida vira pergunta", "Mandar link", "Clientes e tarefas", "WhatsApp e SDR", "Painel", "Regra de ouro"])
             self.assertIn("NEXO Prospect em Ação", pg.inner_text(".exp-topo"))
-            self.assertIn("em 10 cenas", pg.inner_text(".exp-topo"))
-            self.assertIn("Planos Profissional e Completo", pg.eval_on_selector(".exp-cap[data-cap='7']", "b => document.querySelectorAll('.exp-cena')[7].textContent"), "a cena do WhatsApp diz em que planos está")
-            pg.click(".exp-play"); pg.wait_for_timeout(1200)
-            self.assertTrue(any(u.endswith("/assets/explicador/prospect/cena_00.mp3") for u in pedidos), "a narração do Prospect é a própria (Thales), não a do Marketing")
-            self.assertFalse(any("/audio2/" in u for u in pedidos), "não usa a gravação do vídeo do Marketing")
+            self.assertEqual(pg.eval_on_selector_all(".exp video", "v => v.length"), 1)
+            self.assertEqual(pg.get_attribute(".exp video", "preload"), "none", "não baixa o vídeo antes do play")
+            self.assertTrue(pg.get_attribute(".exp video source", "src").endswith("assets/prospect-apresentacao.mp4"))
+            self.assertIn("poster", " ".join(pg.eval_on_selector(".exp video", "v => v.getAttributeNames()")))
+            self.assertIsNotNone(pg.query_selector(".exp video[controls]"))
+            self.assertIn("dados de exemplo", pg.inner_text(".exp").lower())
+            self.assertEqual(pg.eval_on_selector_all(".exp-cap, .exp-cena", "x => x.length"), 0, "o player de cenas saiu da entrada do Prospect")
+            texto = pg.inner_text(".exp")
+            for fora in ("Pedir peça", "Conteúdo", "Atendimento", "Equipe ao vivo", "Instagram"):
+                self.assertNotIn(fora, texto)
+            self.assertEqual(pedidos, [], "nada de vídeo nem de áudio é pedido sem o play")
             self.assertEqual(p.erros, [])
             pg = p.abrir("/marketing.html", 1800)
             texto = pg.inner_text(".exp")
@@ -2332,12 +2334,11 @@ class ProspectIndependente(unittest.TestCase):
         finally:
             p.fechar()
 
-    def test_roteiro_e_gravacoes_do_prospect_existem_uma_por_cena(self):
-        pasta = RAIZ / "assets" / "explicador" / "prospect"
-        for n in range(10):
-            a = pasta / f"cena_{n:02d}.mp3"
-            self.assertTrue(a.exists() and a.stat().st_size > 50000, f"falta a gravação da cena {n}")
-        self.assertIn("Thales", (pasta / "roteiro.md").read_text(encoding="utf-8"))
+    def test_arquivos_do_video_de_apresentacao_do_prospect_existem(self):
+        v = RAIZ / "assets" / "prospect-apresentacao.mp4"
+        self.assertTrue(v.exists() and 1_000_000 < v.stat().st_size < 12_000_000, "MP4 leve (até 12 MB) para a tela de entrada")
+        self.assertTrue((RAIZ / "assets" / "prospect-apresentacao-poster.jpg").exists())
+        self.assertFalse((RAIZ / "assets" / "explicador" / "prospect").exists(), "as cenas antigas do Prospect saíram")
 
 class LiberadoTudo(unittest.TestCase):
     """24/11/2026, Ricardo: cliente liberado (vitalício ou com data) tem acesso a tudo, menos o Master."""

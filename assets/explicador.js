@@ -10,9 +10,9 @@
 // base: "" nas duas páginas (Marketing e Prospect ficam na raiz do site)
 let EXP_BASE = "";
 const EXP_IMG = n => `${EXP_BASE}assets/explicador/${n}.webp`;
-// 25/11/2026: no site do Prospect o vídeo só mostra o que é do Prospect (lista própria, com narração própria do Thales em explicador/prospect/); no Marketing, as cenas de sempre.
+// 24/11/2026: no site do Prospect a entrada mostra o vídeo de apresentação do Nexo Prospect (arquivo MP4 com narração do Thales e legendas, assets/prospect-apresentacao.mp4); no Marketing, as cenas de sempre.
 const EXP_PRODUTO = /\/marketing(\.html)?\/?$/.test(location.pathname) ? "marketing" : "prospect";
-const EXP_AUDIO = n => `${EXP_BASE}assets/explicador/${EXP_PRODUTO === "prospect" ? "prospect" : "audio2"}/cena_${String(n).padStart(2, "0")}.mp3`;
+const EXP_AUDIO = n => `${EXP_BASE}assets/explicador/audio2/cena_${String(n).padStart(2, "0")}.mp3`;
 const EXP_CENAS_MARKETING = [
   { tit: "Abertura", so: "marketing", eb: "NEXO Prospect", h: "Uma equipe de onças trabalhando por você", abre: true,
     fala: "Esta é a equipe da NEXO. Enquanto você cuida do seu dia, ela pesquisa clientes, prepara mensagens e cria conteúdo. Vou te mostrar, do começo ao fim, o que a sua automação faz.",
@@ -66,46 +66,25 @@ const EXP_CENAS_MARKETING = [
 // O áudio de cada cena é pelo número original (n), então tirar cenas não desalinha a narração.
 ].map((c, n) => ({ ...c, n })).filter(c => !c.soCasa);   // soCasa: cena só da casa (NEXO VÁRZEA), fora do vídeo dos clientes
 
-// Vídeo do NEXO Prospect (24/11/2026, Ricardo: "no vídeo de explicação deixar só a parte que faz sentido da NEXO Prospect"). Só fatos do que está construído.
-// A narração (voz Thales) fica em explicador/prospect/cena_00.mp3 … na ordem desta lista; o texto da voz está em explicador/prospect/roteiro.md.
-const EXP_CENAS_PROSPECT = [
-  { tit: "Abertura", eb: "NEXO Prospect", h: "A onça Faro busca clientes por você", img: "faro",
-    fala: "Esta é a NEXO Prospect. Você diz o que vende, e a onça Faro procura empresas que podem comprar, analisa cada uma e deixa a mensagem pronta. Vou te mostrar como funciona.",
-    vis: `<div class="exp-chips"><span class="exp-chip">Busca</span><span class="exp-chip">Análise</span><span class="exp-chip">Mensagem pronta</span></div>` },
-  { tit: "Busca", eb: "Você cria a busca", h: "Você diz o que vende, ela procura as empresas", img: "faro",
-    fala: "Você cria uma busca dizendo o que vende, onde e para quem. Nas rodadas do dia, a onça Faro procura empresas em fontes públicas e entrega cada uma em Clientes, com nota e mensagem pronta.",
-    vis: `<div class="exp-fluxo"><span>Sua busca</span><i>→</i><span>Pesquisa em fontes públicas</span><i>→</i><span>Clientes</span></div><div class="exp-chips"><span class="exp-chip">Nota de 0 a 100</span><span class="exp-chip">Mensagem pronta</span></div>` },
-  { tit: "Análise comercial", eb: "Cada empresa, uma análise", h: "O que faz, o que falta e como abordar", img: "lupa",
-    fala: "Para cada empresa, a onça escreve uma análise comercial: o que ela faz, os problemas que dá para ver, o que dá para oferecer, o potencial e a melhor abordagem. E não repete empresa: confere CNPJ, site, e-mail e telefone.",
-    vis: `<div class="exp-cartao"><b>Análise comercial</b><div class="lin"><span>O que faz</span>visto no site e no perfil</div><div class="lin"><span>Problemas</span>só com sinal visível</div><div class="lin"><span>Oferta</span>o que dá para propor</div><div class="lin"><span>Sem repetir</span>CNPJ, site, e-mail, telefone</div></div>` },
-  { tit: "Quando trabalha", eb: "Sozinha, na nuvem", h: "Três rodadas por dia", img: "faro",
-    fala: "Três vezes por dia, às seis e dez, ao meio-dia e dez e às dezoito e dez, a onça Faro trabalha sozinha, na nuvem. O seu computador pode estar desligado.",
-    vis: `<div class="exp-horas"><span class="exp-hora">06:10</span><span class="exp-hora">12:10</span><span class="exp-hora">18:10</span></div><div class="exp-chips"><span class="exp-chip">Computador desligado</span></div>` },
-  { tit: "Dúvida vira pergunta", eb: "Na dúvida, ela pergunta", h: "A onça pergunta antes de escrever", img: "faro",
-    fala: "Quando a onça não tem certeza sobre um lead, ela não chuta. Ela deixa uma pergunta curta para você no painel, e só escreve a mensagem depois da sua resposta.",
-    vis: `<div class="exp-fluxo"><span>Dúvida</span><i>→</i><span>Pergunta para você</span><i>→</i><span>Mensagem certa</span></div>` },
-  { tit: "Mandar link", eb: "Você manda o link", h: "O robô faz o resto", img: "faro",
-    fala: "E quando você achar uma empresa, é só colar o link no Início. Na rodada seguinte, o robô abre o link, analisa e deixa a empresa em Clientes, com a mensagem pronta. Se não servir, ele descarta e explica o motivo.",
-    vis: `<div class="exp-colar"><span class="campo-f">instagram.com/nome_da_empresa</span><span class="bt">Mandar para a equipe</span></div><div class="exp-fluxo"><span>Link</span><i>→</i><span>Análise</span><i>→</i><span>Clientes</span></div>` },
-  { tit: "Clientes e tarefas", eb: "Do primeiro contato ao contrato", h: "Cada cliente com o próximo passo", img: "lupa",
-    fala: "Em Clientes, você registra o contato, a resposta, a proposta e o contrato. Ao registrar um contato ou uma proposta, o painel já cria o follow-up em Tarefas. E se o cliente pediu retorno, você marca o dia e ele fica em destaque.",
-    vis: `<div class="exp-fluxo"><span>Contato</span><i>→</i><span>Resposta</span><i>→</i><span>Proposta</span><i>→</i><span>Contrato</span></div><div class="exp-chips"><span class="exp-chip">Follow-up em Tarefas</span><span class="exp-chip">Pediu retorno</span></div>` },
-  { tit: "WhatsApp e SDR", eb: "Planos Profissional e Completo", h: "A IA atende e avisa quando o cliente esquenta", img: "papo",
-    fala: "Nos planos Profissional e Completo, a inteligência artificial também atende as mensagens que chegam no WhatsApp da empresa. Ela conversa, entende o que o cliente procura e avisa a sua equipe quando ele estiver pronto para comprar. No começo, ela só sugere as respostas: nada é enviado sozinho até você liberar.",
-    vis: `<div class="exp-fluxo"><span>Mensagem no WhatsApp</span><i>→</i><span>IA responde</span><i>→</i><span>Aviso de cliente quente</span><i>→</i><span>Você assume</span></div><div class="exp-chips"><span class="exp-chip ok">Começa só sugerindo</span><span class="exp-chip nao">Nada enviado sem liberar</span></div>` },
-  { tit: "Painel", eb: "Onça Lupa · análise", h: "Tudo à vista no quadro Automação", img: "lupa",
-    fala: "A onça Lupa acompanha os números. No quadro Automação, você vê as pesquisas do dia, o que foi encontrado, aprovado e descartado, as mensagens prontas, a próxima rodada e qualquer erro.",
-    vis: `<div class="exp-chips"><span class="exp-chip">Pesquisas do dia</span><span class="exp-chip">Encontradas</span><span class="exp-chip">Mensagens prontas</span><span class="exp-chip">Próxima rodada</span><span class="exp-chip">Avisos e erros</span></div>` },
-  { tit: "Regra de ouro", eb: "Quem decide é você", h: "Nada sai sem a sua autorização", img: "faro",
-    fala: "E a regra de ouro: nada é enviado sem a sua autorização. A onça prepara tudo. Você abre o painel, revisa e manda.",
-    vis: `<div class="exp-grande">Você decide.</div><div class="exp-chips"><span class="exp-chip nao">Nada enviado sozinho</span><span class="exp-chip nao">Nada pago sozinho</span></div>` },
-].map((c, n) => ({ ...c, n }));
-const EXP_CENAS = EXP_PRODUTO === "prospect" ? EXP_CENAS_PROSPECT : EXP_CENAS_MARKETING;
+const EXP_CENAS = EXP_CENAS_MARKETING;
+
+// Vídeo de apresentação do Nexo Prospect: um arquivo só, com narração e legendas; só baixa quando a pessoa aperta o play.
+function explicadorFilmeProspect(el) {
+  el.classList.add("exp");
+  el.innerHTML = `
+    <div class="exp-topo"><span class="ey">NEXO · Design &amp; Automação</span><h2>NEXO Prospect em Ação</h2>
+      <p>Veja em menos de 2 minutos o que o Nexo Prospect faz pela sua empresa.</p></div>
+    <div class="exp-filme"><video controls preload="none" playsinline poster="${EXP_BASE}assets/prospect-apresentacao-poster.jpg" width="1280" height="720"
+      aria-label="Vídeo de apresentação do NEXO Prospect, com narração e legendas"><source src="${EXP_BASE}assets/prospect-apresentacao.mp4" type="video/mp4">
+      Seu navegador não toca vídeo. Fale com a NEXO para conhecer o Prospect.</video></div>
+    <p class="exp-filme-nota">As telas do vídeo usam dados de exemplo.</p>`;
+}
 
 function explicadorMontar(el, opcoes = {}) {
   if (!el || el.dataset.montado) return;
   el.dataset.montado = "1";
   EXP_BASE = opcoes.base || "";
+  if (EXP_PRODUTO === "prospect") return explicadorFilmeProspect(el);
   const N = EXP_CENAS.length;
   const img = n => `<img src="${EXP_IMG(n)}" alt="" width="352" height="440" loading="lazy" decoding="async">`;
   el.classList.add("exp");
