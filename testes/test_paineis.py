@@ -2438,3 +2438,18 @@ class WhatsappYcloud(unittest.TestCase):
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
+
+    def test_ycloud_explica_o_modo_autonomo_e_a_pausa_quando_o_cliente_responde_pelo_celular(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            self.assertIsNone(pg.query_selector("#sdrAutYcloud"), "na Cloud API o texto não aparece")
+            pg.select_option("#sdrProv", "ycloud"); pg.wait_for_timeout(300)
+            t = pg.inner_text("#sdrAutYcloud")
+            self.assertIn("quem escreve primeiro", t)
+            self.assertIn("pausa", t)
+            self.assertIn("Devolver para IA", t)
+            self.assertIn("só sugere", t)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()

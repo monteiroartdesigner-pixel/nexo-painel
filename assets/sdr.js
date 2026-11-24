@@ -115,7 +115,9 @@ function sdrDesenhar(el, c) {
     <section class="card sdr-card" aria-labelledby="sdrH4"><h2 id="sdrH4">4. Segurança e limites</h2>
       <div class="field"><label for="sdrModo">Modo de atendimento</label>
         <select class="select" id="sdrModo" ${dis}><option value="sombra" ${c.modo !== "autonomo" ? "selected" : ""}>Sombra: a IA sugere, uma pessoa envia (recomendado no começo)</option>
-          <option value="autonomo" ${c.modo === "autonomo" ? "selected" : ""}>Autônomo: a IA responde sozinha</option></select></div>
+          <option value="autonomo" ${c.modo === "autonomo" ? "selected" : ""}>Autônomo: a IA responde sozinha</option></select>
+        ${ycloud ? `<small id="sdrAutYcloud">Pela YCloud, no modo autônomo a IA responde sozinha a quem escreve primeiro, e avisa o vendedor quando o cliente esquentar.
+          Se alguém da sua equipe responder pelo celular, a IA pausa naquela conversa (para ela voltar, use "Devolver para IA"). O envio real só começa depois que a NEXO liga a chave geral de envio; até lá a IA só sugere.</small>` : ""}</div>
       <label class="sdr-check ${c.modo === "autonomo" ? "" : "oculto"}" id="sdrAceiteAutBox"><input type="checkbox" id="sdrAceiteAut" ${dis} ${c.aceite_autonomo_em ? "checked" : ""}>
         <span>Revisei as conversas em modo sombra e aceito que a IA responda sozinha em nome da minha empresa.</span></label>
       <label class="sdr-check"><input type="checkbox" id="sdrSoResp" ${dis} ${c.so_responde_quem_escreveu !== false ? "checked" : ""}>
