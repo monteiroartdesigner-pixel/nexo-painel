@@ -109,7 +109,7 @@ const mKpi = (rot, val, sub) => `<div class="card kpi"><span class="muted peq">$
 
 function mLinhaEmpresa(e) {
   const s = e.situacao || {}, ac = M_ACESSO[s.acesso] || ["—", ""];
-  const plano = s.tem_assinatura ? `${esc(s.plano_nome || s.plano)} · ${esc(M_STATUS[s.status] || s.status)}` : "Sem plano";
+  const plano = s.tem_assinatura ? `${esc(s.plano_nome || s.plano)} · ${esc(M_STATUS[s.status] || s.status)}${s.liberado ? " · libera tudo" : ""}` : "Sem plano";
   const extra = s.status === "teste" && s.dias_teste_restantes != null ? ` · ${pl(s.dias_teste_restantes, "dia de teste", "dias de teste")}`
               : s.status === "vitalicia" ? " · sem vencimento" : s.periodo_ate ? ` · até ${dataCurta(s.periodo_ate)}` : "";
   return `<div class="m-emp">
@@ -255,6 +255,7 @@ function mEditarAssinatura(e) {
       <label class="m-campo"><span>Teste grátis até</span><input type="date" name="teste_ate" value="${paraData(s.teste_ate)}"></label>
       <label class="m-campo"><span>Pago até</span><input type="date" name="periodo_ate" value="${paraData(s.periodo_ate)}"></label>
     </div>
+    <label class="m-chk"><input type="checkbox" name="liberado" ${s.liberado || status === "vitalicia" ? "checked" : ""}><span><b>Liberar tudo</b>: todas as funções, sem limites e sem depender do plano (só o Master fica de fora). Marca sozinha no Vitalício ou quando você põe uma data em "Pago até".</span></label>
     <div class="m-duas">
       <label class="m-campo"><span>Dias de carência depois de vencer</span><input type="number" name="carencia_dias" min="0" max="60" value="${s.carencia_dias ?? 5}"></label>
       <label class="m-campo"><span>Observação</span><input name="observacao" maxlength="200" value=""></label>
@@ -266,13 +267,20 @@ function mEditarAssinatura(e) {
       const d = { plano: f.elements.plano.value, status: f.elements.status.value, carencia_dias: Number(f.elements.carencia_dias.value || 0) };
       if (f.elements.teste_ate.value || s.teste_ate) d.teste_ate = deData(f.elements.teste_ate.value);
       if (f.elements.periodo_ate.value || s.periodo_ate) d.periodo_ate = deData(f.elements.periodo_ate.value);
+      d.liberado = f.elements.liberado.checked;
       if (f.elements.observacao.value.trim()) d.observacao = f.elements.observacao.value.trim();
       if (d.status === "teste" && !f.elements.teste_ate.value) delete d.teste_ate;   // o banco calcula
       if (f.elements.recusar?.checked) { d.plano = s.plano; d.limpar_pedido = true; }
       if (d.status === "vitalicia" && s.status_gravado !== "vitalicia" && !confirm(`Liberar acesso vitalício para ${e.nome}? Fica sem cobrança e sem vencimento.`)) throw new Error("Cancelado.");
       await rpc("nexo_master_salvar_assinatura", { p_empresa: e.id, p_dados: d });
-      aviso("Plano da empresa salvo.");
+      aviso(d.liberado ? "Plano salvo: a empresa tem acesso a tudo, menos o Master." : "Plano da empresa salvo.");
     });
+  // A caixa "Liberar tudo" marca sozinha no Vitalício e quando entra uma data em "Pago até" (dá para desmarcar).
+  const j = document.querySelector(".m-janela");
+  if (j && j.elements.liberado) {
+    const marca = () => { if (j.elements.status.value === "vitalicia" || j.elements.periodo_ate.value) j.elements.liberado.checked = true; };
+    j.elements.status.addEventListener("change", marca); j.elements.periodo_ate.addEventListener("input", marca);
+  }
 }
 
 // Usuários da plataforma: quem tem acesso, a empresa e o papel de cada um e o último acesso.

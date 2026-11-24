@@ -2313,3 +2313,55 @@ class ProspectIndependente(unittest.TestCase):
             self.assertIn("marketing", pg.inner_text(".exp-topo").lower())
         finally:
             p.fechar()
+
+
+class LiberadoTudo(unittest.TestCase):
+    """24/11/2026, Ricardo: cliente liberado (vitalício ou com data) tem acesso a tudo, menos o Master."""
+
+    def test_vitalicio_marca_liberar_tudo_e_manda_liberado_true(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/marketing.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
+            pg.on("dialog", lambda d: d.accept())
+            pg.click('[data-m-plano="emp-c"]')
+            self.assertFalse(pg.is_checked(".m-janela [name=liberado]"), "teste comum não libera tudo")
+            pg.select_option(".m-janela [name=status]", "vitalicia")
+            self.assertTrue(pg.is_checked(".m-janela [name=liberado]"), "vitalício marca sozinho")
+            pg.click(".m-janela [type=submit]"); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_assinatura"][-1]
+            self.assertTrue(args["p_dados"]["liberado"])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_data_em_pago_ate_marca_e_o_master_pode_desmarcar(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/marketing.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(600)
+            pg.click('[data-m-plano="emp-c"]')
+            pg.select_option(".m-janela [name=status]", "ativa")
+            pg.fill(".m-janela [name=periodo_ate]", "2026-12-18")
+            self.assertTrue(pg.is_checked(".m-janela [name=liberado]"), "data em 'Pago até' marca sozinho")
+            pg.uncheck(".m-janela [name=liberado]")
+            pg.click(".m-janela [type=submit]"); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_assinatura"][-1]
+            self.assertEqual(args["p_dados"]["status"], "ativa")
+            self.assertFalse(args["p_dados"]["liberado"], "quem paga e o Master não quer liberar tudo fica no plano")
+        finally:
+            p.fechar()
+
+    def test_meu_plano_diz_que_esta_liberado(self):
+        for situacao, esperado in (({"status": "vitalicia", "liberado": True}, "Todas as funções liberadas"),
+                                   ({"status": "ativa", "liberado": True, "periodo_ate": "2027-11-25T02:59:00Z"}, "Liberado até 24/11/2027")):
+            MEU_PLANO.clear()
+            MEU_PLANO.update({"pode_pedir": True, "pagamento_ligado": False, "planos": PLANOS_CLIENTE,
+                              "situacao": {"tem_assinatura": True, "acesso": "total", "plano": "completo", "plano_nome": "Completo", "preco_centavos": 80000, **situacao}})
+            p = Pagina()
+            try:
+                pg = p.abrir("/#/plano", 1800)
+                self.assertIn(esperado, pg.inner_text("#main"))
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar(); MEU_PLANO.clear()

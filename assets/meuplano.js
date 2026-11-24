@@ -67,9 +67,9 @@ async function meuPlano(el) {
   const faltaPouco = s.status === "ativa" && s.periodo_ate && new Date(s.periodo_ate) - Date.now() < 7 * 86400000;
   const pagarAtual = pagar && (s.status !== "ativa" || faltaPouco);
   const sub = !s.tem_assinatura ? "Acesso liberado pela NEXO."
-    : s.status === "vitalicia" ? "Acesso vitalício: sem mensalidade e sem data de vencimento."
+    : s.status === "vitalicia" ? `Acesso vitalício: sem mensalidade e sem data de vencimento.${s.liberado ? " Todas as funções liberadas." : ""}`
     : s.status === "teste" ? `Teste grátis: ${s.dias_teste_restantes === 0 ? "termina hoje" : `faltam ${pl(s.dias_teste_restantes, "dia", "dias")}`}${s.teste_ate ? ` (até ${mpData(s.teste_ate)})` : ""}.`
-    : s.status === "ativa" && s.periodo_ate ? `Pago até ${mpData(s.periodo_ate)}.`
+    : s.status === "ativa" && s.periodo_ate ? (s.liberado ? `Liberado até ${mpData(s.periodo_ate)}: todas as funções, sem limites.` : `Pago até ${mpData(s.periodo_ate)}.`)
     : s.status === "teste_vencido" ? "Seu teste grátis acabou. Escolha um plano abaixo para continuar."
     : s.status === "vencida" ? "Sua mensalidade venceu. Pague abaixo para continuar usando."
     : "";
