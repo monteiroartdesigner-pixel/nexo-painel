@@ -22,8 +22,11 @@ const sdrNum = v => String(v ?? "").replace(/\D/g, "");
 function sdrFaltas(c) {
   const f = [];
   if (!c.provedor) f.push("Escolher o provedor do WhatsApp");
-  if (!c.credenciais?.whatsapp_business?.salva) f.push("Guardar o token do WhatsApp");
-  if (!c.phone_number_id) f.push("Informar o ID do número (Phone Number ID)");
+  if (c.provedor === "ycloud") { if (!c.instance_id) f.push("Informar o número do WhatsApp da empresa"); }   // a YCloud assina o webhook: sem token da Meta
+  else {
+    if (!c.credenciais?.whatsapp_business?.salva) f.push("Guardar o token do WhatsApp");
+    if (!c.phone_number_id) f.push("Informar o ID do número (Phone Number ID)");
+  }
   if (!c.llm_provedor || !c.llm_modelo) f.push("Escolher a IA e o modelo");
   if (!c.credenciais?.llm?.salva) f.push("Guardar a chave da IA");
   if ((c.persona_prompt || "").trim().length < 20) f.push("Escrever a persona comercial");
@@ -49,7 +52,7 @@ async function sdrTela(el) {
 function sdrDesenhar(el, c) {
   const pode = sdrPodeConfigurar(), dis = pode ? "" : "disabled";
   const faltas = sdrFaltas(c), wa = sdrCred(c, "whatsapp_business"), ia = sdrCred(c, "llm");
-  const urlWebhook = `${SUPABASE_URL}/functions/v1/nexo-sdr-webhook`;
+  const urlWebhook = `${SUPABASE_URL}/functions/v1/nexo-sdr-webhook`, ycloud = c.provedor === "ycloud";
   const modelos = (SDR_MODELOS[c.llm_provedor || "anthropic"] || []).map(m => `<option value="${esc(m)}">`).join("");
   const credBloco = (id, rotulo, cr, dica) => `
     <div class="field"><label for="${id}">${rotulo}</label>
@@ -65,20 +68,29 @@ function sdrDesenhar(el, c) {
       <div class="sdr-grade">
         <div class="field"><label for="sdrProv">Provedor</label>
           <select class="select" id="sdrProv" ${dis}><option value="cloud_api" ${c.provedor === "cloud_api" || !c.provedor ? "selected" : ""}>WhatsApp Cloud API (oficial da Meta)</option>
+            <option value="ycloud" ${c.provedor === "ycloud" ? "selected" : ""}>YCloud (coexistência: a empresa segue usando o WhatsApp Business no celular)</option>
             <option disabled>Evolution API (em breve)</option><option disabled>Z-API (em breve)</option></select>
-          <small>Na primeira versão só a Cloud API oficial: as outras conectam pelo WhatsApp Web e podem ter o número bloqueado.</small></div>
-        <div class="field"><label for="sdrPhone">ID do número (Phone Number ID)</label>
+          <small>${ycloud ? "A empresa continua usando o aplicativo WhatsApp Business no celular, e a IA recebe as mesmas conversas pela API oficial, conectada pela YCloud."
+                          : "Na primeira versão só a API oficial: as outras conectam pelo WhatsApp Web e podem ter o número bloqueado."}</small></div>
+        ${ycloud ? `<div class="field"><label for="sdrNumero">Número do WhatsApp da empresa</label>
+          <input class="input" id="sdrNumero" value="${esc(c.instance_id || "")}" inputmode="tel" placeholder="(45) 99999-0000" autocomplete="off" ${dis}>
+          <small>O número que os clientes dela usam (o do aplicativo WhatsApp Business). É por ele que o sistema sabe de qual empresa é cada mensagem.</small></div>`
+        : `<div class="field"><label for="sdrPhone">ID do número (Phone Number ID)</label>
           <input class="input" id="sdrPhone" value="${esc(c.phone_number_id || "")}" inputmode="numeric" autocomplete="off" ${dis}>
-          <small>Está no painel da Meta, em WhatsApp › Configuração da API.</small></div>
+          <small>Está no painel da Meta, em WhatsApp › Configuração da API.</small></div>`}
       </div>
-      ${credBloco("sdrTokWa", "Token de acesso do WhatsApp", wa, "Cole o token permanente do app da Meta. Ele vai direto para o cofre.")}
+      ${ycloud ? `<div class="field"><label>Endereço do webhook (YCloud)</label>
+        <div class="sdr-linha"><input class="input" id="sdrUrl" readonly value="${esc(urlWebhook + "?provedor=ycloud")}"><button class="btn" type="button" data-sdr-copiar="sdrUrl">${ic("copy")}Copiar</button></div>
+        <small>Na YCloud, em Developers › Webhook, cole este endereço e marque os eventos: mensagem recebida do cliente, mensagem enviada pelo celular, histórico e remoção de conta ou número.
+          A YCloud assina cada envio e o NEXO confere a assinatura: aqui não há token para colar. Enquanto o SDR estiver em modo sombra, nada é enviado.</small></div>`
+      : `${credBloco("sdrTokWa", "Token de acesso do WhatsApp", wa, "Cole o token permanente do app da Meta. Ele vai direto para o cofre.")}
       <div class="field"><label>Endereço do webhook</label>
         <div class="sdr-linha"><input class="input" id="sdrUrl" readonly value="${esc(urlWebhook)}"><button class="btn" type="button" data-sdr-copiar="sdrUrl">${ic("copy")}Copiar</button></div>
         <small>Este é o endereço-base. Ao gerar o token abaixo, aparece o endereço completo (com o token) para colar na Meta.</small></div>
       <div class="field"><label>Token de verificação do webhook</label>
         <div class="sdr-linha"><span class="muted peq" style="flex:1">${c.webhook_gerado ? "Já existe um token. Por segurança ele não aparece de novo." : "Ainda não gerado."}</span>
           <button class="btn" type="button" id="sdrGerar" ${dis}>${c.webhook_gerado ? "Gerar outro" : "Gerar token"}</button></div>
-        <div id="sdrTokenNovo" class="oculto"></div></div>
+        <div id="sdrTokenNovo" class="oculto"></div></div>`}
     </section>
 
     <section class="card sdr-card" aria-labelledby="sdrH2"><h2 id="sdrH2">2. Inteligência artificial</h2>
@@ -133,7 +145,7 @@ function sdrLigar(el, c) {
   const $s = s => el.querySelector(s);
   const recarregar = async msg => { if (msg) toast(msg); try { c = await rpc("nexo_sdr_config", { p_agente: S.agente }); sdrDesenhar(el, c); } catch (e) { toast(msgErro(e), true); } };
   const coletar = extra => ({
-    provedor: $s("#sdrProv").value, phone_number_id: $s("#sdrPhone").value.trim(), llm_provedor: $s("#sdrLlm").value, llm_modelo: $s("#sdrModelo").value.trim(),
+    provedor: $s("#sdrProv").value, phone_number_id: $s("#sdrPhone")?.value.trim() || "", instance_id: $s("#sdrNumero")?.value.trim() || "", llm_provedor: $s("#sdrLlm").value, llm_modelo: $s("#sdrModelo").value.trim(),
     persona_prompt: $s("#sdrPersona").value, gestor_whatsapp: sdrNum($s("#sdrGestor").value) ? $s("#sdrGestor").value : "",
     modo: $s("#sdrModo").value, so_responde_quem_escreveu: $s("#sdrSoResp").checked,
     max_msgs_hora: Number($s("#sdrHora").value) || 30, max_novas_conversas_dia: Number($s("#sdrDia").value) || 0,
@@ -145,6 +157,7 @@ function sdrLigar(el, c) {
     try { await rpc("nexo_sdr_salvar", { p_agente: S.agente, p_cfg: cfg }); await recarregar(msg); }
     catch (e) { toast(msgErro(e), true); }
   };
+  $s("#sdrProv").onchange = () => sdrDesenhar(el, { ...c, ...coletar(), instance_id: $s("#sdrNumero")?.value.trim() || c.instance_id || null });
   $s("#sdrModo").onchange = () => $s("#sdrAceiteAutBox").classList.toggle("oculto", $s("#sdrModo").value !== "autonomo");
   $s("#sdrSoResp").onchange = () => $s("#sdrAceiteAbBox").classList.toggle("oculto", $s("#sdrSoResp").checked);
   $s("#sdrPersona").oninput = () => { $s("#sdrConta").textContent = `${$s("#sdrPersona").value.length} / 8000`; };
@@ -157,7 +170,7 @@ function sdrLigar(el, c) {
     catch (e) { toast(msgErro(e), true); }
   });
   el.querySelectorAll("[data-sdr-copiar]").forEach(b => b.onclick = async () => { await copiarTexto($s("#" + b.dataset.sdrCopiar).value); toast("Endereço copiado."); });
-  $s("#sdrGerar").onclick = async () => {
+  const ger = $s("#sdrGerar"); if (ger) ger.onclick = async () => {
     if (c.webhook_gerado && !confirm("Gerar outro token invalida o atual: você terá de colar o novo na Meta. Continuar?")) return;
     try {
       const urlBase = $s("#sdrUrl").value;

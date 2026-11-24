@@ -2365,3 +2365,76 @@ class LiberadoTudo(unittest.TestCase):
                 self.assertEqual(p.erros, [])
             finally:
                 p.fechar(); MEU_PLANO.clear()
+
+
+class WhatsappYcloud(unittest.TestCase):
+    """24/11/2026: provedor YCloud (coexistência). O cliente segue usando o WhatsApp Business no celular; a YCloud assina o webhook."""
+
+    PLANO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "recursos": ["prospect", "prospect_sdr_whatsapp"], "limites": {}}
+
+    def setUp(self):
+        SDR_CFG.clear(); SDR_CFG.update(sdr_cfg_inicial())
+        SITUACAO.clear(); SITUACAO["emp-p"] = dict(self.PLANO)
+
+    def tearDown(self):
+        SITUACAO.clear(); SDR_CFG.clear()
+
+    def test_escolher_ycloud_troca_os_campos_e_tira_o_token_da_meta(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            self.assertTrue(pg.is_visible("#sdrPhone") and pg.is_visible("#sdrTokWa") and pg.is_visible("#sdrGerar"), "Cloud API como sempre")
+            pg.select_option("#sdrProv", "ycloud"); pg.wait_for_timeout(300)
+            self.assertTrue(pg.is_visible("#sdrNumero"))
+            for sel in ("#sdrPhone", "#sdrTokWa", "#sdrGerar"):
+                self.assertIsNone(pg.query_selector(sel), f"{sel} é da Cloud API")
+            self.assertTrue(pg.input_value("#sdrUrl").endswith("/functions/v1/nexo-sdr-webhook?provedor=ycloud"))
+            self.assertIn("WhatsApp Business", pg.inner_text("#sdrProv + small"))
+            self.assertIn("aqui não há token para colar", pg.inner_text("#main"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_trocar_o_provedor_nao_perde_o_que_ja_foi_digitado(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            pg.fill("#sdrModelo", "claude-sonnet-5-5"); pg.fill("#sdrGestor", "(45) 99111-2222")
+            pg.select_option("#sdrProv", "ycloud"); pg.wait_for_timeout(300)
+            self.assertEqual(pg.input_value("#sdrModelo"), "claude-sonnet-5-5")
+            self.assertEqual(pg.input_value("#sdrGestor"), "(45) 99111-2222")
+        finally:
+            p.fechar()
+
+    def test_ycloud_pede_o_numero_da_empresa_e_nao_o_token(self):
+        SDR_CFG.update({"provedor": "ycloud", "llm_provedor": "anthropic", "llm_modelo": "claude-sonnet-5-5", "persona_prompt": "Você é a consultora da empresa.",
+                        "gestor_whatsapp": "5545991112222", "credenciais": {"llm": {"salva": True, "final": "••••egAA", "status": "pendente"}, "whatsapp_business": {"salva": False}}})
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            faltas = pg.inner_text(".sdr-falta")
+            self.assertIn("Informar o número do WhatsApp da empresa", faltas)
+            self.assertNotIn("token do WhatsApp", faltas)
+            self.assertNotIn("Phone Number ID", faltas)
+            self.assertTrue(pg.is_disabled("#sdrLigar"))
+        finally:
+            p.fechar()
+
+    def test_salvar_manda_o_provedor_e_o_numero_e_o_ligar_abre_com_tudo_pronto(self):
+        SDR_CFG.update({"provedor": "ycloud", "instance_id": "5545995255268", "llm_provedor": "anthropic", "llm_modelo": "claude-sonnet-5-5",
+                        "persona_prompt": "Você é a consultora da empresa.", "gestor_whatsapp": "5545991112222",
+                        "credenciais": {"llm": {"salva": True, "final": "••••egAA", "status": "pendente"}, "whatsapp_business": {"salva": False}}})
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/whatsapp", 1800)
+            self.assertIn("Tudo pronto para ligar", pg.inner_text("#main"))
+            self.assertEqual(pg.input_value("#sdrNumero"), "5545995255268")
+            pg.fill("#sdrNumero", "(45) 99525-5268")
+            pg.click("#sdrSalvar"); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_sdr_salvar"][-1]
+            self.assertEqual(args["p_cfg"]["provedor"], "ycloud")
+            self.assertEqual(args["p_cfg"]["instance_id"], "(45) 99525-5268")
+            self.assertEqual(args["p_cfg"]["modo"], "sombra")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
