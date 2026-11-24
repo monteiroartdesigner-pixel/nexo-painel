@@ -159,10 +159,46 @@ function contaLigarLogin(form, campoEmail) {
   form.querySelector("[data-esqueci]").onclick = () => ctEsqueci(campoEmail?.value);
   form.querySelector("[data-criar]").onclick = ctCriarConta;
   // Cadastro fechado (nenhum plano público, 25/11/2026): o botão não promete "teste grátis"; quem recebeu convite continua entrando por ele.
-  ctVitrine(form).then(n => { if (n === 0) { const b = form.querySelector("[data-criar]"); if (b) b.textContent = "Criar conta ou usar um convite"; } });
+  ctVitrine(form).then(n => { if (n === 0) { const b = form.querySelector("[data-criar]"); if (b) b.textContent = "Criar conta ou usar um convite"; ctVitrinePlanos(form); } });
   // Link do convite (?convite=email): abre direto a conta de convidado, com o e-mail preenchido.
   const conv = new URLSearchParams(location.search).get("convite");
   if (conv) setTimeout(() => ctContaConvidado(conv), 300);
+}
+
+// Planos só para OLHAR na tela de entrada do Prospect (24/11/2026, pedido do Ricardo: "os planos têm que aparecer assim também na page de login").
+// O cadastro segue fechado (nenhum plano público): aqui não há "teste grátis" nem compra, só o que cada plano tem ligado e desligado, preço mensal e anual.
+// Usa nexo_planos_vitrine (anônima, só dados comerciais) e os mesmos desenhos do Meu plano (mpLista, mpEconomia, mpReais, mpTemAnual em meuplano.js).
+async function ctVitrinePlanos(form) {
+  if (typeof EXP_PRODUTO === "undefined" || EXP_PRODUTO !== "prospect" || typeof mpLista !== "function") return;
+  const tela = form.closest(".login"); if (!tela || tela.querySelector(".ct-vitrine")) return;
+  let planos = [];
+  try { planos = await ctRpc("nexo_planos_vitrine") || []; } catch { return; }
+  if (!planos.length || tela.querySelector(".ct-vitrine")) return;
+  let ciclo = "mensal";
+  const sec = document.createElement("section");
+  sec.className = "ct-vitrine aberta ct-info"; sec.setAttribute("aria-labelledby", "ctVitTit");
+  const desenhar = () => {
+    const anual = ciclo === "anual";
+    const e = planos.filter(mpTemAnual).map(mpEconomia).filter(Boolean)[0];
+    sec.innerHTML = `<div class="ct-v-topo"><span class="ct-v-eyebrow">Planos</span><h2 id="ctVitTit">Escolha o plano do tamanho da sua empresa</h2>
+        <p>Veja o que cada plano tem. O acesso é por convite: fale com a NEXO para começar.</p></div>
+      ${planos.some(mpTemAnual) ? `<div class="mp-ciclo" role="group" aria-label="Como pagar"><button type="button" data-ciclo="mensal" aria-pressed="${!anual}">Mensal</button>
+        <button type="button" data-ciclo="anual" aria-pressed="${anual}">Anual${e ? ` <span class="mp-tag">${esc(e.texto)}</span>` : ""}</button></div>` : ""}
+      <div class="ct-v-grade">${planos.map(p => {
+        const comAnual = anual && mpTemAnual(p), eco = comAnual ? mpEconomia(p) : null;
+        const [valor] = mpReais(comAnual ? p.preco_anual_centavos : p.preco_centavos).split("/");
+        return `<article class="ct-v-plano"><h3>${esc(p.nome)}</h3>
+          <p class="ct-v-preco"><b>${esc(valor)}</b><span>${comAnual ? "/ano" : "/mês"}</span></p>
+          ${comAnual ? `<p class="mp-eq">${esc(mpReais(Math.round(p.preco_anual_centavos / 12)))}/mês${eco ? ` · <b>economize ${esc(mpReais(eco.eco))}</b> (${esc(eco.texto)})` : ""}</p>` : (anual ? `<p class="mp-eq">Só mensal</p>` : "")}
+          ${p.descricao ? `<p class="ct-v-desc">${esc(p.descricao)}</p>` : ""}
+          <a class="btn prim pri" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener">Falar com a NEXO</a>
+          ${mpLista(p)}</article>`;
+      }).join("")}</div>`;
+    sec.querySelectorAll("[data-ciclo]").forEach(b => b.onclick = () => { ciclo = b.dataset.ciclo === "anual" ? "anual" : "mensal"; desenhar(); });
+  };
+  desenhar();
+  const exp = tela.querySelector("#explicador");
+  if (exp) exp.after(sec); else tela.appendChild(sec);
 }
 
 // Vitrine de planos na tela de entrada (pedido do Ricardo, 18/11/2026: "planos não aparecem na page do login").

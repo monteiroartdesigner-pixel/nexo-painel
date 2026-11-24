@@ -19,6 +19,15 @@ const MP_RECURSOS = [["prospect", "Vendas", "clientes, buscas, tarefas e mandar 
   ["prospect_sdr_whatsapp", "WhatsApp e SDR", "a IA atende no WhatsApp e passa para uma pessoa quando o lead esquenta"]];
 const MP_LIMITES = [["usuarios", "usuário", "usuários"], ["campanhas_ativas", "busca ativa", "buscas ativas"],
   ["empresas_mes", "empresa pesquisada por mês", "empresas pesquisadas por mês"], ["pesquisas_mes", "pesquisa com IA por mês", "pesquisas com IA por mês"]];
+// Cobrança mensal ou anual (24/11/2026): o anual é o preço de 12 meses, com desconto; o ciclo escolhido fica na sessão.
+let MP_CICLO = (() => { try { return sessionStorage.getItem("plano.ciclo") === "anual" ? "anual" : "mensal"; } catch { return "mensal"; } })();
+const mpTemAnual = p => p.preco_anual_centavos != null && p.preco_centavos != null;
+function mpEconomia(p) {
+  const eco = p.preco_centavos * 12 - p.preco_anual_centavos;
+  if (!(eco > 0)) return null;
+  const meses = eco / p.preco_centavos;
+  return { eco, texto: Number.isInteger(meses) ? `${meses} ${meses === 1 ? "mês grátis" : "meses grátis"}` : `${Math.round(eco / (p.preco_centavos * 12) * 100)}% de desconto` };
+}
 function mpLista(p) {
   const rec = new Set(p.recursos || []);
   const linhas = MP_RECURSOS.map(([k, n, d]) => rec.has(k)
@@ -89,8 +98,10 @@ async function meuPlano(el) {
     : s.status === "teste_vencido" ? "Seu teste grátis acabou. Escolha um plano abaixo para continuar."
     : s.status === "vencida" ? "Sua mensalidade venceu. Pague abaixo para continuar usando."
     : "";
+  const anual = pagar && MP_CICLO === "anual";
   const botao = p => {
     const atual = s.plano === p.chave;
+    if (anual) return mpTemAnual(p) ? `<button type="button" class="btn prim pri" data-mp-pagar="${esc(p.chave)}">${atual ? "Pagar o anual" : "Assinar o anual"}</button>` : `<span class="btn mp-selo" aria-disabled="true">Só mensal</span>`;
     if (pagar) return atual
       ? (pagarAtual ? `<button type="button" class="btn prim pri" data-mp-pagar="${esc(p.chave)}">Pagar mensalidade</button>` : `<span class="btn mp-selo" aria-disabled="true">Seu plano atual</span>`)
       : `<button type="button" class="btn prim pri" data-mp-pagar="${esc(p.chave)}">Assinar e pagar</button>`;
@@ -109,29 +120,39 @@ async function meuPlano(el) {
     ${pedido && !pagar ? `<div class="aviso mp-pedido"><div><b>Troca pedida: plano ${esc(pedido.nome)}</b>
         <div class="peq">Pedido em ${esc(mpData(s.pedido_em))}. A NEXO confirma a troca e avisa você.</div></div>
         ${d.pode_pedir ? `<button class="btn" id="mpCancelar">Cancelar pedido</button>` : ""}</div>` : ""}
-    <div class="card"><div class="linha entre"><h2 style="margin:0">Planos</h2>${d.pode_pedir ? "" : `<span class="muted peq">Só o dono ou um administrador pode ${d.pagamento_ligado ? "pagar" : "pedir a troca"}.</span>`}</div>
+    <div class="card"><div class="linha entre"><h2 style="margin:0">Planos</h2>${d.pode_pedir ? "" : `<span class="muted peq">Só o dono ou um administrador pode ${d.pagamento_ligado ? "pagar" : "pedir a troca"}.</span>`}
+        ${pagar && planos.some(mpTemAnual) ? `<div class="mp-ciclo" role="group" aria-label="Como pagar">
+          <button type="button" data-mp-ciclo="mensal" aria-pressed="${MP_CICLO === "mensal"}">Mensal</button>
+          <button type="button" data-mp-ciclo="anual" aria-pressed="${MP_CICLO === "anual"}">Anual${(() => { const e = planos.filter(mpTemAnual).map(mpEconomia).filter(Boolean)[0]; return e ? ` <span class="mp-tag">${esc(e.texto)}</span>` : ""; })()}</button></div>` : ""}</div>
       <div class="ct-v-grade mp-grade">${planos.map(p => {
-        const [valor] = mpReais(p.preco_centavos).split("/");
+        const [valor] = mpReais(anual && mpTemAnual(p) ? p.preco_anual_centavos : p.preco_centavos).split("/");
+        const eco = anual && mpTemAnual(p) ? mpEconomia(p) : null;
         return `<article class="ct-v-plano${s.plano === p.chave ? " mp-este" : ""}"><h3>${esc(p.nome)}</h3>
-          <p class="ct-v-preco"><b>${esc(valor)}</b>${p.preco_centavos != null ? `<span>/mês</span>` : ""}</p>
+          <p class="ct-v-preco"><b>${esc(valor)}</b>${p.preco_centavos != null ? `<span>${anual && mpTemAnual(p) ? "/ano" : "/mês"}</span>` : ""}</p>
+          ${anual && mpTemAnual(p) ? `<p class="mp-eq">${esc(mpReais(Math.round(p.preco_anual_centavos / 12)))}/mês${eco ? ` · <b>economize ${esc(mpReais(eco.eco))}</b> (${esc(eco.texto)})` : ""}</p>` : ""}
           ${p.descricao ? `<p class="ct-v-desc">${esc(p.descricao)}</p>` : ""}
           ${botao(p)}
           ${mpLista(p)}
         </article>`; }).join("") || `<div class="vazio">Nenhum plano disponível agora.</div>`}</div>
       <p class="muted peq" style="margin:0">${d.pagamento_ligado
-        ? "Pagamento por <b>Pix ou cartão</b> na InfinitePay, em página segura. Assim que o pagamento é confirmado, o plano é liberado aqui, sozinho, por 1 mês."
+        ? `Pagamento por <b>Pix ou cartão</b> na InfinitePay, em página segura. Assim que o pagamento é confirmado, o plano é liberado aqui, sozinho, por ${anual ? "12 meses" : "1 mês"}.`
         : "Ao pedir a troca, a NEXO confirma e o plano novo vale na hora."}</p>
     </div>
     ${faturas.length ? `<div class="card"><h2 style="margin:0">Pagamentos</h2><div class="mp-faturas">${faturas.map(f => `<div class="mp-fat">
-        <span><b>${esc(mpMes(f.competencia))}</b> <span class="muted peq">· ${esc(f.plano_nome || "")}</span></span>
+        <span><b>${esc(mpMes(f.competencia))}</b> <span class="muted peq">· ${esc(f.plano_nome || "")}${f.meses === 12 ? " · anual" : ""}</span></span>
         <span class="peq">${esc(mpReais(f.valor_centavos))}</span>
         <span class="pill ${f.status === "paga" ? "ok" : "warn"}">${f.status === "paga" ? `Pago ${f.meio === "pix" ? "no Pix" : "no cartão"} em ${esc(mpData(f.pago_em))}` : "Aguardando pagamento"}</span></div>`).join("")}</div></div>` : ""}`;
 
   el.querySelectorAll("[data-mp-pagar]").forEach(b => b.onclick = async () => {
     const p = planos.find(x => x.chave === b.dataset.mpPagar);
     b.disabled = true; const txt = b.textContent; b.textContent = "Abrindo o pagamento…";
-    try { const r = await mpServidor({ acao: "pagar", empresa: mpEmpresa(), plano: p.chave }); location.href = r.link; }
+    try { const r = await mpServidor({ acao: "pagar", empresa: mpEmpresa(), plano: p.chave, ciclo: MP_CICLO }); location.href = r.link; }
     catch (e) { aviso(msgErro(e), true); b.disabled = false; b.textContent = txt; }
+  });
+  el.querySelectorAll("[data-mp-ciclo]").forEach(b => b.onclick = () => {
+    MP_CICLO = b.dataset.mpCiclo === "anual" ? "anual" : "mensal";
+    try { sessionStorage.setItem("plano.ciclo", MP_CICLO); } catch {}
+    meuPlano(el);
   });
   el.querySelectorAll("[data-mp-plano]").forEach(b => b.onclick = async () => {
     const p = planos.find(x => x.chave === b.dataset.mpPlano);

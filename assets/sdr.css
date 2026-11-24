@@ -39,3 +39,16 @@
 @keyframes cvPulso{50%{opacity:.55}}
 @media (prefers-reduced-motion:reduce){.cv-pulso{animation:none}}
 @media (max-width:820px){.cv-grade{grid-template-columns:1fr}.cv-lista{max-height:none}}
+
+/* Conectar canais (24/11/2026) */
+.cn{display:grid;gap:14px}
+.cn-larga{grid-column:1 / -1}
+.cn textarea.input{width:100%;resize:vertical;font:inherit;line-height:1.45}
+.cn-passos{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.cn-passo{display:flex;gap:14px;align-items:flex-start;padding:14px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2,var(--surface))}
+.cn-passo.feito{border-color:color-mix(in srgb,var(--ok,#42d392) 55%,transparent)}
+.cn-n{flex:0 0 34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;background:var(--primary-soft);color:var(--text)}
+.cn-passo.feito .cn-n{background:color-mix(in srgb,var(--ok,#42d392) 22%,transparent)}
+.cn-corpo{display:grid;gap:8px;min-width:0} .cn-corpo h3{margin:0;font-size:15px}
+.cn-corpo ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:13.5px;line-height:1.45}
+.cn-atencao{margin:0;font-size:12.5px;color:var(--muted);line-height:1.4}

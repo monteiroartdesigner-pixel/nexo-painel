@@ -419,3 +419,11 @@ textarea.ag-in{resize:vertical;line-height:1.5}
 .mp-lista .nao{color:var(--muted)} .mp-lista .nao .mp-i{background:rgba(157,178,204,.14);color:var(--muted)}
 .mp-lista .lim{color:var(--muted)} .mp-lista .lim .mp-i{background:none;color:var(--muted);font-size:14px}
 .mp-lista b{font-weight:700}
+
+/* Meu plano: seletor Mensal | Anual (24/11/2026) */
+.mp-ciclo{display:inline-flex;gap:4px;padding:3px;border:1px solid var(--borda,var(--border));border-radius:999px;background:var(--card,var(--surface))}
+.mp-ciclo button{border:0;background:none;color:var(--muted);font:600 13px var(--f);padding:7px 14px;border-radius:999px;cursor:pointer}
+.mp-ciclo button[aria-pressed="true"]{background:var(--onca,#f0b13a);color:#1a1405}
+.mp-tag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:800;background:rgba(66,211,146,.2);color:#42d392}
+.mp-ciclo button[aria-pressed="true"] .mp-tag{background:rgba(0,0,0,.18);color:inherit}
+.mp-eq{margin:-2px 0 0;font-size:12.5px;color:var(--muted);line-height:1.4} .mp-eq b{color:#42d392}

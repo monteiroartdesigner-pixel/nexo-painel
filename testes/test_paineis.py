@@ -60,9 +60,11 @@ PUBLICADOS = []  # arquivo completo (nexo_publicados)
 HISTORICO = []   # recusadas e com falha (nexo_conteudos_historico)
 INTEGRACOES = []  # nexo_integracoes (redes conectadas)
 PLANOS_PUB = []  # planos no cadastro público
+VITRINE = []     # nexo_planos_vitrine: planos só para olhar na tela de entrada
 FALHAR = {}      # funções que o banco recusa neste teste
 FICHA_EXTRA = {}  # campos que a ficha do primeiro lead devolve a mais/a menos neste teste (ex.: whatsapp None)
 SDR_CFG = {}     # nexo_sdr_config: cada teste monta
+CANAIS = {"dados": {}, "passos": {}, "atualizado_em": None}   # nexo_canais_cadastro / nexo_canais_salvar
 
 
 def sdr_cfg_inicial():
@@ -199,6 +201,13 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         c = next(c for c in CONVERSAS_SDR if c["id"] == args["p_conversa"])
         c["estado_ia"] = "ia_ativa"; c["temperatura"] = "morno"; c["nao_lida_humano"] = False
         return {"ok": True}
+    if nome == "nexo_canais_cadastro":
+        return {"empresa_id": "emp-p", **json.loads(json.dumps(CANAIS))}
+    if nome == "nexo_canais_salvar":
+        CANAIS["dados"] = {k: v for k, v in (args.get("p_dados") or {}).items() if v != ""}
+        CANAIS["passos"] = args.get("p_passos") or {}
+        CANAIS["atualizado_em"] = "2026-11-24T15:00:00Z"
+        return {"ok": True}
     if nome == "nexo_sdr_config":
         return json.loads(json.dumps(SDR_CFG))
     if nome == "nexo_sdr_salvar":
@@ -214,6 +223,8 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return SUPORTE
     if nome == "nexo_planos_publicos":
         return PLANOS_PUB
+    if nome == "nexo_planos_vitrine":
+        return json.loads(json.dumps(VITRINE))
     if nome == "nexo_aceitar_convites":
         return {"aceitos": 0}
     if nome == "nexo_membros":
@@ -1011,7 +1022,7 @@ class MeuPlano(unittest.TestCase):
             with pg.expect_navigation():
                 pg.click(sec + ' [data-mp-pagar="completo"]')
             self.assertEqual(pg.url, "https://checkout.infinitepay.io/teste-nexo")
-            self.assertEqual(pedidos[0][1], {"acao": "pagar", "empresa": "emp-v", "plano": "completo"})
+            self.assertEqual(pedidos[0][1], {"acao": "pagar", "empresa": "emp-v", "plano": "completo", "ciclo": "mensal"})
             self.assertTrue(pedidos[0][0].startswith("Bearer "), "vai com o login de quem está pagando")
         finally:
             p.fechar()
@@ -2295,16 +2306,23 @@ class ProspectIndependente(unittest.TestCase):
         self.assertNotIn('location.href = "marketing"', h)
         self.assertNotIn("marketing#plano", (RAIZ / "assets/plano.js").read_text(encoding="utf-8"))
 
-    def test_video_da_entrada_so_mostra_vendas_no_prospect_e_tudo_no_marketing(self):
+    def test_video_da_entrada_so_mostra_o_prospect_no_prospect_e_tudo_no_marketing(self):
         p = Pagina(logado=False)
         try:
+            pedidos = []
+            p.page.on("request", lambda r: "/assets/explicador/" in r.url and r.url.endswith(".mp3") and pedidos.append(r.url))
             pg = p.abrir("/", 1800)
             texto = pg.inner_text(".exp")
-            for fora in ("Pedir peça", "Conteúdo", "Atendimento", "Abertura", "A gestora"):
-                self.assertNotIn(fora, texto, f"{fora} é cena do Marketing")
-            for dentro in ("Vendas", "Análise comercial", "Mandar link", "Clientes e tarefas", "Regra de ouro"):
-                self.assertIn(dentro, texto)
-            self.assertNotIn("marketing", pg.inner_text(".exp-topo").lower())
+            for fora in ("Pedir peça", "Conteúdo", "Atendimento", "A gestora", "Equipe ao vivo", "Suporte", "GitHub", "reserva", "publicado", "Marketing", "Instagram"):
+                self.assertNotIn(fora, texto, f"{fora} não é do NEXO Prospect")
+            cenas = pg.eval_on_selector_all(".exp-cap", "bs => bs.map(b => b.textContent.replace(/^\d+/, ''))")
+            self.assertEqual(cenas, ["Abertura", "Busca", "Análise comercial", "Quando trabalha", "Dúvida vira pergunta", "Mandar link", "Clientes e tarefas", "WhatsApp e SDR", "Painel", "Regra de ouro"])
+            self.assertIn("NEXO Prospect em Ação", pg.inner_text(".exp-topo"))
+            self.assertIn("em 10 cenas", pg.inner_text(".exp-topo"))
+            self.assertIn("Planos Profissional e Completo", pg.eval_on_selector(".exp-cap[data-cap='7']", "b => document.querySelectorAll('.exp-cena')[7].textContent"), "a cena do WhatsApp diz em que planos está")
+            pg.click(".exp-play"); pg.wait_for_timeout(1200)
+            self.assertTrue(any(u.endswith("/assets/explicador/prospect/cena_00.mp3") for u in pedidos), "a narração do Prospect é a própria (Thales), não a do Marketing")
+            self.assertFalse(any("/audio2/" in u for u in pedidos), "não usa a gravação do vídeo do Marketing")
             self.assertEqual(p.erros, [])
             pg = p.abrir("/marketing.html", 1800)
             texto = pg.inner_text(".exp")
@@ -2314,6 +2332,12 @@ class ProspectIndependente(unittest.TestCase):
         finally:
             p.fechar()
 
+    def test_roteiro_e_gravacoes_do_prospect_existem_uma_por_cena(self):
+        pasta = RAIZ / "assets" / "explicador" / "prospect"
+        for n in range(10):
+            a = pasta / f"cena_{n:02d}.mp3"
+            self.assertTrue(a.exists() and a.stat().st_size > 50000, f"falta a gravação da cena {n}")
+        self.assertIn("Thales", (pasta / "roteiro.md").read_text(encoding="utf-8"))
 
 class LiberadoTudo(unittest.TestCase):
     """24/11/2026, Ricardo: cliente liberado (vitalício ou com data) tem acesso a tudo, menos o Master."""
@@ -2414,6 +2438,292 @@ class PlanosListaFuncoes(unittest.TestCase):
             t = pg.inner_text("#main .ct-v-plano")
             self.assertIn("Vendas: clientes, buscas", t)
             self.assertNotIn("sem limite", t); self.assertNotIn("Até", t)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class ConectarCanais(unittest.TestCase):
+    """24/11/2026 (pedido do Ricardo): cadastro do cliente + guia rápido para ligar WhatsApp e Instagram. Nunca pede senha nem código."""
+
+    PLANO = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "recursos": ["prospect", "prospect_sdr_whatsapp"], "limites": {}}
+
+    def setUp(self):
+        SITUACAO.clear(); SITUACAO["emp-p"] = dict(self.PLANO)
+        CANAIS.update({"dados": {}, "passos": {}, "atualizado_em": None})
+
+    def tearDown(self):
+        SITUACAO.clear(); CANAIS.update({"dados": {}, "passos": {}, "atualizado_em": None})
+
+    def test_menu_so_aparece_para_quem_tem_o_recurso(self):
+        SITUACAO["emp-p"] = {**self.PLANO, "recursos": ["prospect"]}
+        p = Pagina()
+        try:
+            self.assertNotIn("Conectar canais", p.abrir("/#/inicio", 1500).inner_text("#nav"))
+        finally:
+            p.fechar()
+        SITUACAO["emp-p"] = dict(self.PLANO)
+        p = Pagina()
+        try:
+            self.assertIn("Conectar canais", p.abrir("/#/inicio", 1500).inner_text("#nav"))
+        finally:
+            p.fechar()
+
+    def test_tela_avisa_que_nao_pede_senha_diz_o_que_falta_e_tem_o_guia(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            txt = pg.inner_text("#main")
+            self.assertIn("Nunca coloque senha ou código aqui", txt)
+            self.assertIn("Faltam 9 itens", txt)
+            self.assertIn("Falta para conectar", txt)
+            self.assertIsNone(pg.query_selector("#main input[type=password]"), "nenhum campo de senha")
+            self.assertEqual(len(pg.query_selector_all(".cn-passo")), 5)
+            self.assertIn("0 de 5 passos feitos", txt)
+            for palavra in ("Criar ou entrar na conta da Meta", "Conectar o Instagram", "Conectar o WhatsApp"):
+                self.assertIn(palavra, txt)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_preencher_salvar_e_marcar_passo_manda_tudo_e_a_tela_atualiza(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            for k, v in {"dono_nome": "Rogério Carpowiski", "dono_email": "contato@immunewell.com.br", "dono_celular": "(45) 99111-2222",
+                         "empresa_nome": "Immune Well", "instagram_arroba": "@immune.well", "whatsapp_numero": "(45) 9952-5268",
+                         "lead_quente_whatsapp": "(45) 99999-0000", "nunca_dizer": "promessa de emagrecimento"}.items():
+                pg.fill(f"#cn_{k}", v)
+            pg.select_option("#cn_instagram_profissional", "sim"); pg.select_option("#cn_whatsapp_business", "sim")
+            pg.check('[data-cn-passo="conta_meta"]')
+            pg.click("#cnSalvar"); pg.wait_for_timeout(900)
+            args = [a for n, a in p.args if n == "nexo_canais_salvar"][-1]
+            self.assertEqual(args["p_dados"]["dono_nome"], "Rogério Carpowiski")
+            self.assertEqual(args["p_dados"]["instagram_profissional"], "sim")
+            self.assertTrue(args["p_passos"]["conta_meta"]); self.assertFalse(args["p_passos"]["teste"])
+            self.assertNotIn("senha", json.dumps(args).lower(), "nada de senha na chamada")
+            txt = pg.inner_text("#main")
+            self.assertIn("Cadastro completo", txt)
+            self.assertIn("1 de 5 passos feitos", txt)
+            self.assertEqual(pg.input_value("#cn_empresa_nome"), "Immune Well")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_avisos_quando_o_instagram_nao_e_profissional_ou_o_whatsapp_nao_e_business(self):
+        CANAIS["dados"] = {"instagram_profissional": "nao", "whatsapp_business": "nao"}
+        p = Pagina()
+        try:
+            txt = p.abrir("/#/canais", 1800).inner_text("#main")
+            self.assertIn("Trocar o Instagram para conta profissional", txt)
+            self.assertIn("Instalar o WhatsApp Business", txt)
+        finally:
+            p.fechar()
+
+    def test_gera_o_perfil_da_ia_so_com_o_que_foi_preenchido(self):
+        CANAIS["dados"] = {"empresa_nome": "Immune Well", "produtos": "Suplementos", "nunca_dizer": "promessa de emagrecimento ou cura"}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            self.assertFalse(pg.is_visible("#cnPersona"))
+            pg.click("#cnGerar"); pg.wait_for_timeout(200)
+            t = pg.input_value("#cnPersona")
+            self.assertIn("assistente virtual da Immune Well", t)
+            self.assertIn("Produtos e serviços: Suplementos", t)
+            self.assertIn("NUNCA diga: promessa de emagrecimento ou cura.", t)
+            self.assertNotIn("Preços que podem ser informados", t, "campo vazio não vira linha")
+            self.assertIn("você é uma assistente virtual", t)
+        finally:
+            p.fechar()
+
+    def test_texto_do_cliente_nunca_vira_html(self):
+        CANAIS["dados"] = {"empresa_nome": "<b>Imune</b>", "produtos": "<img src=x onerror=alert(1)>"}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/canais", 1800)
+            self.assertIsNone(pg.query_selector("#main .cn b:text('Imune')"))
+            self.assertEqual(pg.input_value("#cn_empresa_nome"), "<b>Imune</b>")
+            self.assertIsNone(pg.query_selector("#main img"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class PlanoAnual(unittest.TestCase):
+    """24/11/2026 (pedido do Ricardo): plano anual com desconto em cada plano, escolhido em Meu plano; o Master muda o preço."""
+
+    def setUp(self):
+        MEU_PLANO.clear()
+        MEU_PLANO.update({"pode_pedir": True, "pagamento_ligado": True, "planos": [
+            {"chave": "inicial", "nome": "Inicial", "preco_centavos": 20000, "preco_anual_centavos": 200000, "recursos": ["prospect"]},
+            {"chave": "profissional", "nome": "Profissional", "preco_centavos": 40000, "preco_anual_centavos": 384000, "recursos": ["prospect"]},
+            {"chave": "completo", "nome": "Completo", "preco_centavos": 80000, "preco_anual_centavos": None, "recursos": ["prospect"]}],
+            "situacao": {"tem_assinatura": True, "acesso": "total", "status": "ativa", "plano": "inicial", "plano_nome": "Inicial", "preco_centavos": 20000,
+                         "periodo_ate": "2099-01-01T00:00:00Z"}})
+
+    def tearDown(self):
+        MEU_PLANO.clear()
+
+    def test_seletor_so_aparece_com_pagamento_ligado_e_algum_plano_com_anual(self):
+        MEU_PLANO["pagamento_ligado"] = False
+        p = Pagina()
+        try:
+            self.assertIsNone(p.abrir("/#/plano", 1800).query_selector(".mp-ciclo"), "sem pagamento ligado não há anual")
+        finally:
+            p.fechar()
+        MEU_PLANO["pagamento_ligado"] = True
+        for pl in MEU_PLANO["planos"]: pl["preco_anual_centavos"] = None
+        p = Pagina()
+        try:
+            self.assertIsNone(p.abrir("/#/plano", 1800).query_selector(".mp-ciclo"), "nenhum plano com preço anual")
+        finally:
+            p.fechar()
+
+    def test_anual_mostra_preco_do_ano_economia_e_paga_com_o_ciclo(self):
+        p = Pagina()
+        try:
+            pedidos = []
+            def servidor(r):
+                pedidos.append(json.loads(r.request.post_data or "{}"))
+                r.fulfill(status=200, content_type="application/json", body='{"link":"https://checkout.infinitepay.io/anual"}')
+            p.ctx.route("**/functions/v1/nexo-pagamento", servidor)
+            p.ctx.route("https://checkout.infinitepay.io/**", lambda r: r.fulfill(status=200, content_type="text/html", body="<h1>Checkout</h1>"))
+            pg = p.abrir("/#/plano", 1800)
+            self.assertEqual(pg.get_attribute('[data-mp-ciclo="mensal"]', "aria-pressed"), "true", "começa no mensal")
+            self.assertIn("2 meses grátis", pg.inner_text(".mp-ciclo"))
+            pg.click('[data-mp-ciclo="anual"]'); pg.wait_for_timeout(300)
+            cards = [c.inner_text().replace(" ", " ") for c in pg.query_selector_all("#main .ct-v-plano")]
+            self.assertIn("R$ 2.000,00", cards[0]); self.assertIn("/ano", cards[0])
+            self.assertIn("R$ 166,67/mês", cards[0]); self.assertIn("economize R$ 400,00", cards[0]); self.assertIn("2 meses grátis", cards[0])
+            self.assertIn("R$ 3.840,00", cards[1]); self.assertIn("economize R$ 960,00", cards[1]); self.assertIn("20% de desconto", cards[1], "desconto que não é número inteiro de meses")
+            self.assertIn("Só mensal", cards[2], "plano sem preço anual")
+            self.assertIn("12 meses", pg.inner_text("#main"))
+            self.assertIn("Pagar o anual", cards[0], "o plano atual também pode virar anual")
+            with pg.expect_navigation():
+                pg.click('[data-mp-pagar="profissional"]')
+            self.assertEqual(pedidos[0]["ciclo"], "anual"); self.assertEqual(pedidos[0]["plano"], "profissional")
+        finally:
+            p.fechar()
+
+    def test_voltar_ao_mensal_e_lembrar_a_escolha_na_sessao(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/plano", 1800)
+            pg.click('[data-mp-ciclo="anual"]'); pg.wait_for_timeout(300)
+            pg.click('[data-mp-ciclo="mensal"]'); pg.wait_for_timeout(300)
+            c0 = pg.query_selector_all("#main .ct-v-plano")[0].inner_text().replace(" ", " ")
+            self.assertIn("R$ 200,00", c0); self.assertIn("/mês", c0); self.assertNotIn("economize", c0)
+            pg.click('[data-mp-ciclo="anual"]'); pg.wait_for_timeout(300)
+            pg.reload(); pg.wait_for_timeout(1800)
+            self.assertEqual(pg.get_attribute('[data-mp-ciclo="anual"]', "aria-pressed"), "true", "a escolha fica na sessão")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_fatura_anual_aparece_com_a_etiqueta(self):
+        p = Pagina()
+        try:
+            p.ctx.route("**/rest/v1/rpc/nexo_minhas_faturas", lambda r: r.fulfill(status=200, content_type="application/json",
+                body=json.dumps([{"competencia": "2026-11-01", "plano_nome": "Inicial", "valor_centavos": 200000, "status": "paga", "pago_em": "2026-11-24T15:00:00Z", "meio": "pix", "meses": 12}])))
+            self.assertIn("anual", p.abrir("/#/plano", 1800).inner_text(".mp-fat"))
+        finally:
+            p.fechar()
+
+    def test_master_edita_o_preco_anual(self):
+        p = Pagina(master=True)
+        try:
+            pg = p.abrir("/marketing.html", 1500)
+            pg.click('.menu [data-aba="master"]'); pg.wait_for_timeout(900)
+            f = 'form[data-m-salvar-plano="inicial"]'
+            pg.fill(f + " [name=preco_anual]", "1.920,00")
+            pg.click(f + " [type=submit]"); pg.wait_for_timeout(500)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_plano"][-1]
+            self.assertEqual(args["p_dados"]["preco_anual_centavos"], 192000)
+            pg.fill(f + " [name=preco_anual]", "")
+            pg.click(f + " [type=submit]"); pg.wait_for_timeout(500)
+            args = [a for n, a in p.args if n == "nexo_master_salvar_plano"][-1]
+            self.assertEqual(args["p_dados"]["preco_anual_centavos"], "", "vazio apaga o anual")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class VitrineDePlanosNoLogin(unittest.TestCase):
+    """24/11/2026 (pedido do Ricardo): os planos aparecem na tela de entrada do Prospect como em Meu plano, só para olhar (cadastro fechado)."""
+
+    def setUp(self):
+        VITRINE.clear(); VITRINE.extend([
+            {"chave": "inicial", "nome": "Inicial", "descricao": "Vendas: a onça Faro busca empresas.", "preco_centavos": 20000, "preco_anual_centavos": 200000,
+             "recursos": ["prospect", "prospect_ia"], "limites": {"usuarios": 1, "empresas_mes": 200}},
+            {"chave": "profissional", "nome": "Profissional", "descricao": "Tudo do Inicial + WhatsApp e SDR.", "preco_centavos": 40000, "preco_anual_centavos": 400000,
+             "recursos": ["prospect", "prospect_ia", "prospect_sdr_whatsapp"], "limites": {"usuarios": 2}},
+            {"chave": "completo", "nome": "Completo", "descricao": "Tudo, com os maiores limites.", "preco_centavos": 80000, "preco_anual_centavos": None,
+             "recursos": ["prospect", "prospect_ia", "prospect_sdr_whatsapp"], "limites": {}}])
+        PLANOS_PUB.clear()
+
+    def tearDown(self):
+        VITRINE.clear(); PLANOS_PUB.clear()
+
+    def test_prospect_mostra_os_tres_planos_com_funcoes_limites_e_sem_compra(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/", 1800)
+            self.assertTrue(pg.is_visible(".ct-vitrine.ct-info .ct-v-grade"), "os planos já aparecem abertos")
+            cards = [c.inner_text().replace(" ", " ") for c in pg.query_selector_all(".ct-info .ct-v-plano")]
+            self.assertEqual(len(cards), 3)
+            self.assertIn("R$ 200,00", cards[0]); self.assertIn("/mês", cards[0])
+            self.assertIn("WhatsApp e SDR: não incluído", cards[0])
+            self.assertIn("Até 1 usuário", cards[0])
+            self.assertIn("WhatsApp e SDR: a IA atende", cards[1])
+            self.assertIn("Usuários sem limite", cards[2], "limite vazio = sem limite")
+            t = pg.inner_text(".ct-info")
+            self.assertNotIn("Começar teste grátis", t); self.assertNotIn("Assinar e pagar", t)
+            self.assertIn("O acesso é por convite", t)
+            self.assertEqual(len(pg.query_selector_all(".ct-info a[href*='instagram.com/nexo.rm']")), 3, "cada plano leva a falar com a NEXO")
+            self.assertEqual(pg.inner_text("[data-criar]"), "Criar conta ou usar um convite", "o cadastro segue fechado")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_seletor_anual_mostra_o_preco_do_ano_e_a_economia(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/", 1800)
+            self.assertIn("2 meses grátis", pg.inner_text(".ct-info .mp-ciclo"))
+            pg.click('.ct-info [data-ciclo="anual"]'); pg.wait_for_timeout(300)
+            cards = [c.inner_text().replace(" ", " ") for c in pg.query_selector_all(".ct-info .ct-v-plano")]
+            self.assertIn("R$ 2.000,00", cards[0]); self.assertIn("/ano", cards[0]); self.assertIn("economize R$ 400,00", cards[0])
+            self.assertIn("R$ 4.000,00", cards[1]); self.assertIn("economize R$ 800,00", cards[1])
+            self.assertIn("Só mensal", cards[2], "plano sem anual")
+            pg.click('.ct-info [data-ciclo="mensal"]'); pg.wait_for_timeout(300)
+            self.assertIn("R$ 200,00", pg.query_selector_all(".ct-info .ct-v-plano")[0].inner_text().replace(" ", " "))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_marketing_nao_mostra_os_planos_do_prospect(self):
+        p = Pagina(logado=False)
+        try:
+            self.assertIsNone(p.abrir("/marketing.html", 1800).query_selector(".ct-info"))
+        finally:
+            p.fechar()
+
+    def test_com_plano_publico_continua_a_vitrine_antiga_com_teste_gratis(self):
+        PLANOS_PUB.append({"chave": "inicial", "nome": "Inicial", "descricao": "Prospect", "preco_centavos": 20000, "recursos": ["prospect"], "dias_teste": 3})
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/", 1800)
+            self.assertIn("Teste 3 dias grátis", pg.inner_text(".ct-v-abrir"))
+            self.assertIsNone(pg.query_selector(".ct-info"), "a vitrine informativa só entra quando o cadastro está fechado")
+        finally:
+            p.fechar()
+
+    def test_texto_do_plano_nunca_vira_html(self):
+        VITRINE[0]["nome"] = "<img src=x onerror=alert(1)>"; VITRINE[0]["descricao"] = "<b>negrito</b>"
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/", 1800)
+            self.assertIsNone(pg.query_selector(".ct-info img")); self.assertIsNone(pg.query_selector(".ct-info .ct-v-desc b"))
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()

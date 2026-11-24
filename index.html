@@ -41,7 +41,7 @@
 <link rel="stylesheet" href="assets/links.css?v=20261117c">
 <link rel="stylesheet" href="assets/leads.css?v=20261118a">
 <link rel="stylesheet" href="assets/leads-prospect.css?v=20261118a">
-<link rel="stylesheet" href="assets/sdr.css?v=20261124b">
+<link rel="stylesheet" href="assets/sdr.css?v=20261127a">
 <link rel="stylesheet" href="assets/explicador.css?v=20261117e">
 <script src="assets/aparencia.js?v=20261119w"></script>
 <style>
@@ -342,11 +342,12 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="assets/links.js?v=20261119n"></script>
 <script src="assets/leads.js?v=20261118k"></script>
 <script src="assets/sdr.js?v=20261124b"></script>
+<script src="assets/canais.js?v=20261127a"></script>
 <script src="assets/conversas.js?v=20261124a"></script>
 <script src="assets/plano.js?v=20261125a"></script>
 <script src="assets/meuplano.js?v=20261127a"></script>
-<script src="assets/conta.js?v=20261119c"></script>
-<script src="assets/explicador.js?v=20261119t"></script>
+<script src="assets/conta.js?v=20261127a"></script>
+<script src="assets/explicador.js?v=20261127a"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
 <script>
 "use strict";
@@ -478,7 +479,8 @@ function confirmar(titulo, texto, acao, rot = "Confirmar", perigo = false) {
 const MODS = [["inicio", "Início", "home"], ["crm", "Clientes", "crm"], ["tarefas", "Tarefas", "task"], ["campanhas", "Buscas", "camp"], ["plano", "Meu plano", "card", "Plano"], ["ajuda", "Ajuda", "help"]];
 // 25/11/2026, Ricardo: o Prospect é um app independente, sem ligação com o Marketing. Os Leads do Instagram (Várzea) ficam só no Marketing.
 const MOD_CONV = ["conversas", "Conversas", "mail", "Conversas"];   // F5 (24/11/2026): conversas do SDR, junto com o WhatsApp e SDR
-const MOD_SDR = ["whatsapp", "WhatsApp e SDR", "wa", "WhatsApp"];   // 24/11/2026: só aparece para quem tem o recurso no plano (ou é Master)
+const MOD_SDR = ["whatsapp", "WhatsApp e SDR", "wa", "WhatsApp"];
+const MOD_CANAIS = ["canais", "Conectar canais", "link", "Canais"];   // 24/11/2026: cadastro e guia para ligar WhatsApp e Instagram (mesmo recurso do SDR)   // 24/11/2026: só aparece para quem tem o recurso no plano (ou é Master)
 const sdrVisivel = () => S.papel === "plataforma" || !!(PL.sits[S.empresaId]?.recursos || []).includes("prospect_sdr_whatsapp");
 function rotaAtual() { const r = (location.hash.replace(/^#\/?/, "") || "inicio").split("?")[0]; return MODS.some(m => m[0] === r) ? r : "inicio"; }
 function pintarNav() {
@@ -490,13 +492,13 @@ function pintarNav() {
 }
 window.addEventListener("hashchange", () => { pintarNav(); render(); window.scrollTo(0, 0); });
 // Plano (assets/plano.js): o Prospect inteiro pede o recurso "prospect"; o WhatsApp e SDR pede o dele. Meu plano nunca tranca.
-const PRO_RECURSO = { inicio: "prospect", crm: "prospect", tarefas: "prospect", campanhas: "prospect", whatsapp: "prospect_sdr_whatsapp", conversas: "prospect_sdr_whatsapp" };
+const PRO_RECURSO = { inicio: "prospect", crm: "prospect", tarefas: "prospect", campanhas: "prospect", whatsapp: "prospect_sdr_whatsapp", conversas: "prospect_sdr_whatsapp", canais: "prospect_sdr_whatsapp" };
 const empresaDoModulo = () => S.empresaId;
 const modTrancado = k => !!PRO_RECURSO[k] && !planoTem(PRO_RECURSO[k], empresaDoModulo(k));
 function render() {
   const r = rotaAtual(), el = $("#main");
   if (modTrancado(r)) el.innerHTML = planoBloqueio(PRO_RECURSO[r], empresaDoModulo(r));
-  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, plano: vPlano, whatsapp: sdrTela, conversas: cvTela, ajuda: vAjuda })[r](el);
+  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, plano: vPlano, whatsapp: sdrTela, canais: canaisTela, conversas: cvTela, ajuda: vAjuda })[r](el);
   planoFaixa(S.empresaId, el);
   if (!modTrancado(r) && typeof vendasEquipe === "function") vendasEquipe(el);   // onças da equipe nesta aba (23/11/2026)
   document.title = `${typeof cvTitulo === "function" ? cvTitulo() : ""}${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
@@ -1208,7 +1210,7 @@ async function iniciar() {
   if (["plataforma", "dono", "admin"].includes(emp.papel)) { const be = $("#btnEquipeP"); be.classList.remove("oculto"); be.onclick = () => abrirEquipe(emp.id, emp.nome); }
   await planoCarregar(S.empresaId);
   if (await mpRetornoPagamento()) location.hash = "#/plano";   // volta do checkout da InfinitePay: confere o pagamento e abre Meu plano
-  if (sdrVisivel() && !MODS.includes(MOD_SDR)) { MODS.splice(MODS.length - 1, 0, MOD_CONV, MOD_SDR); cvIniciar(); }
+  if (sdrVisivel() && !MODS.includes(MOD_SDR)) { MODS.splice(MODS.length - 1, 0, MOD_CONV, MOD_SDR, MOD_CANAIS); cvIniciar(); }
   rpc("nexo_resumo", { p_agente: S.agente }).then(r => { S.logo = r?.identidade?.logo_painel || null; aplicarLogo(); }).catch(() => aplicarLogo());
   try { S.crm.vista = localStorage.getItem("prospect.vista") || "kanban"; } catch {}
   $("#main").innerHTML = `<div class="sk" style="height:34px;width:260px"></div><div class="grid g-kpi">${"<div class='sk' style='height:92px'></div>".repeat(5)}</div><div class="sk" style="height:280px"></div>`;

@@ -138,6 +138,8 @@ function mCartaoPlano(p) {
       <label class="m-campo"><span>Preço por mês (R$)</span><input name="preco" inputmode="decimal" placeholder="a definir" value="${p.preco_centavos == null ? "" : (p.preco_centavos / 100).toFixed(2).replace(".", ",")}" ${p.chave === "interno" ? "disabled" : ""}></label>
       <label class="m-campo"><span>Dias de teste</span><input name="dias_teste" type="number" min="0" max="60" value="${p.dias_teste}"></label>
     </div>
+    <label class="m-campo"><span>Preço por ano (R$), com desconto</span><input name="preco_anual" inputmode="decimal" placeholder="vazio = sem plano anual" value="${p.preco_anual_centavos == null ? "" : (p.preco_anual_centavos / 100).toFixed(2).replace(".", ",")}" ${p.chave === "interno" ? "disabled" : ""}>
+      ${p.preco_centavos != null && p.preco_anual_centavos != null && p.preco_centavos * 12 > p.preco_anual_centavos ? `<small class="muted peq">Economia de ${esc(reais(p.preco_centavos * 12 - p.preco_anual_centavos))} por ano para quem paga o anual.</small>` : ""}</label>
     <fieldset class="m-rec"><legend class="peq muted">Recursos</legend>
       ${M_RECURSOS.map(([k, n, d]) => `<label class="m-chk" title="${esc(d)}"><input type="checkbox" name="rec" value="${k}" ${rec.has(k) ? "checked" : ""}><span>${esc(n)}</span></label>`).join("")}</fieldset>
     <div class="m-duas">${M_LIMITES.map(([k, n]) => `<label class="m-campo"><span>${esc(n)}</span><input name="lim_${k}" type="number" min="0" placeholder="sem limite" value="${lim[k] ?? ""}"></label>`).join("")}</div>
@@ -161,6 +163,11 @@ async function mSalvarPlano(f, el) {
     const txt = v("preco").replace(/\./g, "").replace(",", ".");
     if (txt && !(Number(txt) >= 0)) { aviso("Preço inválido. Use, por exemplo, 97,00.", true); return; }
     dados.preco_centavos = txt ? Math.round(Number(txt) * 100) : null;
+  }
+  if (f.elements.preco_anual && !f.elements.preco_anual.disabled) {
+    const ta = v("preco_anual").replace(/\./g, "").replace(",", ".");
+    if (ta && !(Number(ta) >= 1)) { aviso("Preço anual inválido. Use, por exemplo, 2000,00 (mínimo R$ 1,00).", true); return; }
+    dados.preco_anual_centavos = ta ? Math.round(Number(ta) * 100) : "";   // vazio apaga o anual
   }
   const b = f.querySelector("[type=submit]"); b.disabled = true;
   try { await rpc("nexo_master_salvar_plano", { p_chave: f.dataset.mSalvarPlano, p_dados: dados }); aviso("Plano salvo."); mst.carregado = false; master(el); }
