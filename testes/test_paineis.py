@@ -2681,6 +2681,7 @@ class VitrineDePlanosNoLogin(unittest.TestCase):
             self.assertIn("O acesso é por convite", t)
             self.assertEqual(len(pg.query_selector_all(".ct-info a[href*='instagram.com/nexo.rm']")), 3, "cada plano leva a falar com a NEXO")
             self.assertEqual(pg.inner_text("[data-criar]"), "Criar conta ou usar um convite", "o cadastro segue fechado")
+            self.assertEqual(pg.eval_on_selector("#formLogin", "e => getComputedStyle(e).position"), "static", "o login não cobre o plano da direita ao rolar")
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
