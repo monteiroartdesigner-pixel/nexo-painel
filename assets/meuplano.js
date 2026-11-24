@@ -9,6 +9,9 @@
 // Só dono ou admin paga ou pede. Usa rpc, esc, pl, aviso, msgErro, st, sb, SUPABASE_URL, SUPABASE_KEY e $.
 // ============================================================================
 
+// A empresa do plano: no Marketing vem de st; no Prospect (independente) vem de S.
+const mpEmpresa = () => (typeof st !== "undefined" && st.empresaId) || (typeof S !== "undefined" && S.empresaId) || null;
+
 const MP_STATUS = { teste: "Teste grátis", teste_vencido: "Teste acabou", ativa: "Ativo", vencida: "Vencido",
   suspensa: "Suspenso", cancelada: "Cancelado", vitalicia: "Vitalício" };
 const mpReais = c => c == null ? "a combinar" : (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -40,18 +43,18 @@ async function mpRetornoPagamento() {
     const ok = ["pago", "ja_pago"].includes(r.resultado);
     setTimeout(() => aviso(ok ? `Pagamento confirmado${r.pago_ate ? `: plano pago até ${mpData(r.pago_ate)}` : ""}. Obrigado!`
                                 : "Recebemos a sua volta. Assim que a InfinitePay confirmar o pagamento, o plano é liberado aqui.", !ok && r.resultado !== "nao_pago"), 400);
-    if (ok && st.empresaId) await planoCarregar(st.empresaId);
+    if (ok && mpEmpresa()) await planoCarregar(mpEmpresa());
   } catch (e) { setTimeout(() => aviso(msgErro(e), true), 400); }
   return true;
 }
 
 async function meuPlano(el) {
-  if (!st.empresaId) { el.innerHTML = `<div class="vazio">Escolha um agente de uma empresa para ver o plano.</div>`; return; }
+  if (!mpEmpresa()) { el.innerHTML = `<div class="vazio">Escolha um agente de uma empresa para ver o plano.</div>`; return; }
   el.innerHTML = `<div class="vazio">Carregando o seu plano…</div>`;
   let d, faturas = [];
   try {
-    d = await rpc("nexo_meu_plano", { p_empresa: st.empresaId });
-    faturas = await rpc("nexo_minhas_faturas", { p_empresa: st.empresaId }).catch(() => []);
+    d = await rpc("nexo_meu_plano", { p_empresa: mpEmpresa() });
+    faturas = await rpc("nexo_minhas_faturas", { p_empresa: mpEmpresa() }).catch(() => []);
   } catch (e) {
     el.innerHTML = /nexo_meu_plano|does not exist|Could not find/i.test(e.message || "")
       ? `<div class="aviso">Os planos aparecem aqui depois da atualização do banco (migração 20261119140000_nexo_meu_plano.sql).</div>`
@@ -110,20 +113,20 @@ async function meuPlano(el) {
   el.querySelectorAll("[data-mp-pagar]").forEach(b => b.onclick = async () => {
     const p = planos.find(x => x.chave === b.dataset.mpPagar);
     b.disabled = true; const txt = b.textContent; b.textContent = "Abrindo o pagamento…";
-    try { const r = await mpServidor({ acao: "pagar", empresa: st.empresaId, plano: p.chave }); location.href = r.link; }
+    try { const r = await mpServidor({ acao: "pagar", empresa: mpEmpresa(), plano: p.chave }); location.href = r.link; }
     catch (e) { aviso(msgErro(e), true); b.disabled = false; b.textContent = txt; }
   });
   el.querySelectorAll("[data-mp-plano]").forEach(b => b.onclick = async () => {
     const p = planos.find(x => x.chave === b.dataset.mpPlano);
     if (!confirm(`Pedir a troca para o plano ${p.nome} (${mpReais(p.preco_centavos)} por mês)? A NEXO confirma e avisa você.`)) return;
     b.disabled = true;
-    try { await rpc("nexo_pedir_plano", { p_empresa: st.empresaId, p_plano: p.chave }); aviso(`Pedido enviado: plano ${p.nome}.`); meuPlano(el); }
+    try { await rpc("nexo_pedir_plano", { p_empresa: mpEmpresa(), p_plano: p.chave }); aviso(`Pedido enviado: plano ${p.nome}.`); meuPlano(el); }
     catch (e) { aviso(msgErro(e), true); b.disabled = false; }
   });
   const bc = $("#mpCancelar", el);
   if (bc) bc.onclick = async () => {
     bc.disabled = true;
-    try { await rpc("nexo_pedir_plano", { p_empresa: st.empresaId, p_plano: null }); aviso("Pedido de troca cancelado."); meuPlano(el); }
+    try { await rpc("nexo_pedir_plano", { p_empresa: mpEmpresa(), p_plano: null }); aviso("Pedido de troca cancelado."); meuPlano(el); }
     catch (e) { aviso(msgErro(e), true); bc.disabled = false; }
   };
 }

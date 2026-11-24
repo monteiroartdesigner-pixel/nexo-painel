@@ -11,29 +11,31 @@
 let EXP_BASE = "";
 const EXP_IMG = n => `${EXP_BASE}assets/explicador/${n}.webp`;
 const EXP_AUDIO = n => `${EXP_BASE}assets/explicador/audio2/cena_${String(n).padStart(2, "0")}.mp3`;
+// 25/11/2026: no site do Prospect o vídeo só mostra as cenas de vendas; no Marketing, todas.
+const EXP_PRODUTO = /\/marketing(\.html)?\/?$/.test(location.pathname) ? "marketing" : "prospect";
 const EXP_CENAS = [
-  { tit: "Abertura", eb: "NEXO Prospect", h: "Uma equipe de onças trabalhando por você", abre: true,
+  { tit: "Abertura", so: "marketing", eb: "NEXO Prospect", h: "Uma equipe de onças trabalhando por você", abre: true,
     fala: "Esta é a equipe da NEXO. Enquanto você cuida do seu dia, ela pesquisa clientes, prepara mensagens e cria conteúdo. Vou te mostrar, do começo ao fim, o que a sua automação faz.",
     vis: `<div class="exp-chips"><span class="exp-chip">Marketing</span><span class="exp-chip">Vendas</span><span class="exp-chip">Atendimento</span></div>` },
   { tit: "Quando trabalha", eb: "Sozinha, na nuvem", h: "Três rodadas por dia", img: "pintada",
     fala: "Três vezes por dia, às seis e dez, ao meio-dia e dez e às dezoito e dez, a equipe acorda sozinha, na nuvem. O seu computador pode estar desligado. E se o GitHub atrasar um horário, uma rodada de reserva entra no lugar.",
     vis: `<div class="exp-horas"><span class="exp-hora">06:10</span><span class="exp-hora">12:10</span><span class="exp-hora">18:10</span></div><div class="exp-chips"><span class="exp-chip">Computador desligado</span><span class="exp-chip">Rodada de reserva</span></div>` },
-  { tit: "A gestora", eb: "Onça Pintada · gestora da equipe", h: "Primeiro, ela lê o retrato do dia", img: "pintada",
+  { tit: "A gestora", so: "marketing", eb: "Onça Pintada · gestora da equipe", h: "Primeiro, ela lê o retrato do dia", img: "pintada",
     fala: "A onça Pintada, gestora da equipe, começa lendo o retrato do dia: as métricas do Instagram, os leads que já existem, os conteúdos agendados e tudo o que você pediu no painel.",
     vis: `<div class="exp-fluxo"><span>Métricas do Instagram</span><span>Leads</span><span>Agenda de posts</span><span>Seus pedidos</span></div>` },
-  { tit: "Equipe ao vivo", eb: "Aba Equipe", h: "Veja cada onça trabalhando", abre: true,
+  { tit: "Equipe ao vivo", so: "marketing", eb: "Aba Equipe", h: "Veja cada onça trabalhando", abre: true,
     fala: "Na aba Equipe, você vê cada onça: quem está trabalhando, quem está descansando e o que cada uma entregou. E a equipe sobe de nível conforme entrega.",
     vis: `<div class="exp-chips"><span class="exp-chip">Na ativa agora</span><span class="exp-chip">Entregas recentes</span><span class="exp-chip">Nível da equipe</span></div>` },
   { tit: "Leads do Várzea", soCasa: true, eb: "Onça Faro · pesquisa e prospecção", h: "Times, ligas e escolinhas para o NEXO Várzea", img: "faro",
     fala: "A onça Faro pesquisa times, ligas, campeonatos e escolinhas de futebol amador. Ela usa só informação pública, procura o contato oficial do time e dá uma nota para cada lead. Quem tem contato e nota boa vai para Para abordar, com a mensagem pronta.",
     vis: `<div class="exp-cartao"><b>Lead encontrado</b><div class="lin"><span>Fonte</span>perfil público</div><div class="lin"><span>Contato</span>só o oficial do time</div><div class="lin"><span>Destino</span>Para abordar, com mensagem</div></div>` },
-  { tit: "Conteúdo", eb: "Onças Rabisco e Vitrine", h: "Posts prontos, publicados só com o seu OK", duo: ["rabisco", "vitrine"],
+  { tit: "Conteúdo", so: "marketing", eb: "Onças Rabisco e Vitrine", h: "Posts prontos, publicados só com o seu OK", duo: ["rabisco", "vitrine"],
     fala: "A onça Rabisco cria as peças do Instagram: posts, carrosséis, stories e roteiros de reels, com legenda e chamada. Tudo cai na aba Aprovar. Se quiser mudar algo, é só pedir um ajuste, e a equipe refaz a peça. E a onça Vitrine só publica o que você aprovou.",
     vis: `<div class="exp-chips"><span class="exp-chip">Post</span><span class="exp-chip">Carrossel</span><span class="exp-chip">Story</span><span class="exp-chip">Roteiro de reels</span></div><div class="exp-fluxo"><span>Criado</span><i>→</i><span>Aprovar ou pedir ajuste</span><i>→</i><span>Publicado</span></div>` },
-  { tit: "Pedir peça", eb: "Aba Pedir peça", h: "Você dá o tema, a equipe faz as peças", img: "rabisco",
+  { tit: "Pedir peça", so: "marketing", eb: "Aba Pedir peça", h: "Você dá o tema, a equipe faz as peças", img: "rabisco",
     fala: "Na aba Pedir peça, você escreve um tema, ou cola a transcrição de um vídeo seu. A equipe usa as suas palavras para montar carrossel, guia ou roteiro, e explica por que escolheu cada formato.",
     vis: `<div class="exp-fluxo"><span>Seu tema ou seu vídeo</span><i>→</i><span>Peças com as suas palavras</span></div>` },
-  { tit: "Atendimento", eb: "Onça Papo · atendimento", h: "Respostas só com fatos que você aprovou", img: "papo",
+  { tit: "Atendimento", so: "marketing", eb: "Onça Papo · atendimento", h: "Respostas só com fatos que você aprovou", img: "papo",
     fala: "A onça Papo cuida do atendimento. Ela usa só os fatos que você aprovou na Base da marca. O que ela não sabe responder, ela não inventa: separa a pergunta para você.",
     vis: `<div class="exp-chips"><span class="exp-chip ok">Base da marca</span><span class="exp-chip ok">Fatos aprovados</span><span class="exp-chip nao">Nada inventado</span></div>` },
   { tit: "Vendas", eb: "Área de Vendas · onça Faro", h: "Você diz o que vende, ela busca as empresas", img: "faro",
@@ -54,13 +56,15 @@ const EXP_CENAS = [
   { tit: "Painel", eb: "Onça Lupa · análise", h: "Tudo à vista no quadro Automação", img: "lupa",
     fala: "A onça Lupa acompanha os números. No quadro Automação, você vê as pesquisas do dia, o que foi encontrado, aprovado e descartado, as mensagens prontas, a próxima rodada e qualquer erro.",
     vis: `<div class="exp-chips"><span class="exp-chip">Pesquisas do dia</span><span class="exp-chip">Encontradas</span><span class="exp-chip">Mensagens prontas</span><span class="exp-chip">Próxima rodada</span><span class="exp-chip">Avisos e erros</span></div>` },
-  { tit: "Suporte", eb: "Botão Suporte", h: "Dúvida? Uma onça responde na hora", duo: ["pintada", "faro"],
+  { tit: "Suporte", so: "marketing", eb: "Botão Suporte", h: "Dúvida? Uma onça responde na hora", duo: ["pintada", "faro"],
     fala: "Ficou com alguma dúvida? Toque em Suporte. A onça Pintada, no Marketing, e a onça Faro, em Vendas, respondem na hora. E se precisar, você chama a gente no WhatsApp.",
     vis: `<div class="exp-chips"><span class="exp-chip">Resposta na hora</span><span class="exp-chip ok">Chamar no WhatsApp</span></div>` },
   { tit: "Regra de ouro", eb: "Quem decide é você", h: "Nada sai sem o seu OK", img: "pintada",
     fala: "E a regra de ouro: nada é enviado, publicado ou pago sem o seu OK. A equipe prepara tudo. Você abre o painel, revisa e manda.",
     vis: `<div class="exp-grande">Você decide.</div><div class="exp-chips"><span class="exp-chip nao">Nada enviado sozinho</span><span class="exp-chip nao">Nada publicado sozinho</span><span class="exp-chip nao">Nada pago sozinho</span></div>` },
-].map((c, n) => ({ ...c, n })).filter(c => !c.soCasa);   // soCasa: cena só da casa (NEXO VÁRZEA), fora do vídeo dos clientes
+// 25/11/2026, Ricardo: o Prospect é independente do Marketing. No site do Prospect o vídeo só mostra as cenas de vendas (so: "marketing" = só na página do Marketing).
+// O áudio de cada cena é pelo número original (n), então tirar cenas não desalinha a narração.
+].map((c, n) => ({ ...c, n })).filter(c => !c.soCasa && !(EXP_PRODUTO === "prospect" && c.so === "marketing"));   // soCasa: cena só da casa (NEXO VÁRZEA), fora do vídeo dos clientes
 
 function explicadorMontar(el, opcoes = {}) {
   if (!el || el.dataset.montado) return;
@@ -71,7 +75,7 @@ function explicadorMontar(el, opcoes = {}) {
   el.classList.add("exp");
   el.innerHTML = `
     <div class="exp-topo"><span class="ey">NEXO · Design &amp; Automação</span><h2>Equipe NEXO em Ação</h2>
-      <p>O que a equipe de onças faz pelo seu marketing e pelas suas vendas, em ${N} cenas.</p></div>
+      <p>O que a equipe de onças faz ${EXP_PRODUTO === "prospect" ? "pelas suas vendas" : "pelo seu marketing e pelas suas vendas"}, em ${N} cenas.</p></div>
     <section class="exp-palco" aria-label="Vídeo explicativo da equipe NEXO">
       ${EXP_CENAS.map((c, i) => `<article class="exp-cena${c.abre ? " abre" : ""}" data-i="${i}" aria-hidden="true">
         ${c.abre ? `<div class="exp-time">${["papo", "rabisco", "vitrine", "faro", "pintada", "lupa"].map(img).join("")}</div>`

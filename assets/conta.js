@@ -104,7 +104,7 @@ async function ctCriarConta(escolhido) {
   let planos = [];
   try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { planos = []; }
   if (!planos.length) {
-    ctJanela("Criar conta", `<p class="ct-txt">O cadastro de empresas com teste grátis ainda não está aberto. Fale com a NEXO para começar.</p>
+    ctJanela("Criar conta", `<p class="ct-txt">O cadastro de empresas ainda não está aberto: o NEXO Prospect está liberado só por convite. Fale com a NEXO para começar.</p>
       <a class="btn prim pri" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener">Falar com a NEXO</a>
       <button type="button" class="ct-link" data-convidado>Recebi um convite de uma empresa</button>`, j => { j.querySelector("[data-convidado]").onclick = () => ctContaConvidado(); });
     return;
@@ -158,7 +158,8 @@ function contaLigarLogin(form, campoEmail) {
     <button type="button" class="ct-link" data-criar>Criar conta com teste grátis</button></div>`);
   form.querySelector("[data-esqueci]").onclick = () => ctEsqueci(campoEmail?.value);
   form.querySelector("[data-criar]").onclick = ctCriarConta;
-  ctVitrine(form);
+  // Cadastro fechado (nenhum plano público, 25/11/2026): o botão não promete "teste grátis"; quem recebeu convite continua entrando por ele.
+  ctVitrine(form).then(n => { if (n === 0) { const b = form.querySelector("[data-criar]"); if (b) b.textContent = "Criar conta ou usar um convite"; } });
   // Link do convite (?convite=email): abre direto a conta de convidado, com o e-mail preenchido.
   const conv = new URLSearchParams(location.search).get("convite");
   if (conv) setTimeout(() => ctContaConvidado(conv), 300);
@@ -168,10 +169,11 @@ function contaLigarLogin(form, campoEmail) {
 // Mostra só os planos marcados "No cadastro público" no Master; sem nenhum, a vitrine não aparece.
 async function ctVitrine(form) {
   const tela = form.closest(".login");
-  if (!tela || tela.querySelector(".ct-vitrine")) return;
+  if (!tela || tela.querySelector(".ct-vitrine")) return -1;
   let planos = [];
-  try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { planos = []; }
-  if (!planos.length || tela.querySelector(".ct-vitrine")) return;
+  try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { return -1; }   // sem saber, mantém como está
+  if (!planos.length) return 0;
+  if (tela.querySelector(".ct-vitrine")) return -1;
   const dias = Math.min(...planos.map(p => Number(p.dias_teste) || 0));
   const sec = document.createElement("section");
   sec.className = "ct-vitrine"; sec.setAttribute("aria-labelledby", "ctVitTit");
@@ -199,6 +201,7 @@ async function ctVitrine(form) {
     sec.scrollIntoView({ block: "start" });
     grade.querySelector("[data-plano]")?.focus({ preventScroll: true });
   };
+  return planos.length;
 }
 
 // Mensagem pronta do convite, com o link que abre a conta de convidado.

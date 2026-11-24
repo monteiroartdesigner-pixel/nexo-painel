@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="index,follow">
 <!-- Google (21/11/2026): a página de entrada aparece nas buscas por "NEXO Prospect"; o conteúdo do painel continua atrás do login. -->
-<meta name="description" content="NEXO Prospect: uma equipe de IA que encontra clientes com contato público, prepara a mensagem e organiza clientes e tarefas num painel só. Nada é enviado sem você. Teste grátis.">
+<meta name="description" content="NEXO Prospect: uma equipe de IA que encontra clientes com contato público, prepara a mensagem e organiza clientes e tarefas num painel só. Nada é enviado sem você. Acesso por convite.">
 <link rel="canonical" href="https://nexoprospect.com/">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://nexoprospect.com/">
@@ -277,7 +277,10 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
   .topm .l1{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .main{padding:16px 16px calc(84px + env(safe-area-inset-bottom,0px))}
   .bottom{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--surface);border-top:1px solid var(--border);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
-  .bottom a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);padding:6px 0;border-radius:8px;position:relative}
+  .bottom{overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain}
+  .bottom::-webkit-scrollbar{display:none}
+  /* 8 abas não cabem em 390px sem se atropelar: cada uma tem no mínimo 62px e a barra rola (a meia aba na ponta avisa que tem mais) */
+  .bottom a{flex:1 0 max(62px,calc((100% - 12px) / 5.5));display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted);padding:6px 0;border-radius:8px;position:relative;white-space:nowrap}
   .bottom a[aria-current="page"]{color:#BBD3FF}
   .bottom a .cnt{position:absolute;top:2px;left:55%;font-size:10px;background:var(--bad);color:#fff;border-radius:99px;padding:0 5px}
   .g-2{grid-template-columns:1fr}
@@ -316,11 +319,11 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
   <header class="topm">
     <div class="l1"><button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
       <button class="btn ghost sm" data-sair>Sair</button></div>
-    <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span><a class="produto-outro oculto" data-outro-produto href="marketing" title="Abrir o NEXO Marketing: a equipe de onças que cria e publica conteúdo">NEXO Marketing ↗</a></nav>
+    <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span></nav>
   </header>
   <aside class="side">
     <button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
-    <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span><a class="produto-outro oculto" data-outro-produto href="marketing" title="Abrir o NEXO Marketing: a equipe de onças que cria e publica conteúdo">NEXO Marketing ↗</a></nav>
+    <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span></nav>
     <nav class="nav" id="nav" aria-label="Módulos de Vendas"></nav>
     <div class="side-f">
       <label class="emp-sel oculto" id="empresaP"><span class="peq muted">Empresa (Master)</span><select class="select" id="selEmpresaP" aria-label="Empresa que você está vendo"></select></label>
@@ -340,7 +343,8 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="assets/leads.js?v=20261118k"></script>
 <script src="assets/sdr.js?v=20261124b"></script>
 <script src="assets/conversas.js?v=20261124a"></script>
-<script src="assets/plano.js?v=20261119v"></script>
+<script src="assets/plano.js?v=20261125a"></script>
+<script src="assets/meuplano.js?v=20261125a"></script>
 <script src="assets/conta.js?v=20261119c"></script>
 <script src="assets/explicador.js?v=20261119t"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
@@ -358,6 +362,7 @@ const ICONS = {
   task: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
   camp: "M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1zM16 8a5 5 0 0 1 0 8M19 5a9 9 0 0 1 0 14",
   help: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM9.1 9a3 3 0 0 1 5.8 1c0 2-3 2.5-3 4.5M12 17.5h.01",
+  card: "M3 6h18v13H3zM3 10h18M7 15h4",
   search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3",
   plus: "M12 5v14M5 12h14", x: "M18 6 6 18M6 6l12 12", back: "M15 18l-6-6 6-6",
   wa: "M3 21l1.7-5A8.5 8.5 0 1 1 8 19.3zM9 9.5c0 3 2.5 5.5 5.5 5.5l1.2-1.4-1.9-1-1 .8a4 4 0 0 1-2.2-2.2l.8-1-1-1.9z",
@@ -470,34 +475,42 @@ function confirmar(titulo, texto, acao, rot = "Confirmar", perigo = false) {
 }
 
 /* ============================================================ navegação */
-const MODS = [["inicio", "Início", "home"], ["crm", "Clientes", "crm"], ["tarefas", "Tarefas", "task"], ["campanhas", "Buscas", "camp"], ["ajuda", "Ajuda", "help"]];
-// "Leads Instagram" (NEXO VÁRZEA, achados pela onça Faro) entra antes da Ajuda só para quem tem acesso à Onça.
+const MODS = [["inicio", "Início", "home"], ["crm", "Clientes", "crm"], ["tarefas", "Tarefas", "task"], ["campanhas", "Buscas", "camp"], ["plano", "Meu plano", "card", "Plano"], ["ajuda", "Ajuda", "help"]];
+// 25/11/2026, Ricardo: o Prospect é um app independente, sem ligação com o Marketing. Os Leads do Instagram (Várzea) ficam só no Marketing.
 const MOD_CONV = ["conversas", "Conversas", "mail", "Conversas"];   // F5 (24/11/2026): conversas do SDR, junto com o WhatsApp e SDR
 const MOD_SDR = ["whatsapp", "WhatsApp e SDR", "wa", "WhatsApp"];   // 24/11/2026: só aparece para quem tem o recurso no plano (ou é Master)
 const sdrVisivel = () => S.papel === "plataforma" || !!(PL.sits[S.empresaId]?.recursos || []).includes("prospect_sdr_whatsapp");
-const MOD_LEADS = ["leads", "Leads Instagram", "ig", "Leads IG"]; // 4º item: nome curto na barra de baixo do celular
 function rotaAtual() { const r = (location.hash.replace(/^#\/?/, "") || "inicio").split("?")[0]; return MODS.some(m => m[0] === r) ? r : "inicio"; }
 function pintarNav() {
   const r = rotaAtual(), pend = S.tarefas.filter(t => !t.feita && t.vence_em <= hoje()).length;
   const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""} class="${modTrancado(k) ? "trancado" : ""}">${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}${k === "conversas" && typeof cvAguardando === "function" && cvAguardando() ? `<b class="cnt" title="Leads quentes aguardando você">${cvAguardando()}</b>` : ""}</a>`;
   $("#nav").innerHTML = MODS.map(item).join(""); $("#bottom").innerHTML = MODS.map(m => item([m[0], m[3] || m[1], m[2]])).join("");
+  const bx = $("#bottom"), ca = $("a[aria-current]", bx);   // a aba aberta fica à vista na barra que rola
+  if (ca && bx.scrollWidth > bx.clientWidth) bx.scrollLeft = ca.offsetLeft - (bx.clientWidth - ca.offsetWidth) / 2;
 }
 window.addEventListener("hashchange", () => { pintarNav(); render(); window.scrollTo(0, 0); });
-// Plano (assets/plano.js): o Prospect inteiro pede o recurso "prospect"; os Leads do Instagram são da empresa da Onça.
-const PRO_RECURSO = { inicio: "prospect", crm: "prospect", tarefas: "prospect", campanhas: "prospect", leads: "marketing_instagram", whatsapp: "prospect_sdr_whatsapp", conversas: "prospect_sdr_whatsapp" };
-const empresaDoModulo = k => k === "leads" ? st.empresaId : S.empresaId;
+// Plano (assets/plano.js): o Prospect inteiro pede o recurso "prospect"; o WhatsApp e SDR pede o dele. Meu plano nunca tranca.
+const PRO_RECURSO = { inicio: "prospect", crm: "prospect", tarefas: "prospect", campanhas: "prospect", whatsapp: "prospect_sdr_whatsapp", conversas: "prospect_sdr_whatsapp" };
+const empresaDoModulo = () => S.empresaId;
 const modTrancado = k => !!PRO_RECURSO[k] && !planoTem(PRO_RECURSO[k], empresaDoModulo(k));
 function render() {
   const r = rotaAtual(), el = $("#main");
   if (modTrancado(r)) el.innerHTML = planoBloqueio(PRO_RECURSO[r], empresaDoModulo(r));
-  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, leads: vLeads, whatsapp: sdrTela, conversas: cvTela, ajuda: vAjuda })[r](el);
+  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, plano: vPlano, whatsapp: sdrTela, conversas: cvTela, ajuda: vAjuda })[r](el);
   planoFaixa(S.empresaId, el);
   if (!modTrancado(r) && typeof vendasEquipe === "function") vendasEquipe(el);   // onças da equipe nesta aba (23/11/2026)
   document.title = `${typeof cvTitulo === "function" ? cvTitulo() : ""}${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
 }
 
-/* ============================================================ leads do Instagram (assets/leads.js) */
-// O leads.js veio do System e espera estes nomes: st (agente da Onça, leads, aba), aviso e podeEditar.
+/* ============================================================ Meu plano (assets/meuplano.js) */
+// O plano e o pagamento do Prospect moram aqui (antes ficavam no Marketing: a volta do checkout caía numa tela que não conferia o pagamento).
+function vPlano(el) {
+  el.innerHTML = `<div class="page-h"><div><h1>Meu plano</h1><p>O seu plano de hoje e os planos do NEXO Prospect.</p></div></div><div id="mpHost"></div>`;
+  meuPlano($("#mpHost", el));
+}
+
+/* ============================================================ legado: leads do Instagram (não aparece mais no Prospect) */
+// O leads.js veio do System e espera estes nomes: st (agente da Onça, leads, aba), aviso e podeEditar. Sem acesso à Onça aqui, vLeads não é mais chamado.
 const st = { agente: null, papel: null, marca: "", leads: [], aba: "leads" };
 const aviso = (t, erro = false) => toast(t, erro);
 const podeEditar = () => ["plataforma", "dono", "admin", "editor"].includes(st.papel);
@@ -610,7 +623,7 @@ function vInicio(el) {
   if (typeof linksCaixa === "function") linksCaixa($("#pLinks", el), {
     rpc, agente: S.agente, esc, avisar: toast, msgErro, quando, pode: !["leitor"].includes(S.papel),
     abrir: async p => {
-      if (p.destino !== "prospect") { location.href = "marketing"; return; }   // lead do Várzea: fica na aba Leads do NEXO System
+      if (p.destino !== "prospect") { toast("Esse link virou um lead do NEXO Várzea. Ele fica no Marketing, fora do Prospect."); return; }
       if (!S.empresas.some(x => x.id === p.resultado_id)) { try { await carregarTudo(); } catch {} }
       abrirFicha(p.resultado_id);
     } });
@@ -1170,8 +1183,6 @@ async function iniciar() {
   if (!MOCK) { const { data } = await sb.auth.getSession(); if (!data.session) { mostrarLogin(); return; } }
   if (!MOCK) await contaPosLogin();   // aceita convites e termina cadastro pendente (assets/conta.js)
   const ctx = await rpc("nexo_contexto");
-  // Atalho para o outro produto: só aparece para quem tem o Marketing (agente Onça) na empresa.
-  if ((ctx?.empresas || []).some(e => (e.agentes || []).some(a => a.slug === "onca"))) document.querySelectorAll("[data-outro-produto]").forEach(a => a.classList.remove("oculto"));
   S.email = ctx.email || "";
   try { const { data } = await sb.auth.getSession(); S.nome = data.session?.user?.user_metadata?.full_name || ""; } catch { S.nome = ""; }
   // Qual empresa abre em Vendas. O Master enxerga todas: abre sempre a da casa (NEXO Inteligência), e só vê a de
@@ -1195,9 +1206,8 @@ async function iniciar() {
   Suporte.iniciar({ produto: "Vendas", onca: { nome: "Faro", img: "assets/equipe/faro-rosto.webp" }, rpc, nome: () => S.nome,
     empresa: () => emp.nome, abas: ["inicio", "crm", "tarefas", "campanhas", "ajuda"], ir: k => { location.hash = "#/" + k; } });
   if (["plataforma", "dono", "admin"].includes(emp.papel)) { const be = $("#btnEquipeP"); be.classList.remove("oculto"); be.onclick = () => abrirEquipe(emp.id, emp.nome); }
-  const empV = (ctx.empresas || []).find(e => (e.agentes || []).some(a => a.slug === "onca"));
-  if (empV) { st.agente = empV.agentes.find(a => a.slug === "onca").id; st.papel = empV.papel; st.marca = empV.nome; st.empresaId = empV.id; if (!MODS.includes(MOD_LEADS)) MODS.splice(MODS.length - 1, 0, MOD_LEADS); }
-  await Promise.all([planoCarregar(S.empresaId), empV ? planoCarregar(empV.id) : null]);
+  await planoCarregar(S.empresaId);
+  if (await mpRetornoPagamento()) location.hash = "#/plano";   // volta do checkout da InfinitePay: confere o pagamento e abre Meu plano
   if (sdrVisivel() && !MODS.includes(MOD_SDR)) { MODS.splice(MODS.length - 1, 0, MOD_CONV, MOD_SDR); cvIniciar(); }
   rpc("nexo_resumo", { p_agente: S.agente }).then(r => { S.logo = r?.identidade?.logo_painel || null; aplicarLogo(); }).catch(() => aplicarLogo());
   try { S.crm.vista = localStorage.getItem("prospect.vista") || "kanban"; } catch {}

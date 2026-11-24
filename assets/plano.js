@@ -8,10 +8,11 @@
 // Comum ao System e ao Prospect. Usa sb e esc de assets/base.js.
 // ============================================================================
 
-const PLANO_DE = { prospect: "Inicial", marketing_instagram: "Profissional", marketing_google: "Profissional",
-  prospect_ia: "Completo", suporte_ia: "Completo", automacoes: "Completo" };
-const RECURSO_NOME = { prospect: "Vendas", marketing_instagram: "Marketing no Instagram", marketing_google: "Marketing no Google",
-  prospect_ia: "Pesquisa automática com IA", suporte_ia: "Suporte com IA", automacoes: "Automações" };
+// 25/11/2026: os planos do Prospect não têm mais Marketing. Pesquisa com IA vem no Inicial; WhatsApp e SDR, no Profissional.
+const PLANO_DE = { prospect: "Inicial", prospect_ia: "Inicial", prospect_sdr_whatsapp: "Profissional",
+  marketing_instagram: "Profissional", marketing_google: "Profissional", suporte_ia: "Completo", automacoes: "Completo" };
+const RECURSO_NOME = { prospect: "Vendas", prospect_ia: "Pesquisa automática com IA", prospect_sdr_whatsapp: "WhatsApp e SDR",
+  marketing_instagram: "Marketing no Instagram", marketing_google: "Marketing no Google", suporte_ia: "Suporte com IA", automacoes: "Automações" };
 const PL = { sits: {} };   // situação por empresa
 
 async function planoCarregar(empresaId) {
@@ -30,8 +31,8 @@ function planoTem(recurso, empresaId) {
 }
 
 const PL_CONTATO = "https://www.instagram.com/nexo.rm/";
-// Onde ativar: no Marketing, a aba Meu plano (paga ali mesmo); em Vendas, a mesma aba do Marketing.
-const PL_ATIVAR = () => typeof abrirAba === "function" ? "#plano" : "marketing#plano";
+// Onde ativar: a aba Meu plano do próprio produto (no Marketing, #plano; no Prospect, #/plano).
+const PL_ATIVAR = () => typeof abrirAba === "function" ? "#plano" : "#/plano";
 document.addEventListener("click", ev => {
   const a = ev.target.closest('a[href$="#plano"]');
   if (a && typeof abrirAba === "function") { ev.preventDefault(); abrirAba("plano"); }

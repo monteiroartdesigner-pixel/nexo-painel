@@ -393,7 +393,7 @@ class System(unittest.TestCase):
 
 
 class Prospect(unittest.TestCase):
-    MODULOS = ["inicio", "crm", "tarefas", "campanhas", "leads", "ajuda"]
+    MODULOS = ["inicio", "crm", "tarefas", "campanhas", "plano", "ajuda"]
 
     def test_login_abre_sem_erros(self):
         p = Pagina(logado=False)
@@ -417,17 +417,15 @@ class Prospect(unittest.TestCase):
         finally:
             p.fechar()
 
-    def test_leads_do_instagram_aparecem_e_link_malicioso_some(self):
+    def test_leads_do_instagram_nao_aparecem_no_prospect(self):
+        """25/11/2026, Ricardo: o Prospect é independente do Marketing. Os leads do Instagram (Várzea) ficam só lá."""
         p = Pagina()
         try:
             pg = p.abrir("/#/leads", 1800)
-            self.assertIn("nexo_leads", p.chamadas)
-            texto = pg.inner_text("#main")
-            self.assertIn("Leads do Instagram", texto)
-            pg.click("text=Todos")
-            pg.wait_for_timeout(300)
-            self.assertIn("Liga Com Link Malicioso", pg.inner_text("#main"))
-            self.assertEqual(pg.eval_on_selector_all("a[href^='javascript' i]", "as => as.length"), 0)
+            self.assertNotIn("Leads Instagram", pg.inner_text("#nav"))
+            self.assertNotIn("nexo_leads", p.chamadas, "o Prospect nem pede os leads do Várzea")
+            self.assertEqual(pg.evaluate("location.hash"), "#/leads")
+            self.assertIn("Início", pg.inner_text("#main h1") + pg.inner_text("#nav a[aria-current=page]"), "rota desconhecida cai no Início")
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
@@ -1157,8 +1155,6 @@ class PlanoDaEmpresa(unittest.TestCase):
             txt = pg.inner_text('[data-sec="ideias"]')
             self.assertIn("disponível no plano profissional", txt.lower())
             self.assertNotIn("nexo_ideias", [n for n, a in p.args][-1:], "a função trancada não é carregada")
-            pg = p.abrir("/#/leads", 1500)
-            self.assertIsNotNone(pg.query_selector(".plano-trava"), "Leads IG fora do plano Inicial")
             pg = p.abrir("/#/crm", 1500)
             self.assertIsNone(pg.query_selector(".plano-trava"), "CRM está no plano Inicial")
             self.assertEqual(p.erros, [])
@@ -1763,7 +1759,7 @@ class ProdutosSeparados(unittest.TestCase):
             self.assertIn("NEXO Marketing", pg.inner_text(".areas.produto"))
             self.assertEqual(len(pg.query_selector_all(".areas a.pro")), 0, "não existe mais a aba Vendas dentro do Marketing")
             self.assertNotIn("Vendas", pg.inner_text(".areas"))
-            self.assertTrue(pg.is_visible("#irOutroProduto"), "quem tem o Prospect vê o atalho")
+            self.assertIsNone(pg.query_selector("#irOutroProduto"), "sem ligação com o Prospect (25/11/2026)")
             self.assertIn("marketing", pg.inner_text("#btnMarca").lower(), "o nome ao lado do logo é o do produto")
             pg.click('.menu [data-aba="inicio"]'); pg.wait_for_timeout(500)
             self.assertNotIn("Leads em Clientes", pg.inner_text('[data-sec="inicio"]'), "leads são do Prospect")
@@ -1771,20 +1767,21 @@ class ProdutosSeparados(unittest.TestCase):
         finally:
             p.fechar()
 
-    def test_prospect_tem_nome_proprio_e_o_atalho_depende_de_ter_o_marketing(self):
+    def test_prospect_tem_nome_proprio_e_nenhum_atalho_para_o_marketing(self):
         p = Pagina()
         try:
             pg = p.abrir("/#/inicio", 1500)
             self.assertIn("NEXO Prospect", pg.inner_text(".side .areas.produto"))
             self.assertNotIn("Vendas", pg.inner_text(".side .areas"))
-            self.assertTrue(pg.is_visible(".side [data-outro-produto]"), "quem tem o Marketing vê o atalho")
+            self.assertNotIn("Marketing", pg.inner_text(".side .areas"))
+            self.assertIsNone(pg.query_selector("[data-outro-produto]"), "independente do Marketing (25/11/2026), mesmo para quem tem a Onça")
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
         p = Pagina(com_onca=False)
         try:
             pg = p.abrir("/#/inicio", 1500)
-            self.assertFalse(pg.is_visible(".side [data-outro-produto]"), "sem o Marketing não aparece atalho nenhum")
+            self.assertIsNone(pg.query_selector("[data-outro-produto]"), "sem o Marketing não aparece atalho nenhum")
         finally:
             p.fechar()
 
@@ -2195,3 +2192,124 @@ class ContatoNaFicha(unittest.TestCase):
             self.assertIsNone(pg.query_selector("[data-add-contato]"))
         finally:
             p.fechar(); contexto = original
+
+
+
+class ProspectIndependente(unittest.TestCase):
+    """25/11/2026, Ricardo: o Prospect é um app independente, sem ligação com o Marketing, e tem o plano e o pagamento dele."""
+
+    def tearDown(self):
+        SITUACAO.clear(); MEU_PLANO.clear()
+
+    def test_meu_plano_e_uma_aba_do_prospect(self):
+        MEU_PLANO.update({"situacao": {"tem_assinatura": True, "plano": "profissional", "plano_nome": "Profissional", "status": "ativa",
+                                       "periodo_ate": "2030-01-10T00:00:00Z", "preco_centavos": 40000},
+                          "planos": [{"chave": "inicial", "nome": "Inicial", "preco_centavos": 20000, "descricao": "Prospect e pesquisa com IA"},
+                                     {"chave": "profissional", "nome": "Profissional", "preco_centavos": 40000, "descricao": "Mais WhatsApp e SDR"}],
+                          "pode_pedir": True, "pagamento_ligado": False})
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/plano", 1800)
+            texto = pg.inner_text("#main")
+            self.assertIn("Meu plano", texto)
+            self.assertIn("Profissional", texto)
+            self.assertIn("Seu plano atual", texto)
+            self.assertNotIn("Marketing", texto)
+            self.assertIn("nexo_meu_plano", p.chamadas)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_meu_plano_pede_a_troca_do_plano(self):
+        MEU_PLANO.update({"situacao": {"tem_assinatura": True, "plano": "inicial", "plano_nome": "Inicial", "status": "ativa", "preco_centavos": 20000},
+                          "planos": [{"chave": "inicial", "nome": "Inicial", "preco_centavos": 20000},
+                                     {"chave": "profissional", "nome": "Profissional", "preco_centavos": 40000}],
+                          "pode_pedir": True, "pagamento_ligado": False})
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/plano", 1800)
+            pg.on("dialog", lambda d: d.accept())
+            pg.click('[data-mp-plano="profissional"]'); pg.wait_for_timeout(600)
+            pedido = [a for n, a in p.args if n == "nexo_pedir_plano"][-1]
+            self.assertEqual(pedido["p_plano"], "profissional")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_volta_do_pagamento_cai_no_prospect_e_abre_meu_plano(self):
+        """A função de pagamento devolve o cliente para nexoprospect.com/?pagamento=volta: a raiz agora é o Prospect."""
+        MEU_PLANO.update({"situacao": {"tem_assinatura": True, "plano": "inicial", "plano_nome": "Inicial", "status": "ativa"},
+                          "planos": [{"chave": "inicial", "nome": "Inicial", "preco_centavos": 20000}], "pode_pedir": True, "pagamento_ligado": True})
+        p = Pagina()
+        chamadas = []
+        p.page.on("request", lambda r: "/functions/v1/nexo-pagamento" in r.url and chamadas.append(r.post_data))
+        try:
+            pg = p.abrir("/?pagamento=volta&order_nsu=ped1&transaction_nsu=tr1&slug=sl1", 1800)
+            self.assertEqual(len(chamadas), 1, "o Prospect confere o pagamento na volta")
+            self.assertEqual(json.loads(chamadas[0])["acao"], "conferir")
+            self.assertEqual(pg.evaluate("location.hash"), "#/plano")
+        finally:
+            p.fechar()
+
+    def test_recurso_fora_do_plano_leva_para_o_meu_plano_do_prospect(self):
+        SITUACAO["emp-p"] = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "plano": "inicial", "plano_nome": "Inicial",
+                             "recursos": ["prospect_ia"], "limites": {}}   # sem o recurso "prospect": as abas ficam trancadas
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/crm", 1800)
+            self.assertEqual(pg.get_attribute("#main .plano-trava a.btn", "href"), "#/plano")
+            self.assertIn("plano Inicial", pg.inner_text("#main .plano-trava"))
+            self.assertNotIn("Marketing", pg.inner_text("#main .plano-trava"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_whatsapp_e_sdr_so_aparece_no_plano_que_tem_o_recurso(self):
+        SITUACAO["emp-p"] = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "plano": "inicial", "plano_nome": "Inicial",
+                             "recursos": ["prospect", "prospect_ia"], "limites": {}}
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/inicio", 1800)
+            self.assertNotIn("WhatsApp e SDR", pg.inner_text("#nav"))
+            SITUACAO["emp-p"]["recursos"] = ["prospect", "prospect_ia", "prospect_sdr_whatsapp"]
+            pg = p.abrir("/?recarrega=1#/inicio", 1800)
+            self.assertIn("WhatsApp e SDR", pg.inner_text("#nav"))
+        finally:
+            p.fechar()
+
+    def test_cadastro_fechado_nao_promete_teste_gratis(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/", 1800)
+            self.assertNotIn("grátis", pg.inner_text("[data-criar]").lower())
+            self.assertNotIn("Teste grátis", pg.inner_text("body"))
+            pg.click("[data-criar]"); pg.wait_for_timeout(400)
+            self.assertIn("só por convite", pg.inner_text(".ct-janela"))
+            self.assertTrue(pg.is_visible(".ct-janela [data-convidado]"), "quem recebeu convite continua entrando")
+        finally:
+            p.fechar()
+
+    def test_link_do_varzea_nao_leva_para_o_marketing(self):
+        h = (RAIZ / "index.html").read_text(encoding="utf-8")
+        self.assertNotIn('href="marketing"', h)
+        self.assertNotIn('location.href = "marketing"', h)
+        self.assertNotIn("marketing#plano", (RAIZ / "assets/plano.js").read_text(encoding="utf-8"))
+
+    def test_video_da_entrada_so_mostra_vendas_no_prospect_e_tudo_no_marketing(self):
+        p = Pagina(logado=False)
+        try:
+            pg = p.abrir("/", 1800)
+            texto = pg.inner_text(".exp")
+            for fora in ("Pedir peça", "Conteúdo", "Atendimento", "Abertura", "A gestora"):
+                self.assertNotIn(fora, texto, f"{fora} é cena do Marketing")
+            for dentro in ("Vendas", "Análise comercial", "Mandar link", "Clientes e tarefas", "Regra de ouro"):
+                self.assertIn(dentro, texto)
+            self.assertNotIn("marketing", pg.inner_text(".exp-topo").lower())
+            self.assertEqual(p.erros, [])
+            pg = p.abrir("/marketing.html", 1800)
+            texto = pg.inner_text(".exp")
+            for cena in ("Pedir peça", "Conteúdo", "Atendimento"):
+                self.assertIn(cena, texto, "o Marketing continua com o vídeo completo")
+            self.assertIn("marketing", pg.inner_text(".exp-topo").lower())
+        finally:
+            p.fechar()

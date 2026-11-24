@@ -20,6 +20,7 @@ const M_ERROS = {
 const M_RECURSOS = [
   ["prospect", "Vendas", "Clientes, buscas, tarefas e mandar link"],
   ["prospect_ia", "Pesquisa com IA", "A equipe pesquisa e qualifica sozinha"],
+  ["prospect_sdr_whatsapp", "WhatsApp e SDR", "Atendimento por IA no WhatsApp, com passagem para uma pessoa"],
   ["marketing_instagram", "Marketing Instagram", "Pedir peça, aprovação e agenda de posts"],
   ["marketing_google", "Marketing Google", "Perfil da empresa no Google"],
   ["suporte_ia", "Suporte com IA", "Chat que responde pela Base da marca"],
