@@ -2334,6 +2334,21 @@ class ProspectIndependente(unittest.TestCase):
         finally:
             p.fechar()
 
+    def test_busca_nova_vem_marcada_nos_tres_horarios(self):
+        """24/11/2026: a IMMUNE WELL ficou um dia sem empresa porque as buscas nasciam só com o turno da manhã."""
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/campanhas", 1800)
+            pg.click("text=Nova busca"); pg.wait_for_timeout(500)
+            pg.fill("#aNome", "Busca de teste"); pg.fill("#aServ", "Serviço de teste")
+            for _ in range(3):
+                pg.click("#aSeg"); pg.wait_for_timeout(300)
+            marcados = pg.eval_on_selector_all("[data-turno]", "b => b.filter(x => x.getAttribute('aria-pressed') === 'true').map(x => x.dataset.turno)")
+            self.assertEqual(marcados, ["manha", "tarde", "noite"])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
     def test_arquivos_do_video_de_apresentacao_do_prospect_existem(self):
         v = RAIZ / "assets" / "prospect-apresentacao.mp4"
         self.assertTrue(v.exists() and 1_000_000 < v.stat().st_size < 12_000_000, "MP4 leve (até 12 MB) para a tela de entrada")

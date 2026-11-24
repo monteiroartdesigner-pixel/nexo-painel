@@ -1073,7 +1073,7 @@ function vCampanhas(el) {
   });
 }
 function assistente(c0) {
-  const c = c0 ? JSON.parse(JSON.stringify(c0)) : { nome: "", servico: "", modo: "manual", idioma: "pt", paises: ["BR"], estados: [], cidades: [], nichos: [], palavras_chave: [], palavras_negativas: [], fontes: ["busca_web", "instagram_publico", "site_da_empresa"], limite_pesquisas_dia: 10, dias_semana: [1, 2, 3, 4, 5], turnos: ["manha"], custo_por_busca_centavos: 0 };
+  const c = c0 ? JSON.parse(JSON.stringify(c0)) : { nome: "", servico: "", modo: "manual", idioma: "pt", paises: ["BR"], estados: [], cidades: [], nichos: [], palavras_chave: [], palavras_negativas: [], fontes: ["busca_web", "instagram_publico", "site_da_empresa"], limite_pesquisas_dia: 10, dias_semana: [1, 2, 3, 4, 5], turnos: ["manha", "tarde", "noite"], custo_por_busca_centavos: 0 };
   let passo = 1;
   const P = [["O que você vende", "Serviço, oferta e para quem é."], ["Onde procurar", "Países, estados, cidades e idioma."], ["Como encontrar", "Nichos, palavras-chave e fontes."], ["Abordagem e execução", "Canal, preço e agenda."]];
   const ta = (id, v, ph) => `<textarea class="textarea" id="${id}" placeholder="${ph}">${esc((v || []).join("\n"))}</textarea>`;
