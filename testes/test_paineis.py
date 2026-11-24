@@ -2365,3 +2365,55 @@ class LiberadoTudo(unittest.TestCase):
                 self.assertEqual(p.erros, [])
             finally:
                 p.fechar(); MEU_PLANO.clear()
+
+
+class PlanosListaFuncoes(unittest.TestCase):
+    """24/11/2026 (pedido do Ricardo): cada plano lista o que tem ligado e desligado, embaixo do botão."""
+
+    def setUp(self):
+        MEU_PLANO.clear()
+        MEU_PLANO.update({"pode_pedir": True, "pagamento_ligado": True, "planos": [
+            {"chave": "inicial", "nome": "Inicial", "preco_centavos": 20000, "recursos": ["prospect", "prospect_ia"],
+             "limites": {"usuarios": 2, "empresas_mes": 200, "pesquisas_mes": 5, "campanhas_ativas": 2}},
+            {"chave": "profissional", "nome": "Profissional", "preco_centavos": 40000, "recursos": ["prospect", "prospect_ia", "prospect_sdr_whatsapp"],
+             "limites": {"usuarios": 1, "empresas_mes": 1000}},
+            {"chave": "completo", "nome": "Completo", "preco_centavos": 80000, "recursos": ["prospect", "prospect_ia", "prospect_sdr_whatsapp"],
+             "limites": {"usuarios": 10, "empresas_mes": 2000, "campanhas_ativas": 15}}],
+            "situacao": {"tem_assinatura": True, "acesso": "total", "status": "ativa", "plano": "inicial", "plano_nome": "Inicial", "preco_centavos": 20000}})
+
+    def tearDown(self):
+        MEU_PLANO.clear()
+
+    def test_cada_plano_mostra_ligado_e_desligado_e_os_limites_embaixo_do_botao(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/plano", 1800)
+            cards = pg.query_selector_all("#main .ct-v-plano")
+            self.assertEqual(len(cards), 3)
+            inicial, profissional, completo = (c.inner_text() for c in cards)
+            self.assertIn("WhatsApp e SDR: não incluído", inicial)
+            self.assertIn("Pesquisa com IA: a Faro pesquisa", inicial)
+            self.assertIn("Até 2 usuários", inicial); self.assertIn("Até 200 empresas pesquisadas por mês", inicial)
+            self.assertIn("WhatsApp e SDR: a IA atende no WhatsApp", profissional)
+            self.assertNotIn("não incluído", profissional)
+            self.assertIn("Até 1 usuário", profissional, "singular")
+            self.assertIn("Pesquisas com IA por mês sem limite", completo, "limite vazio = sem limite")
+            self.assertIn("Até 15 buscas ativas", completo)
+            # a lista fica DEPOIS do botão (pedido do Ricardo): o botão vem antes da lista no cartão
+            ordem = pg.eval_on_selector("#main .ct-v-plano", "c => { const b = c.querySelector('.btn'), l = c.querySelector('.mp-lista'); return !!(b && l && (b.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING)); }")
+            self.assertTrue(ordem)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_sem_o_campo_limites_a_lista_mostra_so_as_funcoes(self):
+        for pl in MEU_PLANO["planos"]: pl.pop("limites")
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/plano", 1800)
+            t = pg.inner_text("#main .ct-v-plano")
+            self.assertIn("Vendas: clientes, buscas", t)
+            self.assertNotIn("sem limite", t); self.assertNotIn("Até", t)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()

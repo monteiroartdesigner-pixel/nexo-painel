@@ -14,6 +14,22 @@ const mpEmpresa = () => (typeof st !== "undefined" && st.empresaId) || (typeof S
 
 const MP_STATUS = { teste: "Teste grátis", teste_vencido: "Teste acabou", ativa: "Ativo", vencida: "Vencido",
   suspensa: "Suspenso", cancelada: "Cancelado", vitalicia: "Vitalício" };
+// O que cada plano tem ligado e desligado (24/11/2026). Os recursos vêm do banco (p.recursos); os números, de p.limites (vazio = sem limite).
+const MP_RECURSOS = [["prospect", "Vendas", "clientes, buscas, tarefas e mandar link"], ["prospect_ia", "Pesquisa com IA", "a Faro pesquisa e qualifica sozinha"],
+  ["prospect_sdr_whatsapp", "WhatsApp e SDR", "a IA atende no WhatsApp e passa para uma pessoa quando o lead esquenta"]];
+const MP_LIMITES = [["usuarios", "usuário", "usuários"], ["campanhas_ativas", "busca ativa", "buscas ativas"],
+  ["empresas_mes", "empresa pesquisada por mês", "empresas pesquisadas por mês"], ["pesquisas_mes", "pesquisa com IA por mês", "pesquisas com IA por mês"]];
+function mpLista(p) {
+  const rec = new Set(p.recursos || []);
+  const linhas = MP_RECURSOS.map(([k, n, d]) => rec.has(k)
+    ? `<li class="sim"><span class="mp-i" aria-label="Incluído">✓</span><span><b>${esc(n)}</b>: ${esc(d)}</span></li>`
+    : `<li class="nao"><span class="mp-i" aria-label="Não incluído">✕</span><span><b>${esc(n)}</b>: não incluído</span></li>`);
+  if (p.limites && typeof p.limites === "object") for (const [k, um, varios] of MP_LIMITES) {
+    const v = p.limites[k];
+    linhas.push(`<li class="lim"><span class="mp-i" aria-hidden="true">•</span><span>${v == null ? `${esc(varios.charAt(0).toUpperCase() + varios.slice(1))} sem limite` : `Até <b>${esc(Number(v).toLocaleString("pt-BR"))}</b> ${esc(Number(v) === 1 ? um : varios)}`}</span></li>`);
+  }
+  return `<ul class="mp-lista" aria-label="O que tem no plano ${esc(p.nome)}">${linhas.join("")}</ul>`;
+}
 const mpReais = c => c == null ? "a combinar" : (c / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const mpData = iso => iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: FUSO, day: "2-digit", month: "2-digit", year: "numeric" }) : "";
 const mpMes = d => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }) : "";
@@ -100,6 +116,7 @@ async function meuPlano(el) {
           <p class="ct-v-preco"><b>${esc(valor)}</b>${p.preco_centavos != null ? `<span>/mês</span>` : ""}</p>
           ${p.descricao ? `<p class="ct-v-desc">${esc(p.descricao)}</p>` : ""}
           ${botao(p)}
+          ${mpLista(p)}
         </article>`; }).join("") || `<div class="vazio">Nenhum plano disponível agora.</div>`}</div>
       <p class="muted peq" style="margin:0">${d.pagamento_ligado
         ? "Pagamento por <b>Pix ou cartão</b> na InfinitePay, em página segura. Assim que o pagamento é confirmado, o plano é liberado aqui, sozinho, por 1 mês."
