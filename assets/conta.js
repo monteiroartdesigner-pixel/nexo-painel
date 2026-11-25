@@ -244,7 +244,7 @@ async function ctVitrine(form) {
 function ctTextoConvite(email, nomeEmpresa) {
   const link = `${ctVolta()}?convite=${encodeURIComponent(email)}`;
   return { link, texto: `Olá! Você foi convidado para a equipe ${nomeEmpresa || "da empresa"} no NEXO.\n\n` +
-    `1. Abra o link: ${link}\n2. Crie a sua conta com este e-mail: ${email}\n3. Confirme pelo e-mail que vai chegar e entre: o acesso já aparece.` };
+    `1. Abra o link: ${link}\n2. Crie a sua conta com este e-mail: ${email}\n3. Pronto: o acesso já aparece.` };
 }
 // Volta do e-mail de "esqueci minha senha": o Supabase avisa PASSWORD_RECOVERY.
 if (typeof sb !== "undefined" && sb) sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") setTimeout(ctNovaSenha, 200); });

@@ -295,6 +295,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <link rel="stylesheet" href="assets/visual.css?v=20261127b">
 <link rel="stylesheet" href="assets/suporte.css?v=20261119a">
 <link rel="stylesheet" href="assets/vendas-equipe.css?v=20261123a">
+<link rel="stylesheet" href="assets/master-clientes.css?v=20261128b">
 </head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -326,7 +327,6 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
     <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span></nav>
     <nav class="nav" id="nav" aria-label="Módulos de Vendas"></nav>
     <div class="side-f">
-      <label class="emp-sel oculto" id="empresaP"><span class="peq muted">Empresa (Master)</span><select class="select" id="selEmpresaP" aria-label="Empresa que você está vendo"></select></label>
       <span id="quem" class="peq"></span>
       <button class="btn ghost sm oculto" id="btnEquipeP" style="justify-content:flex-start">Equipe da empresa</button>
       <button class="btn ghost sm" id="sair" data-sair style="justify-content:flex-start">Sair</button>
@@ -344,11 +344,12 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="assets/sdr.js?v=20261124b"></script>
 <script src="assets/canais.js?v=20261127c"></script>
 <script src="assets/conversas.js?v=20261124a"></script>
-<script src="assets/plano.js?v=20261125a"></script>
-<script src="assets/meuplano.js?v=20261127a"></script>
-<script src="assets/conta.js?v=20261127a"></script>
+<script src="assets/plano.js?v=20261128b"></script>
+<script src="assets/meuplano.js?v=20261128b"></script>
+<script src="assets/conta.js?v=20261128b"></script>
 <script src="assets/explicador.js?v=20261128a"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
+<script src="assets/master-clientes.js?v=20261128b"></script>
 <script>
 "use strict";
 /* ============================================================ base */
@@ -358,6 +359,7 @@ const S = { agente: null, papel: null, email: "", campanhas: [], empresas: [], t
 let MOCK = null; // testes locais: window.__prospect.mock(dados)
 
 const ICONS = {
+  master: "M12 3l8 3v6c0 4.6-3.4 8.2-8 9-4.6-.8-8-4.4-8-9V6zM9 12l2 2 4-4",
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
   crm: "M4 5h4v14H4zM10 5h4v9h-4zM16 5h4v6h-4z",
   task: "M9 11l3 3 8-8M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9",
@@ -481,11 +483,12 @@ const MODS = [["inicio", "Início", "home"], ["crm", "Clientes", "crm"], ["taref
 const MOD_CONV = ["conversas", "Conversas", "mail", "Conversas"];   // F5 (24/11/2026): conversas do SDR, junto com o WhatsApp e SDR
 const MOD_SDR = ["whatsapp", "WhatsApp e SDR", "wa", "WhatsApp"];
 const MOD_CANAIS = ["canais", "Conectar canais", "link", "Canais"];   // 24/11/2026: cadastro e guia para ligar WhatsApp e Instagram (mesmo recurso do SDR)   // 24/11/2026: só aparece para quem tem o recurso no plano (ou é Master)
+const MOD_MASTER = ["master", "Master", "master"];   // 25/11/2026: o Master de clientes mora aqui (assets/master-clientes.js)
 const sdrVisivel = () => S.papel === "plataforma" || !!(PL.sits[S.empresaId]?.recursos || []).includes("prospect_sdr_whatsapp");
 function rotaAtual() { const r = (location.hash.replace(/^#\/?/, "") || "inicio").split("?")[0]; return MODS.some(m => m[0] === r) ? r : "inicio"; }
 function pintarNav() {
   const r = rotaAtual(), pend = S.tarefas.filter(t => !t.feita && t.vence_em <= hoje()).length;
-  const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""} class="${modTrancado(k) ? "trancado" : ""}">${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}${k === "conversas" && typeof cvAguardando === "function" && cvAguardando() ? `<b class="cnt" title="Leads quentes aguardando você">${cvAguardando()}</b>` : ""}</a>`;
+  const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""} class="${modTrancado(k) ? "trancado" : ""}${k === "master" ? " nav-master" : ""}">${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}${k === "conversas" && typeof cvAguardando === "function" && cvAguardando() ? `<b class="cnt" title="Leads quentes aguardando você">${cvAguardando()}</b>` : ""}</a>`;
   $("#nav").innerHTML = MODS.map(item).join(""); $("#bottom").innerHTML = MODS.map(m => item([m[0], m[3] || m[1], m[2]])).join("");
   const bx = $("#bottom"), ca = $("a[aria-current]", bx);   // a aba aberta fica à vista na barra que rola
   if (ca && bx.scrollWidth > bx.clientWidth) bx.scrollLeft = ca.offsetLeft - (bx.clientWidth - ca.offsetWidth) / 2;
@@ -498,9 +501,9 @@ const modTrancado = k => !!PRO_RECURSO[k] && !planoTem(PRO_RECURSO[k], empresaDo
 function render() {
   const r = rotaAtual(), el = $("#main");
   if (modTrancado(r)) el.innerHTML = planoBloqueio(PRO_RECURSO[r], empresaDoModulo(r));
-  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, plano: vPlano, whatsapp: sdrTela, canais: canaisTela, conversas: cvTela, ajuda: vAjuda })[r](el);
-  planoFaixa(S.empresaId, el);
-  if (!modTrancado(r) && typeof vendasEquipe === "function") vendasEquipe(el);   // onças da equipe nesta aba (23/11/2026)
+  else ({ inicio: vInicio, crm: vCrm, tarefas: vTarefas, campanhas: vCampanhas, plano: vPlano, whatsapp: sdrTela, canais: canaisTela, conversas: cvTela, ajuda: vAjuda, master: vMaster })[r](el);
+  if (r !== "master") planoFaixa(S.empresaId, el);   // o Master não é de uma empresa: sem faixa de plano nem equipe
+  if (r !== "master" && !modTrancado(r) && typeof vendasEquipe === "function") vendasEquipe(el);   // onças da equipe nesta aba (23/11/2026)
   document.title = `${typeof cvTitulo === "function" ? cvTitulo() : ""}${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
 }
 
@@ -1188,22 +1191,17 @@ async function iniciar() {
   S.email = ctx.email || "";
   try { const { data } = await sb.auth.getSession(); S.nome = data.session?.user?.user_metadata?.full_name || ""; } catch { S.nome = ""; }
   // Qual empresa abre em Vendas. O Master enxerga todas: abre sempre a da casa (NEXO Inteligência), e só vê a de
-  // um cliente se escolher no seletor, com aviso na tela. Cliente só tem a própria empresa (o banco já filtra).
+  // um cliente pelo botão "Ver o painel deste cliente" da ficha, com aviso na tela. Cliente só tem a própria empresa (o banco já filtra).
   const comVendas = (ctx.empresas || []).filter(e => (e.agentes || []).some(a => a.slug === "prospect"));
   let escolhida = null;
   if (ctx.plataforma) { try { escolhida = sessionStorage.getItem("vendas.empresa"); } catch {} }
   const emp = comVendas.find(e => e.id === escolhida)
     || (ctx.plataforma ? comVendas.find(e => e.slug === "nexo-inteligencia") : null)
     || comVendas.find(e => e.papel === "dono") || comVendas[0];
-  if (ctx.plataforma && comVendas.length > 1) {
-    const sel = $("#selEmpresaP");
-    sel.innerHTML = comVendas.map(e => `<option value="${esc(e.id)}" ${e.id === emp?.id ? "selected" : ""}>${esc(e.nome)}${e.slug === "nexo-inteligencia" ? " (NEXO)" : ""}</option>`).join("");
-    sel.onchange = () => { try { sessionStorage.setItem("vendas.empresa", sel.value); } catch {} location.reload(); };
-    $("#empresaP").classList.remove("oculto");
-  }
+  S.master = !!ctx.plataforma;
   $("#telaLogin").classList.add("oculto"); $("#telaApp").classList.remove("oculto"); expVideo?.parar();
   $("#quem").textContent = S.email;
-  if (!emp) { $("#main").innerHTML = `<div class="card"><div class="empty"><h2>Sem acesso à área de Vendas</h2><p class="muted" style="margin:0">O login ${esc(S.email)} não tem papel na NEXO Inteligência e Automação. Peça acesso ao administrador.</p></div></div>`; return; }
+  if (!emp) { $("#main").innerHTML = `<div class="card"><div class="empty"><h2>Sem acesso à área de Vendas</h2><p class="muted" style="margin:0;max-width:440px">O login ${esc(S.email)} ainda não está liberado no Nexo Prospect. Peça à NEXO para liberar este e-mail. Se acabaram de liberar, atualize a página.</p></div></div>`; return; }
   S.agente = emp.agentes.find(a => a.slug === "prospect").id; S.papel = emp.papel; S.empresaId = emp.id; S.empresaNome = emp.nome;
   Suporte.iniciar({ produto: "Vendas", onca: { nome: "Faro", img: "assets/equipe/faro-rosto.webp" }, rpc, nome: () => S.nome,
     empresa: () => emp.nome, abas: ["inicio", "crm", "tarefas", "campanhas", "ajuda"], ir: k => { location.hash = "#/" + k; } });
@@ -1211,6 +1209,7 @@ async function iniciar() {
   await planoCarregar(S.empresaId);
   if (await mpRetornoPagamento()) location.hash = "#/plano";   // volta do checkout da InfinitePay: confere o pagamento e abre Meu plano
   if (sdrVisivel() && !MODS.includes(MOD_SDR)) { MODS.splice(MODS.length - 1, 0, MOD_CONV, MOD_SDR, MOD_CANAIS); cvIniciar(); }
+  if (S.master && !MODS.includes(MOD_MASTER)) MODS.push(MOD_MASTER);
   rpc("nexo_resumo", { p_agente: S.agente }).then(r => { S.logo = r?.identidade?.logo_painel || null; aplicarLogo(); }).catch(() => aplicarLogo());
   try { S.crm.vista = localStorage.getItem("prospect.vista") || "kanban"; } catch {}
   $("#main").innerHTML = `<div class="sk" style="height:34px;width:260px"></div><div class="grid g-kpi">${"<div class='sk' style='height:92px'></div>".repeat(5)}</div><div class="sk" style="height:280px"></div>`;

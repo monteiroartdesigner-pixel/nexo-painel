@@ -261,14 +261,14 @@ input:focus-visible,select:focus-visible,textarea:focus-visible,.btn:focus-visib
 <script src="assets/base.js?v=20261118k"></script>
 <script src="assets/equipe.js?v=20261119n"></script>
 <script src="assets/master.js?v=20261127a"></script>
-<script src="assets/plano.js?v=20261119v"></script>
-<script src="assets/conta.js?v=20261127a"></script>
+<script src="assets/plano.js?v=20261128b"></script>
+<script src="assets/conta.js?v=20261128b"></script>
 <script src="assets/anexos.js?v=20261119a"></script>
 <script src="assets/ideias.js?v=20261121a"></script>
 <script src="assets/marketing.js?v=20261121a"></script>
 <script src="assets/explicador.js?v=20261128a"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
-<script src="assets/meuplano.js?v=20261127a"></script>
+<script src="assets/meuplano.js?v=20261128b"></script>
 <script>
 "use strict";
 // Supabase (sb), $, $$, esc, urlSegura, hrefSeguro e FUSO vêm de assets/base.js (comum ao System e ao Prospect).
@@ -418,6 +418,7 @@ async function iniciar() {
   $$(".m-so-master").forEach(x => x.classList.toggle("oculto", !st.ctx.plataforma));   // só o Master vê (o banco confere de novo)
   let aba = "equipe"; try { aba = localStorage.getItem("nexo.aba") || "equipe"; } catch {}
   if (location.hash === "#plano") { aba = "plano"; history.replaceState(null, "", location.pathname + location.search); }   // "Ver os planos" vindo de Vendas
+  if (location.hash === "#master" && st.ctx.plataforma) { aba = "master"; history.replaceState(null, "", location.pathname + location.search); }   // "Planos e suporte" vindo do Master do Prospect
   if (aba === "master" && !st.ctx.plataforma) aba = "equipe";
   if (!document.querySelector(`.menu [data-aba="${aba}"]`)) aba = "equipe"; // aba que não existe mais (ex.: a antiga "prospect") volta para a Equipe
   // Volta do "Entrar com Facebook": mostra o resultado e limpa o endereço.

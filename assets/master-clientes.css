@@ -1,0 +1,58 @@
+/* Master de clientes no Prospect (assets/master-clientes.js). Usa os tokens e componentes do index.html. */
+.nav a.nav-master{margin-top:14px}
+.mc-card{display:flex;flex-direction:column;gap:12px}
+.mc-busca{max-width:300px}
+.chip b{font-variant-numeric:tabular-nums}
+.mc-email{overflow-wrap:anywhere}
+.mc-tabela td{vertical-align:middle}
+.mc-tabela th{cursor:default}
+.mc-nome{min-width:140px;overflow-wrap:anywhere}
+.mc-acoes{text-align:right;white-space:nowrap}
+.mc-acoes .btn+.btn{margin-left:6px}
+.mc-acao{min-width:84px}
+#drawer section{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+#drawer section>.btn{align-self:flex-start}
+.mc-bloco{border:1px solid var(--border);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:12px}
+.mc-tres{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mc-login{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--border);border-radius:var(--r);padding:11px 12px}
+.mc-login .grow{flex-basis:220px}
+.mc-pag td{padding:9px 12px}
+.mc-pag tbody tr{cursor:default}
+.mc-pe{margin-top:auto;padding-top:6px}
+.mc-erro{color:var(--bad);margin:0;font-size:13px}
+.mc-erro:empty{display:none}
+.mc-opcoes{border:0;padding:0;margin:0;display:flex;gap:18px;flex-wrap:wrap}
+.mc-opcoes legend{font-size:12.5px;font-weight:600;color:var(--text-2);margin-bottom:6px;padding:0}
+.mc-opcoes label,.mc-marca{display:flex;gap:8px;align-items:flex-start;cursor:pointer}
+.mc-marca input{margin-top:4px}
+#modal .msg{max-height:220px;overflow:auto;overflow-wrap:anywhere}
+#modal .modal-f{flex-wrap:wrap}
+
+/* abaixo de 1100px a tabela vira cartões */
+@media (max-width:1100px){
+  .mc-card .table-wrap{border:0;overflow:visible}
+  .mc-tabela thead{display:none}
+  .mc-tabela,.mc-tabela tbody,.mc-tabela tr,.mc-tabela td{display:block}
+  .mc-tabela tr{border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:10px}
+  .mc-tabela td{border:0;padding:3px 0}
+  .mc-tabela td[data-r]{display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px}
+  .mc-tabela td[data-r]::before{content:attr(data-r);font-size:12px;color:var(--muted)}
+  .mc-tabela td[data-r]>*{grid-column:2}
+  .mc-tabela td[data-r]>.badge{justify-self:start}
+  .mc-nome{font-size:15.5px;padding-bottom:6px!important}
+  .mc-acoes{display:flex!important;gap:8px;padding-top:10px!important;white-space:normal}
+  .mc-acoes .btn{flex:1}
+  .mc-acoes .btn+.btn{margin-left:0}
+  .mc-busca{max-width:none}
+}
+@media (max-width:640px){
+  .mc-tres{grid-template-columns:1fr}
+  /* no celular os números ficam pequenos para o primeiro cliente aparecer logo */
+  #main .mc-kpi{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .mc-kpi .kpi{padding:10px;gap:2px}
+  .mc-kpi .kpi-n{font-size:20px}
+  .mc-kpi .sub{display:none}
+  .mc-kpi .kpi:last-child{grid-column:span 2}
+  .mc-pe .btn{flex:1}
+  .mc-pe .row{width:100%}
+}

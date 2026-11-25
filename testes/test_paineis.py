@@ -10,6 +10,7 @@ Instalar do zero:
     uv venv --python 3.11 testes/.venv
     uv pip install --python testes/.venv/Scripts/python.exe playwright
 """
+import datetime
 import functools
 import http.server
 import json
@@ -30,6 +31,86 @@ AG_ONCA, AG_PROSP = "00000000-0000-4000-a000-00000000f101", "00000000-0000-4000-
 
 
 # ---------------------------------------------------------------- dados inventados
+# ---------------- Master de clientes (assets/master-clientes.js): tudo inventado
+MC_CLIENTES = []   # cada teste do Master de clientes enche com mc_exemplo()
+MC_PLANOS = [
+    {"chave": "interno", "nome": "Interno", "preco_centavos": 0, "dias_teste": 0, "ativo": True},
+    {"chave": "inicial", "nome": "Inicial", "preco_centavos": 20000, "preco_anual_centavos": 200000, "dias_teste": 3, "ativo": True},
+    {"chave": "profissional", "nome": "Profissional", "preco_centavos": 40000, "preco_anual_centavos": 400000, "dias_teste": 3, "ativo": True},
+    {"chave": "completo", "nome": "Completo", "preco_centavos": 80000, "preco_anual_centavos": None, "dias_teste": 3, "ativo": True}]
+
+
+def mc_dia(n):
+    """Meio-dia de daqui a n dias (horário de Brasília)."""
+    hoje = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).date()
+    return f"{hoje + datetime.timedelta(days=n)}T15:00:00+00:00"
+
+
+def mc_cli(i, nome, sit, logins=None, convites=None, faturas=None, **extra):
+    if sit is None:
+        situacao = {"tem_assinatura": False, "acesso": "total", "status": None, "plano": None}
+    else:
+        situacao = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "plano": "profissional", "plano_nome": "Profissional",
+                    "preco_centavos": 40000, "periodo_ate": None, "teste_ate": None, "carencia_dias": 5, "liberado": False,
+                    "bloqueado_nexo": False, "bloqueado_em": None, "era_vitalicio": False, "plano_pedido": None, **sit}
+        situacao.setdefault("status_gravado", situacao["status"])
+    if logins is None:
+        logins = [{"user_id": "u-" + i, "email": f"dono@{i}.exemplo", "nome": None, "papel": "dono", "ultimo_login": "2026-11-20T11:05:00Z"}]
+    return {"id": i, "nome": nome, "slug": i, "status": "ativa", "origem": "cadastro", "criado_em": "2026-10-02T12:00:00Z", "whatsapp": "41900000000",
+            "responsavel": None, "tem_vendas": True, "situacao": situacao, "excluida_em": None,
+            "logins": logins, "convites": convites or [], "faturas": faturas or [], **extra}
+
+
+def mc_exemplo():
+    return [
+        mc_cli("clinica", "Clínica Exemplo", {"periodo_ate": mc_dia(3), "plano": "completo", "plano_nome": "Completo", "preco_centavos": 80000}),
+        mc_cli("loja", "Loja Modelo", {"periodo_ate": mc_dia(40)}),
+        mc_cli("oficina", "Oficina Teste", {"status": "vencida", "status_gravado": "ativa", "acesso": "leitura", "periodo_ate": mc_dia(-7)},
+               logins=[{"user_id": "u-d", "email": "oficina@teste.exemplo", "nome": "Dono Teste", "papel": "dono", "ultimo_login": "2026-11-20T11:05:00Z"},
+                       {"user_id": "u-e", "email": "atendente@teste.exemplo", "nome": None, "papel": "editor", "ultimo_login": None}],
+               faturas=[{"valor_centavos": 40000, "status": "paga", "meio": "por_fora", "provedor": "manual", "pago_em": "2026-10-18T12:00:00Z",
+                         "criado_em": "2026-10-18T12:00:00Z", "meses": 1}]),
+        mc_cli("studio", "Studio Amostra", {"status": "vitalicia", "liberado": True, "plano": "completo", "plano_nome": "Completo"}),
+        mc_cli("demo", "Escritório <img src=x onerror=alert(1)> Demo",
+               {"status": "suspensa", "acesso": "leitura", "periodo_ate": mc_dia(-15), "bloqueado_nexo": True, "bloqueado_em": mc_dia(-2)}),
+        mc_cli("academia", "Academia Ficção", {"status": "teste", "teste_ate": mc_dia(20), "dias_teste_restantes": 20}, logins=[],
+               convites=[{"id": "cv-9", "email": "academia@ficcao.exemplo", "papel": "admin", "criado_em": "2026-11-24T12:00:00Z"}]),
+        mc_cli("semplano", "Sem Plano Ltda", None, logins=[]),
+        mc_cli("antigo", "Cliente Antigo", {"status": "cancelada", "acesso": "bloqueado"}, status="excluida", excluida_em="2026-11-10T12:00:00Z"),
+    ]
+
+
+MC_RPCS = ("nexo_master_clientes", "nexo_master_planos", "nexo_master_novo_cliente", "nexo_master_bloquear", "nexo_master_liberar",
+           "nexo_master_registrar_pagamento")
+
+
+def mc_rpc(nome, args):
+    """O banco falso do Master de clientes: guarda o efeito das ações para a tela redesenhar."""
+    if nome == "nexo_master_clientes":
+        return json.loads(json.dumps(MC_CLIENTES))
+    if nome == "nexo_master_planos":
+        return MC_PLANOS
+    if nome == "nexo_master_novo_cliente":
+        d = args["p_dados"]
+        if d["email"].startswith("repetido"):
+            raise PermissionError("pedido_invalido: este e-mail já é login de Loja Modelo")
+        MC_CLIENTES.append(mc_cli("novo", d["nome"], {"status": "teste", "teste_ate": mc_dia(3)}, logins=[],
+                                  convites=[{"id": "cv-n", "email": d["email"].lower(), "papel": "admin"}]))
+        return {"ok": True, "empresa": "novo", "login": "convite"}
+    c = next(c for c in MC_CLIENTES if c["id"] == args["p_empresa"])
+    if nome == "nexo_master_bloquear":
+        c["situacao"].update({"status": "suspensa", "status_gravado": "suspensa", "acesso": "leitura", "bloqueado_nexo": True, "bloqueado_em": mc_dia(0)})
+    elif nome == "nexo_master_liberar":
+        if FALHAR.get("liberar") and not args.get("p_ate"):
+            raise PermissionError("data_vencida: informe até quando liberar")
+        c["situacao"].update({"status": "ativa", "status_gravado": "ativa", "acesso": "total", "bloqueado_nexo": False,
+                              "periodo_ate": args.get("p_ate") or mc_dia(30)})
+    elif nome == "nexo_master_registrar_pagamento":
+        c["situacao"].update({"status": "ativa", "status_gravado": "ativa", "acesso": "total", "periodo_ate": mc_dia(30 * args["p_meses"])})
+        return {"ok": True, "pago_ate": c["situacao"]["periodo_ate"]}
+    return {"ok": True}
+
+
 def contexto(com_onca=True, master=False):
     empresas = [{"id": "emp-p", "nome": "NEXO Inteligência (teste)", "slug": "nexo-inteligencia", "status": "ativa",
                  "papel": "dono", "agentes": [{"id": AG_PROSP, "nome": "Prospect", "slug": "prospect", "nivel": 1, "ativo": True}]}]
@@ -96,11 +177,13 @@ def conv_sdr(i, nome, estado_ia="ia_ativa", temp="frio", aguardando=False, lead_
 
 SUPORTE = {"whatsapp": "5541998460993"}  # nexo_suporte (o Master troca)
 SITUACAO = {}  # situação do plano por empresa (vazio = sem assinatura = tudo liberado)
+SEM_VENDAS = {}   # {"ligado": True}: o login não tem nenhuma empresa com a área de Vendas
 PLANOS_CLIENTE = [
     {"chave": "inicial", "nome": "Inicial", "descricao": "Vendas", "preco_centavos": 20000, "recursos": ["prospect"], "dias_teste": 3},
     {"chave": "profissional", "nome": "Profissional", "descricao": "Inicial + Marketing", "preco_centavos": 40000, "recursos": ["prospect"], "dias_teste": 3},
     {"chave": "completo", "nome": "Completo", "descricao": "<b>Tudo</b>", "preco_centavos": 80000, "recursos": ["prospect"], "dias_teste": 3}]
 MEU_PLANO = {}   # nexo_meu_plano: cada teste monta
+MINHAS_FATURAS = []   # nexo_minhas_faturas
 MASTER_USUARIOS = [
     {"id": "u1", "email": "dono@cliente.com", "nome": "<img src=x onerror=alert(2)>Ana", "ultimo_login": "2026-11-19T12:00:00Z", "confirmado": True,
      "master": False, "empresas": [{"id": "emp-c", "nome": "Clínica", "papel": "dono"}]},
@@ -125,9 +208,14 @@ MASTER_PLANOS = [
 
 def rpc_falso(nome, args, com_onca=True, master=False):
     if nome == "nexo_contexto":
-        return contexto(com_onca, master)
+        c = contexto(com_onca, master)
+        if SEM_VENDAS:
+            c["empresas"] = [e for e in c["empresas"] if e["slug"] != "nexo-inteligencia"]
+        return c
     if nome.startswith("nexo_master_") and not master:
         raise PermissionError("sem_permissao")
+    if MC_CLIENTES and nome in MC_RPCS:
+        return mc_rpc(nome, args)
     if nome == "nexo_master_indicadores":
         return {"empresas": 2, "empresas_por_origem": {"interna": 1, "master": 1}, "assinaturas_por_status": {"ativa": 1, "teste": 1},
                 "receita_mensal_centavos": 0, "testes_acabando": 1, "faturas_abertas_centavos": 0, "usuarios": 1}
@@ -137,6 +225,8 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         return MASTER_PLANOS
     if nome == "nexo_master_usuarios":
         return MASTER_USUARIOS
+    if nome == "nexo_minhas_faturas":
+        return MINHAS_FATURAS
     if nome == "nexo_meu_plano":
         return MEU_PLANO
     if nome == "nexo_pedir_plano":
@@ -341,6 +431,29 @@ class Estatico(unittest.TestCase):
         self.assertNotIn("async function prospect(el)", self.sys)
         for nome, h in (("System", self.sys), ("Prospect", self.pro)):
             self.assertNotRegex(h, r"const SUPABASE_KEY|function esc\(|const esc =", f"{nome} repete a base")
+
+
+class LoginSemEmpresa(unittest.TestCase):
+    """Quem entra sem empresa com a área de Vendas lê o que fazer, sem nome de empresa da casa (25/11/2026)."""
+
+    def tearDown(self):
+        SEM_VENDAS.clear()
+
+    def test_mensagem_diz_o_que_fazer(self):
+        SEM_VENDAS["ligado"] = True
+        for com_onca in (False, True):   # sem empresa nenhuma; e com empresa que só tem Marketing
+            p = Pagina(com_onca=com_onca)
+            try:
+                pg = p.abrir("/index.html", 1500)
+                txt = pg.inner_text("#main")
+                self.assertIn("Sem acesso à área de Vendas", txt)
+                self.assertIn("O login teste@exemplo.com ainda não está liberado no Nexo Prospect.", txt)
+                self.assertIn("atualize a página", txt)
+                self.assertNotIn("NEXO Inteligência", txt)
+                self.assertTrue(pg.is_visible("#sair"), "dá para sair e entrar com outro e-mail")
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
 
 
 class FiltroDeLinks(unittest.TestCase):
@@ -905,11 +1018,11 @@ class AvisoMensalidade(unittest.TestCase):
         self.assertIsNone(cls)
 
 class EmpresaEmVendas(unittest.TestCase):
-    """Master enxerga todas as empresas: Vendas abre a NEXO, nunca a de um cliente por acaso (bug de 19/11/2026: abria a Godoi)."""
+    """Master enxerga todas as empresas: Vendas abre a NEXO, nunca a de um cliente por acaso (bug de 19/11/2026: abria a de um cliente)."""
 
     CTX_MASTER = {"email": "ricardo@nexo.com", "plataforma": True, "empresas": [
-        {"id": "emp-g", "nome": "GODOI NOBREAKS", "slug": "godoi-nobreaks-0ba62", "status": "ativa", "papel": "plataforma",
-         "agentes": [{"id": "ag-godoi", "nome": "Prospect", "slug": "prospect", "nivel": 1, "ativo": True}]},
+        {"id": "emp-g", "nome": "CLIENTE DE TESTE", "slug": "cliente-de-teste-00000", "status": "ativa", "papel": "plataforma",
+         "agentes": [{"id": "ag-cliente", "nome": "Prospect", "slug": "prospect", "nivel": 1, "ativo": True}]},
         {"id": "emp-p", "nome": "NEXO Inteligência e Automação", "slug": "nexo-inteligencia", "status": "ativa", "papel": "plataforma",
          "agentes": [{"id": AG_PROSP, "nome": "Prospect", "slug": "prospect", "nivel": 1, "ativo": True}]}]}
 
@@ -918,17 +1031,23 @@ class EmpresaEmVendas(unittest.TestCase):
         p.ctx.route("**/rest/v1/rpc/nexo_contexto", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(ctx_json)))
         return p, p.abrir("/", 2000)
 
-    def test_master_abre_a_nexo_e_troca_de_proposito(self):
+    def tearDown(self):
+        MC_CLIENTES.clear()
+
+    def test_master_abre_a_nexo_e_ve_o_cliente_pela_ficha(self):
+        MC_CLIENTES.extend([mc_cli("emp-g", "CLIENTE DE TESTE", {"status": "vitalicia"})])
         p, pg = self.abrir(self.CTX_MASTER)
         try:
-            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), AG_PROSP, "abre a NEXO, não a Godoi")
+            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), AG_PROSP, "abre a NEXO, não a do cliente")
             self.assertIsNone(pg.query_selector(".aviso-cliente"))
-            self.assertTrue(pg.is_visible("#selEmpresaP"), "o Master tem o seletor de empresa")
+            self.assertIsNone(pg.query_selector("#selEmpresaP"), "o seletor de empresa saiu")
+            pg.click('#nav a[href="#/master"]'); pg.wait_for_timeout(700)
+            pg.click('[data-mc-ficha="emp-g"]'); pg.wait_for_timeout(300)
             with pg.expect_navigation():
-                pg.select_option("#selEmpresaP", "emp-g")
+                pg.click('#drawer [data-mc="ver"]')
             pg.wait_for_timeout(1500)
-            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), "ag-godoi")
-            self.assertIn("GODOI NOBREAKS", pg.inner_text(".aviso-cliente"), "aviso claro de que é empresa de cliente")
+            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), "ag-cliente")
+            self.assertIn("CLIENTE DE TESTE", pg.inner_text(".aviso-cliente"), "aviso claro de que é empresa de cliente")
             with pg.expect_navigation():
                 pg.click("#voltarNexo")
             pg.wait_for_timeout(1500)
@@ -938,14 +1057,329 @@ class EmpresaEmVendas(unittest.TestCase):
             p.fechar()
 
     def test_cliente_so_tem_a_propria_empresa_e_nao_ve_seletor(self):
-        ctx = {"email": "dono@godoi.com", "plataforma": False, "empresas": [{**self.CTX_MASTER["empresas"][0], "papel": "dono"}]}
+        ctx = {"email": "dono@cliente.exemplo", "plataforma": False, "empresas": [{**self.CTX_MASTER["empresas"][0], "papel": "dono"}]}
         p, pg = self.abrir(ctx)
         try:
-            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), "ag-godoi")
-            self.assertFalse(pg.is_visible("#selEmpresaP"))
+            self.assertEqual(pg.evaluate("window.__prospect.estado.agente"), "ag-cliente")
+            self.assertIsNone(pg.query_selector('#nav a[href="#/master"]'), "cliente não vê o Master")
             self.assertIsNone(pg.query_selector(".aviso-cliente"))
         finally:
             p.fechar()
+
+class MasterDeClientes(unittest.TestCase):
+    """O Master dentro do Prospect: lista, ficha, bloquear, liberar, pagamento por fora e cliente novo (25/11/2026)."""
+
+    def setUp(self):
+        MC_CLIENTES.extend(mc_exemplo())
+
+    def tearDown(self):
+        MC_CLIENTES.clear(); FALHAR.clear()
+
+    def abrir(self, largura=1440):
+        p = Pagina(master=True)
+        p.page.set_viewport_size({"width": largura, "height": 900})
+        return p, p.abrir("/index.html#/master", 1800)
+
+    def args(self, p, nome):
+        return [a for n, a in p.args if n == nome]
+
+    def linha(self, pg, i):
+        return pg.inner_text(f'tr[data-mc-abrir="{i}"]')
+
+    def ficha(self, pg, i):
+        pg.click(f'[data-mc-ficha="{i}"]'); pg.wait_for_timeout(350)
+        return pg.inner_text("#drawer")
+
+    def enviar(self, pg, espera=800):
+        pg.click("#mcForm [type=submit]"); pg.wait_for_timeout(espera)
+
+    def test_lista_diz_a_situacao_de_cada_um(self):
+        p, pg = self.abrir()
+        try:
+            for i, textos in {"clinica": ["Vence em 3 dias", "dono@clinica.exemplo", "800,00/mês"], "loja": ["Em dia"],
+                              "oficina": ["Atrasado há 7 dias", "travado", "+1 login"], "studio": ["Vitalício", "não vence", "sem cobrança"],
+                              "demo": ["Bloqueado", "Liberar"], "academia": ["Em teste", "academia@ficcao.exemplo", "convite"],
+                              "semplano": ["Sem plano", "sem login"]}.items():
+                for x in textos:
+                    self.assertIn(x, self.linha(pg, i), i)
+            self.assertIsNone(pg.query_selector('tr[data-mc-abrir="antigo"]'), "excluído fica só no filtro Excluídos")
+            self.assertIsNone(pg.query_selector('[data-mc-bloquear="semplano"]'))
+            self.assertEqual(pg.inner_text('[data-mc-filtro="todos"]').split()[-1], "7")
+            self.assertEqual(pg.evaluate("document.querySelectorAll('#main img[src=x]').length"), 0, "nome com HTML aparece como texto")
+            pg.click('[data-mc-filtro="excluido"]'); pg.wait_for_timeout(200)
+            self.assertIn("Restaurar", self.linha(pg, "antigo"))
+            pg.click('[data-mc-filtro="todos"]')
+            pg.fill("#mcBusca", "atendente@"); pg.wait_for_timeout(200)
+            self.assertEqual(pg.eval_on_selector_all("tr[data-mc-abrir]", "l => l.map(x => x.dataset.mcAbrir)"), ["oficina"])
+            pg.fill("#mcBusca", "clinica ex"); pg.wait_for_timeout(200)
+            self.assertEqual(pg.eval_on_selector_all("tr[data-mc-abrir]", "l => l.map(x => x.dataset.mcAbrir)"), ["clinica"], "busca sem acento")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_cliente_comum_nao_ve_nem_chama_o_master(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html#/master", 1800)
+            self.assertIsNone(pg.query_selector('#nav a[href="#/master"]'))
+            self.assertIsNone(pg.query_selector("#mcNovo"))
+            self.assertEqual([n for n in p.chamadas if n.startswith("nexo_master_")], [])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_bloquear_pede_confirmacao(self):
+        p, pg = self.abrir()
+        try:
+            pg.click('[data-mc-bloquear="loja"]'); pg.wait_for_timeout(200)
+            self.assertIn("acesso volta sozinho", pg.inner_text("#modal"))
+            pg.click("#modal [data-fechar]"); pg.wait_for_timeout(300)
+            self.assertEqual(self.args(p, "nexo_master_bloquear"), [], "cancelar não bloqueia")
+            pg.click('[data-mc-bloquear="loja"]'); pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertEqual(self.args(p, "nexo_master_bloquear"), [{"p_empresa": "loja"}])
+            self.assertIn("Bloqueado", self.linha(pg, "loja"))
+            pg.click('[data-mc-bloquear="studio"]'); pg.wait_for_timeout(200)
+            self.assertIn("só você libera", pg.inner_text("#modal"), "vitalício avisa que não paga")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_liberar_com_data_antiga_pede_a_data(self):
+        FALHAR["liberar"] = True
+        p, pg = self.abrir()
+        try:
+            pg.click('[data-mc-liberar="demo"]'); pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertIn("já passou", pg.inner_text("#modal"))
+            self.enviar(pg)
+            self.assertTrue(self.args(p, "nexo_master_liberar")[-1]["p_ate"].endswith("T02:59:00.000Z"), "até o fim do dia escolhido")
+            self.assertIn("Em dia", self.linha(pg, "demo"))
+            self.assertEqual([e for e in p.erros if "403" not in e], [])
+        finally:
+            p.fechar()
+
+    def test_atrasado_ganha_mais_prazo(self):
+        p, pg = self.abrir()
+        try:
+            self.ficha(pg, "oficina")
+            pg.click('#drawer section [data-mc="liberar"]'); pg.wait_for_timeout(200)
+            self.assertIn("Nenhum pagamento é anotado", pg.inner_text("#modal"))
+            self.enviar(pg)
+            self.assertEqual(len(self.args(p, "nexo_master_liberar")), 1)
+            self.assertIn("Em dia", pg.inner_text("#drawer"), "a ficha aberta se atualiza")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_registrar_pagamento(self):
+        p, pg = self.abrir()
+        try:
+            txt = self.ficha(pg, "oficina")
+            for x in ("Atrasado há 7 dias", "Pago por fora", "atendente@teste.exemplo", "Venceu em"):
+                self.assertIn(x, txt)
+            pg.click('#drawer [data-mc="pagamento"]'); pg.wait_for_timeout(200)
+            self.assertIn("não cobra nem movimenta dinheiro", pg.inner_text("#modal"))
+            self.assertEqual(pg.input_value("#mcForm [name=valor]"), "400,00")
+            pg.check('#mcForm [name=meses][value="12"]')
+            self.assertEqual(pg.input_value("#mcForm [name=valor]"), "4000,00")
+            pg.fill("#mcForm [name=valor]", "abc"); self.enviar(pg, 300)
+            self.assertIn("Confira o valor", pg.inner_text(".mc-erro"))
+            self.assertEqual(self.args(p, "nexo_master_registrar_pagamento"), [])
+            pg.fill("#mcForm [name=valor]", "R$ 3.900,50")
+            pg.evaluate("() => { const b = document.querySelector('#mcForm [type=submit]'); b.click(); b.click(); }")
+            pg.wait_for_timeout(1200)
+            self.assertEqual(self.args(p, "nexo_master_registrar_pagamento"),
+                             [{"p_empresa": "oficina", "p_meses": 12, "p_valor_centavos": 390050}], "clique duplo manda uma vez só")
+            self.assertIn("Pago até", pg.inner_text("#toast"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_vitalicio_e_sem_plano_nao_tem_pagamento(self):
+        p, pg = self.abrir()
+        try:
+            self.ficha(pg, "studio")
+            self.assertIsNone(pg.query_selector('#drawer [data-mc="pagamento"]'))
+            self.assertIsNone(pg.query_selector('#drawer [data-mc="data"]'))
+            pg.click('#drawer [data-mc="fechar"]'); pg.wait_for_timeout(400)
+            self.ficha(pg, "semplano")
+            self.assertIsNone(pg.query_selector('#drawer [data-mc="pagamento"]'))
+            self.assertIsNone(pg.query_selector('#drawer [data-mc="bloquear"]'))
+            self.assertIn("Escolher plano", pg.inner_text("#drawer"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_logins_nova_senha_e_tirar_acesso(self):
+        p, pg = self.abrir()
+        try:
+            pedidos = []
+            pg.on("request", lambda r: "/auth/v1/recover" in r.url and pedidos.append(r.post_data))
+            self.ficha(pg, "oficina")
+            self.assertEqual(len(pg.query_selector_all("#drawer [data-mc-tirar]")), 1, "o dono não pode ser retirado")
+            pg.click('#drawer [data-mc-senha="atendente@teste.exemplo"]'); pg.wait_for_timeout(200)
+            self.assertEqual(pedidos, [], "só manda depois de confirmar")
+            pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertEqual(len(pedidos), 1)
+            self.assertIn("atendente@teste.exemplo", pedidos[0])
+            pg.click("#drawer [data-mc-tirar]"); pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertEqual(self.args(p, "nexo_remover_acesso"), [{"p_empresa": "oficina", "p_user": "u-e", "p_convite": None}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_trocar_plano_de_bloqueado_nao_libera(self):
+        p, pg = self.abrir()
+        try:
+            self.ficha(pg, "demo")
+            pg.click('#drawer [data-mc="plano"]'); pg.wait_for_timeout(200)
+            self.assertIn("não libera o acesso", pg.inner_text("#modal"))
+            pg.select_option("#mcForm [name=plano]", "inicial"); self.enviar(pg)
+            self.assertEqual(self.args(p, "nexo_master_salvar_assinatura")[-1]["p_dados"], {"plano": "inicial", "liberado": False})
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_trocar_para_vitalicio_e_mudar_data(self):
+        p, pg = self.abrir()
+        try:
+            self.ficha(pg, "loja")
+            pg.click('#drawer [data-mc="plano"]'); pg.wait_for_timeout(200)
+            pg.select_option("#mcForm [name=cobranca]", "vitalicia"); self.enviar(pg)
+            self.assertEqual(self.args(p, "nexo_master_salvar_assinatura")[-1]["p_dados"],
+                             {"plano": "profissional", "liberado": True, "status": "vitalicia"})
+            pg.click('#drawer [data-mc="data"]'); pg.wait_for_timeout(200)
+            pg.fill("#mcForm [name=ate]", "2020-01-01"); self.enviar(pg, 300)
+            self.assertIn("de hoje em diante", pg.inner_text(".mc-erro"))
+            pg.fill("#mcForm [name=ate]", mc_dia(60)[:10]); self.enviar(pg)
+            self.assertEqual(list(self.args(p, "nexo_master_salvar_assinatura")[-1]["p_dados"]), ["periodo_ate"])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_novo_cliente_exige_plano_e_mostra_o_convite(self):
+        p, pg = self.abrir()
+        try:
+            pg.click("#mcNovo"); pg.wait_for_timeout(200)
+            pg.fill("#mcForm [name=nome]", "Ótica Boa Visão")
+            pg.fill("#mcForm [name=email]", "repetido@x.com")
+            self.enviar(pg, 300)
+            self.assertIn("Escolha o plano", pg.inner_text(".mc-erro"))
+            self.assertEqual(self.args(p, "nexo_master_novo_cliente"), [])
+            pg.select_option("#mcForm [name=plano]", "inicial"); self.enviar(pg)
+            self.assertIn("já é login de Loja Modelo", pg.inner_text(".mc-erro"))
+            pg.fill("#mcForm [name=email]", "Nova@X.com"); self.enviar(pg, 1200)
+            m = pg.inner_text("#modal")
+            self.assertIn("não manda e-mail", m)
+            self.assertIn("?convite=nova%40x.com", m)
+            self.assertIn("Ótica Boa Visão", pg.inner_text("#mcLista"))
+            pg.click("#mcDepois"); pg.wait_for_timeout(400)
+            self.assertIn("Ótica Boa Visão", pg.inner_text("#drawer"), "abre a ficha do cliente novo")
+            self.assertEqual([e for e in p.erros if "403" not in e], [])
+        finally:
+            p.fechar()
+
+    def test_excluir_exige_o_nome(self):
+        p, pg = self.abrir()
+        try:
+            self.ficha(pg, "loja")
+            pg.click('#drawer [data-mc="excluir"]'); pg.wait_for_timeout(200)
+            pg.fill("#mcForm [name=nome]", "loja"); self.enviar(pg, 300)
+            self.assertIn("não confere", pg.inner_text(".mc-erro"))
+            self.assertEqual(self.args(p, "nexo_master_excluir_cliente"), [])
+            pg.fill("#mcForm [name=nome]", "Loja Modelo"); self.enviar(pg)
+            self.assertEqual(self.args(p, "nexo_master_excluir_cliente"), [{"p_empresa": "loja", "p_confirmacao": "Loja Modelo"}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_celular_sem_rolagem_para_o_lado(self):
+        p, pg = self.abrir(390)
+        try:
+            largo = ("() => [document.documentElement.scrollWidth, ...[...document.querySelectorAll("
+                     "'#main .card, #drawer.on, #drawer.on .drawer-b, #modal.on')].map(e => e.scrollWidth - e.clientWidth)]")
+
+            def cabe(onde):
+                m = pg.evaluate(largo)
+                self.assertLessEqual(m[0], 390, onde)
+                self.assertTrue(all(x <= 1 for x in m[1:]), f"{onde}: {m}")
+
+            cabe("lista")
+            self.assertIsNotNone(pg.query_selector('#bottom a[href="#/master"]'), "o Master está na barra do celular")
+            self.ficha(pg, "oficina"); cabe("ficha")
+            pg.click('#drawer [data-mc="pagamento"]'); pg.wait_for_timeout(300); cabe("janela")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
+class ClienteBloqueado(unittest.TestCase):
+    """O que o cliente vê quando a NEXO bloqueia: pagar e voltar; vitalício fala com a NEXO (25/11/2026)."""
+
+    SIT = {"tem_assinatura": True, "acesso": "leitura", "status": "suspensa", "status_gravado": "suspensa", "plano": "inicial",
+           "plano_nome": "Inicial", "preco_centavos": 20000, "recursos": ["prospect"], "bloqueado_nexo": True, "bloqueado_em": "2026-11-24T12:00:00Z",
+           "era_vitalicio": False}
+
+    def tearDown(self):
+        SITUACAO.clear(); MEU_PLANO.clear(); MINHAS_FATURAS.clear()
+
+    def abrir(self, papel="dono", pode_pedir=True, **sit):
+        SITUACAO["emp-p"] = {**self.SIT, **sit}
+        MEU_PLANO.update({"pode_pedir": pode_pedir, "pagamento_ligado": True, "planos": PLANOS_CLIENTE, "situacao": SITUACAO["emp-p"]})
+        p = Pagina(com_onca=False)
+        if papel != "dono":
+            c = contexto(False)
+            c["empresas"][0]["papel"] = papel
+            p.ctx.route("**/rest/v1/rpc/nexo_contexto", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(c)))
+        return p, p.abrir("/index.html", 2000)
+
+    def test_dono_ve_o_bloqueio_vai_ao_meu_plano_e_pode_pagar(self):
+        p, pg = self.abrir()
+        try:
+            trava = pg.inner_text(".plano-trava")
+            self.assertIn("Seu acesso está bloqueado", trava)
+            self.assertIn("volta sozinho", trava)
+            pg.click(".plano-trava a"); pg.wait_for_timeout(900)
+            txt = pg.inner_text("#mpHost")
+            self.assertIn("Acesso bloqueado. Pague abaixo para voltar", txt)
+            self.assertIn("Bloqueado", txt)
+            self.assertIsNotNone(pg.query_selector('[data-mp-pagar="inicial"]'), "o botão de pagar a mensalidade aparece")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_vitalicio_bloqueado_nao_tem_botao_de_pagar(self):
+        p, pg = self.abrir(era_vitalicio=True)
+        try:
+            self.assertIn("Fale com a NEXO", pg.inner_text(".plano-trava"))
+            pg.click(".plano-trava a"); pg.wait_for_timeout(900)
+            self.assertIn("Fale com a NEXO", pg.inner_text("#mpHost"))
+            self.assertEqual(len(pg.query_selector_all("[data-mp-pagar], [data-mp-plano]")), 0)
+            self.assertNotIn("Pagar agora", pg.inner_text("#main"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_quem_nao_paga_e_mandado_ao_dono(self):
+        p, pg = self.abrir(papel="editor", pode_pedir=False)
+        try:
+            self.assertIn("dono da conta", pg.inner_text(".plano-trava"))
+            self.assertNotIn("e pagar", pg.inner_text(".plano-trava a"))
+            pg.click(".plano-trava a"); pg.wait_for_timeout(900)
+            self.assertEqual(len(pg.query_selector_all("[data-mp-pagar]")), 0)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_pagamento_por_fora_aparece_com_esse_nome(self):
+        MINHAS_FATURAS.append({"competencia": "2026-11-01", "plano_nome": "Inicial", "valor_centavos": 20000, "status": "paga",
+                               "pago_em": "2026-11-25T12:00:00Z", "meio": "por_fora", "meses": 1})
+        p, pg = self.abrir()
+        try:
+            pg.click(".plano-trava a"); pg.wait_for_timeout(900)
+            self.assertIn("Pago por fora em 25/11/2026", pg.inner_text(".mp-faturas"))
+        finally:
+            p.fechar()
+
 
 class MeuPlano(unittest.TestCase):
     """Aba Meu plano (Marketing) e o Master com pedidos, vitalício e usuários (19/11/2026)."""

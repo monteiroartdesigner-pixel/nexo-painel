@@ -37,7 +37,21 @@ document.addEventListener("click", ev => {
   const a = ev.target.closest('a[href$="#plano"]');
   if (a && typeof abrirAba === "function") { ev.preventDefault(); abrirAba("plano"); }
 });
+// Bloqueio feito pelo Master (25/11/2026): quem é dono ou administrador pode pagar e voltar sozinho; vitalício fala com a NEXO.
+const plPodePagar = () => ["plataforma", "dono", "admin"].includes((typeof S !== "undefined" && S.papel) || (typeof st !== "undefined" && st.papel));
+function plTextoBloqueado(s) {
+  if (s.era_vitalicio) return "Fale com a NEXO pelo botão Suporte para liberar.";
+  return plPodePagar() ? "Pague a mensalidade para voltar: o acesso volta sozinho assim que o pagamento é confirmado."
+                       : "Peça a quem é dono da conta para pagar em Meu plano.";
+}
 function planoBloqueio(recurso, empresaId) {
+  if (PL.sits[empresaId]?.bloqueado_nexo) {
+    const s = PL.sits[empresaId];
+    return `<div class="plano-trava"><div class="pt-icone" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg></div>
+    <div class="pt-txt"><span class="pt-selo">Bloqueado</span>
+      <h2>Seu acesso está bloqueado</h2><p>${esc(plTextoBloqueado(s))} Seus dados continuam guardados.</p>
+      <a class="btn prim pri" href="${PL_ATIVAR()}">${!s.era_vitalicio && plPodePagar() ? "Ir para Meu plano e pagar" : "Ver o meu plano"}</a></div></div>`;
+  }
   const s = PL.sits[empresaId] || {}, inativo = s.tem_assinatura && !["total", "aviso"].includes(s.acesso);
   const titulo = inativo ? (s.status === "teste_vencido" ? "Seu teste grátis acabou" : s.acesso === "bloqueado" ? "Assinatura cancelada" : "Assinatura inativa")
                          : `${RECURSO_NOME[recurso] || "Este recurso"} no plano ${PLANO_DE[recurso] || "superior"}`;
@@ -67,7 +81,10 @@ function planoFaixa(empresaId, alvo) {
   const quando = d => d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence em ${d} dias`;
   const dPago = s.status === "ativa" ? planoDiasAte(s.periodo_ate) : null;
   const dTeste = s.status === "teste" ? (s.dias_teste_restantes ?? planoDiasAte(s.teste_ate)) : null;
-  if (dPago != null && dPago >= 0 && dPago <= 2) {
+  if (s.bloqueado_nexo) {
+    msg = `Seu acesso está bloqueado. ${plTextoBloqueado(s)}`; tom = "urgente";
+    botao = !s.era_vitalicio && plPodePagar() ? "Pagar agora" : "Ver o meu plano";
+  } else if (dPago != null && dPago >= 0 && dPago <= 2) {
     msg = `Sua mensalidade do plano ${s.plano_nome} ${quando(dPago)} (${plDataCurta(s.periodo_ate)}). Pague para não perder o acesso.`;
     tom = "urgente"; botao = "Pagar agora";
   } else if (dTeste != null && dTeste >= 0 && dTeste <= 2) {

@@ -87,11 +87,15 @@ async function meuPlano(el) {
     return;
   }
   const s = d.situacao || {}, planos = d.planos || [], pedido = planos.find(p => p.chave === s.plano_pedido);
-  const pagar = !!d.pagamento_ligado && d.pode_pedir && s.status !== "vitalicia";
+  const vitalicio = s.status === "vitalicia" || !!s.era_vitalicio;   // vitalício bloqueado também não paga: só o Master libera
+  const pagar = !!d.pagamento_ligado && d.pode_pedir && !vitalicio;
   // Mensalidade do plano atual: aparece no teste, quando venceu ou faltando 7 dias para vencer.
   const faltaPouco = s.status === "ativa" && s.periodo_ate && new Date(s.periodo_ate) - Date.now() < 7 * 86400000;
   const pagarAtual = pagar && (s.status !== "ativa" || faltaPouco);
   const sub = !s.tem_assinatura ? "Acesso liberado pela NEXO."
+    : s.bloqueado_nexo ? `Acesso bloqueado. ${s.era_vitalicio ? "Fale com a NEXO pelo botão Suporte para liberar."
+        : pagar ? "Pague abaixo para voltar: o acesso volta sozinho assim que o pagamento é confirmado."
+        : d.pode_pedir ? "Fale com a NEXO pelo botão Suporte." : "Peça a quem é dono da conta para pagar."}`
     : s.status === "vitalicia" ? `Acesso vitalício: sem mensalidade e sem data de vencimento.${s.liberado ? " Todas as funções liberadas." : ""}`
     : s.status === "teste" ? `Teste grátis: ${s.dias_teste_restantes === 0 ? "termina hoje" : `faltam ${pl(s.dias_teste_restantes, "dia", "dias")}`}${s.teste_ate ? ` (até ${mpData(s.teste_ate)})` : ""}.`
     : s.status === "ativa" && s.periodo_ate ? (s.liberado ? `Liberado até ${mpData(s.periodo_ate)}: todas as funções, sem limites.` : `Pago até ${mpData(s.periodo_ate)}.`)
@@ -107,15 +111,15 @@ async function meuPlano(el) {
       : `<button type="button" class="btn prim pri" data-mp-pagar="${esc(p.chave)}">Assinar e pagar</button>`;
     if (atual) return `<span class="btn mp-selo" aria-disabled="true">Seu plano atual</span>`;
     if (s.plano_pedido === p.chave) return `<span class="btn mp-selo" aria-disabled="true">Troca pedida</span>`;
-    return d.pode_pedir && s.status !== "vitalicia" ? `<button type="button" class="btn prim pri" data-mp-plano="${esc(p.chave)}">Quero este plano</button>` : "";
+    return d.pode_pedir && !vitalicio ? `<button type="button" class="btn prim pri" data-mp-plano="${esc(p.chave)}">Quero este plano</button>` : "";
   };
   el.innerHTML = `
     <div class="card mp-atual">
       <div><span class="mp-eb">Seu plano</span>
         <h2>${esc(s.plano_nome || (s.tem_assinatura ? s.plano : "Liberado"))}</h2>
         <p class="muted" style="margin:4px 0 0">${esc(sub)}</p></div>
-      <div class="mp-lado">${s.tem_assinatura ? `<span class="pill ${["teste", "ativa", "vitalicia"].includes(s.status) ? "ok" : "warn"}">${esc(MP_STATUS[s.status] || s.status)}</span>` : ""}
-        ${s.tem_assinatura && s.status !== "vitalicia" && s.preco_centavos != null ? `<b class="mp-preco">${esc(mpReais(s.preco_centavos))}<span>/mês</span></b>` : ""}</div>
+      <div class="mp-lado">${s.tem_assinatura ? `<span class="pill ${["teste", "ativa", "vitalicia"].includes(s.status) ? "ok" : "warn"}">${esc(s.bloqueado_nexo ? "Bloqueado" : MP_STATUS[s.status] || s.status)}</span>` : ""}
+        ${s.tem_assinatura && !vitalicio && s.preco_centavos != null ? `<b class="mp-preco">${esc(mpReais(s.preco_centavos))}<span>/mês</span></b>` : ""}</div>
     </div>
     ${pedido && !pagar ? `<div class="aviso mp-pedido"><div><b>Troca pedida: plano ${esc(pedido.nome)}</b>
         <div class="peq">Pedido em ${esc(mpData(s.pedido_em))}. A NEXO confirma a troca e avisa você.</div></div>
@@ -141,7 +145,7 @@ async function meuPlano(el) {
     ${faturas.length ? `<div class="card"><h2 style="margin:0">Pagamentos</h2><div class="mp-faturas">${faturas.map(f => `<div class="mp-fat">
         <span><b>${esc(mpMes(f.competencia))}</b> <span class="muted peq">· ${esc(f.plano_nome || "")}${f.meses === 12 ? " · anual" : ""}</span></span>
         <span class="peq">${esc(mpReais(f.valor_centavos))}</span>
-        <span class="pill ${f.status === "paga" ? "ok" : "warn"}">${f.status === "paga" ? `Pago ${f.meio === "pix" ? "no Pix" : "no cartão"} em ${esc(mpData(f.pago_em))}` : "Aguardando pagamento"}</span></div>`).join("")}</div></div>` : ""}`;
+        <span class="pill ${f.status === "paga" ? "ok" : "warn"}">${f.status === "paga" ? `Pago ${f.meio === "pix" ? "no Pix" : f.meio === "por_fora" ? "por fora" : "no cartão"} em ${esc(mpData(f.pago_em))}` : "Aguardando pagamento"}</span></div>`).join("")}</div></div>` : ""}`;
 
   el.querySelectorAll("[data-mp-pagar]").forEach(b => b.onclick = async () => {
     const p = planos.find(x => x.chave === b.dataset.mpPagar);
