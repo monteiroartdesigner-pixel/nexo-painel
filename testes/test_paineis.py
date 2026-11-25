@@ -19,6 +19,7 @@ import re
 import threading
 import time
 import unittest
+import urllib.parse
 
 from playwright.sync_api import sync_playwright
 
@@ -635,6 +636,110 @@ class AppInstalavel(unittest.TestCase):
             p.fechar()
 
 
+class FilaDeEnvio(unittest.TestCase):
+    """Fila "Para enviar": mensagem pronta, um toque para abrir o WhatsApp e a pessoa confirma se saiu (25/11/2026)."""
+
+    def emp(self, i, nome, nota, status="abordar", whatsapp="5562988881111", msg="Olá! Vi o seu consultório.", **extra):
+        return {"id": f"f{i}", "nome": nome, "status": status, "pontuacao": nota, "cidade": "Goiânia", "estado": "GO", "pais": "BR",
+                "segmento": "consultório", "whatsapp": whatsapp,
+                "campanhas": [{"id": "c1", "nome": "Médicos", "prioridade": "alta", "mensagem_pt": msg}], **extra}
+
+    def setUp(self):
+        self.antes = list(EMPRESAS_P)
+        EMPRESAS_P[:] = [
+            self.emp(1, "Consultório Nota Menor", 50, status="qualificado", whatsapp="62977770000"),
+            self.emp(2, "<img src=x onerror=alert(1)> Clínica Nota Maior", 80, msg="Oi, Dra.! Tudo bem?\nPosso ligar & explicar? <b>10 min</b>"),
+            self.emp(3, "Já Abordada", 90, status="abordado"),
+            self.emp(4, "Sem WhatsApp", 90, whatsapp=None),
+            self.emp(5, "Sem Mensagem", 90, msg=None),
+            self.emp(6, "Com Dúvida", 90, classificacao={"pergunta": "É consultório?", "resposta": None}),
+            self.emp(7, "Não Contatar", 90, status="nao_contatar")]
+
+    def tearDown(self):
+        EMPRESAS_P[:] = self.antes
+
+    def abrir(self, **opcoes):
+        p = Pagina(**opcoes)
+        p.ctx.route("https://wa.me/**", lambda r: r.fulfill(status=200, content_type="text/html", body="ok"))   # nada sai para a internet
+        return p, p.abrir("/index.html#/enviar", 1800)
+
+    def nomes(self, pg):
+        return [h.inner_text() for h in pg.query_selector_all(".fila-card h2")]
+
+    def test_so_entra_quem_pode_receber_a_primeira_mensagem(self):
+        p, pg = self.abrir()
+        try:
+            self.assertEqual(self.nomes(pg), ["<img src=x onerror=alert(1)> Clínica Nota Maior", "Consultório Nota Menor"])
+            self.assertEqual(pg.evaluate("document.querySelectorAll('.fila-lista img').length"), 0, "texto de fora não vira HTML")
+            self.assertEqual(pg.inner_text('#nav a[href="#/enviar"] .cnt'), "2")
+            self.assertIn("O painel não envia nada sozinho", pg.inner_text("#main"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_o_link_abre_o_whatsapp_com_a_mensagem_e_nada_muda_sem_confirmar(self):
+        p, pg = self.abrir()
+        try:
+            links = pg.eval_on_selector_all("a.fila-enviar", "as => as.map(a => a.href)")
+            self.assertTrue(links[1].startswith("https://wa.me/5562977770000?text="), "número sem o 55 ganha o 55")
+            self.assertEqual(urllib.parse.unquote(links[0].split("?text=")[1]), "Oi, Dra.! Tudo bem?\nPosso ligar & explicar? <b>10 min</b>")
+            pg.click('[data-fila-abrir="f2"]'); pg.wait_for_timeout(900)
+            self.assertIn("Enviou a mensagem?", pg.inner_text('[data-fila="f2"]'))
+            self.assertNotIn("nexo_prospect_mudar_empresa", p.chamadas, "abrir o WhatsApp não marca nada")
+            pg.click('[data-fila-nao="f2"]'); pg.wait_for_timeout(300)
+            self.assertTrue(pg.is_visible('[data-fila-abrir="f2"]'))
+            self.assertNotIn("nexo_prospect_mudar_empresa", p.chamadas)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_sim_enviei_marca_abordado_e_tira_da_fila(self):
+        p, pg = self.abrir()
+        try:
+            pg.click('[data-fila-abrir="f2"]'); pg.wait_for_timeout(900)
+            pg.click('[data-fila-sim="f2"]'); pg.wait_for_timeout(600)
+            args = [a for n, a in p.args if n == "nexo_prospect_mudar_empresa"]
+            self.assertEqual(args, [{"p_empresa": "f2", "p_status": "abordado", "p_nota": None}])
+            self.assertEqual(self.nomes(pg), ["Consultório Nota Menor"])
+            self.assertEqual(pg.inner_text(".fila-hoje"), "1 enviada hoje")
+            self.assertEqual(pg.inner_text('#nav a[href="#/enviar"] .cnt'), "1")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_avisa_quando_ja_sao_muitos_envios_no_dia(self):
+        hoje = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).date().isoformat()
+        p, pg = self.abrir(local={"prospect.enviadas.emp-p": json.dumps({"dia": hoje, "n": 10})})
+        try:
+            self.assertIn("Por hoje já está bom.", pg.inner_text("#main"))
+            self.assertEqual(pg.inner_text(".fila-hoje"), "10 enviadas hoje")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_fila_vazia_explica_quando_chegam_mais(self):
+        EMPRESAS_P[:] = [self.emp(3, "Já Abordada", 90, status="abordado")]
+        p, pg = self.abrir()
+        try:
+            txt = pg.inner_text("#main")
+            self.assertIn("Nenhuma mensagem para enviar agora", txt)
+            self.assertIn("06:10, 12:10 e 18:10", txt)
+            self.assertIsNone(pg.query_selector('#nav a[href="#/enviar"] .cnt'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_no_celular_cabe_na_tela(self):
+        p, pg = self.abrir(largura=360, agente_navegador=AppInstalavel.UA_ANDROID)
+        try:
+            self.assertEqual(len(self.nomes(pg)), 2)
+            self.assertTrue(pg.is_visible('#bottom a[href="#/enviar"]'))
+            self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 360)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+
 class FiltroDeLinks(unittest.TestCase):
     def test_url_segura(self):
         p = Pagina(logado=False)
@@ -696,7 +801,7 @@ class System(unittest.TestCase):
 
 
 class Prospect(unittest.TestCase):
-    MODULOS = ["inicio", "crm", "tarefas", "campanhas", "plano", "ajuda"]
+    MODULOS = ["inicio", "crm", "enviar", "tarefas", "campanhas", "plano", "ajuda"]
 
     def test_login_abre_sem_erros(self):
         p = Pagina(logado=False)

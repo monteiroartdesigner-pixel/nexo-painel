@@ -1,0 +1,18 @@
+/* Fila "Para enviar" (assets/fila-envio.js). Usa os tokens e componentes do index.html. */
+.fila-lista{display:flex;flex-direction:column;gap:14px;max-width:760px}
+.fila-card{display:flex;flex-direction:column;gap:12px}
+.fila-primeira{border-color:var(--primary)}
+.fila-topo{display:flex;gap:10px;align-items:flex-start}
+.fila-topo .grow{min-width:0}
+.fila-topo h2{overflow-wrap:anywhere}
+.fila-msg{white-space:pre-wrap;overflow-wrap:anywhere}
+.fila-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fila-enviar{height:44px;padding:0 18px;font-size:14.5px}
+.fila-conf{display:flex;gap:8px;flex-wrap:wrap;align-items:center;width:100%}
+.fila-conf b{flex-basis:100%}
+.fila-conf .btn{height:44px}
+.fila-hoje{align-self:center}
+@media (max-width:640px){
+  .fila-enviar{flex:1 1 100%}
+  .fila-conf .btn{flex:1}
+}
