@@ -1,5 +1,11 @@
 /* Master de clientes no Prospect (assets/master-clientes.js). Usa os tokens e componentes do index.html. */
 .nav a.nav-master{margin-top:14px}
+/* o valor em reais não pode passar da borda: o cartão da receita é mais largo e o número encolhe com a tela */
+.mc-kpi .kpi{min-width:0}
+.mc-kpi .kpi-n{font-size:clamp(17px,1.6vw,22px);white-space:nowrap}
+.mc-kpi .kpi:last-child{container-type:inline-size}
+.mc-kpi .kpi:last-child .kpi-n{font-size:clamp(12px,8.4cqi,22px)}
+@media (min-width:1101px){#main .mc-kpi{grid-template-columns:repeat(4,minmax(0,1fr)) minmax(0,1.5fr)}}
 .mc-card{display:flex;flex-direction:column;gap:12px}
 .mc-busca{max-width:300px}
 .chip b{font-variant-numeric:tabular-nums}

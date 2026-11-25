@@ -34,6 +34,11 @@
 <meta name="theme-color" content="#07090E">
 <title>NEXO Prospect · Prospecção de clientes com IA</title>
 <link rel="icon" href="assets/nexo-marca.webp">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/app/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NEXO Prospect">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Syne:wght@600;700;800&display=swap">
@@ -295,7 +300,8 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <link rel="stylesheet" href="assets/visual.css?v=20261127b">
 <link rel="stylesheet" href="assets/suporte.css?v=20261119a">
 <link rel="stylesheet" href="assets/vendas-equipe.css?v=20261123a">
-<link rel="stylesheet" href="assets/master-clientes.css?v=20261128b">
+<link rel="stylesheet" href="assets/master-clientes.css?v=20261129b">
+<link rel="stylesheet" href="assets/app-instalar.css?v=20261129a">
 </head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -320,13 +326,17 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
   <header class="topm">
     <div class="l1"><button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
       <button class="btn ghost sm" data-sair>Sair</button></div>
-    <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span></nav>
+    <div class="app-linha">
+      <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span></nav>
+      <button class="btn sm app-bt oculto" type="button" data-app><span data-app-rotulo>Baixar app</span><b class="app-balao oculto" data-app-balao></b></button>
+    </div>
   </header>
   <aside class="side">
     <button class="plat-marca botao" data-marca type="button" title="Trocar logo e cores" aria-label="Trocar logo e cores"><img data-logo-painel src="assets/nexo-marca.webp" alt=""><span class="lapis" aria-hidden="true">✎</span><span class="txt"><b>NEXO</b><span>Prospect</span></span></button>
     <nav class="areas produto" aria-label="Produto"><span class="produto-atual" aria-current="page" title="NEXO Prospect: clientes, buscas, WhatsApp e SDR"><i></i>NEXO Prospect</span></nav>
     <nav class="nav" id="nav" aria-label="Módulos de Vendas"></nav>
     <div class="side-f">
+      <button class="btn sm app-bt oculto" type="button" data-app><span data-app-rotulo>Baixar app</span><b class="app-balao oculto" data-app-balao></b></button>
       <span id="quem" class="peq"></span>
       <button class="btn ghost sm oculto" id="btnEquipeP" style="justify-content:flex-start">Equipe da empresa</button>
       <button class="btn ghost sm" id="sair" data-sair style="justify-content:flex-start">Sair</button>
@@ -350,6 +360,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="assets/explicador.js?v=20261128a"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
 <script src="assets/master-clientes.js?v=20261128b"></script>
+<script src="assets/app-instalar.js?v=20261129a"></script>
 <script>
 "use strict";
 /* ============================================================ base */
@@ -492,6 +503,7 @@ function pintarNav() {
   $("#nav").innerHTML = MODS.map(item).join(""); $("#bottom").innerHTML = MODS.map(m => item([m[0], m[3] || m[1], m[2]])).join("");
   const bx = $("#bottom"), ca = $("a[aria-current]", bx);   // a aba aberta fica à vista na barra que rola
   if (ca && bx.scrollWidth > bx.clientWidth) bx.scrollLeft = ca.offsetLeft - (bx.clientWidth - ca.offsetWidth) / 2;
+  if (typeof appPintar === "function") appPintar();   // botão "Baixar app" e o balãozinho de clientes para responder
 }
 window.addEventListener("hashchange", () => { pintarNav(); render(); window.scrollTo(0, 0); });
 // Plano (assets/plano.js): o Prospect inteiro pede o recurso "prospect"; o WhatsApp e SDR pede o dele. Meu plano nunca tranca.

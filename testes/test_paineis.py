@@ -349,8 +349,8 @@ def tearDownModule():
 class Pagina:
     """Abre uma página com o Supabase falso e junta todos os erros de JavaScript."""
 
-    def __init__(self, logado=True, com_onca=True, local=None, master=False):
-        self.ctx = NAV.new_context(viewport={"width": 1280, "height": 900})
+    def __init__(self, logado=True, com_onca=True, local=None, master=False, largura=1280, agente_navegador=None):
+        self.ctx = NAV.new_context(viewport={"width": largura, "height": 900}, user_agent=agente_navegador)
         self.erros = []
         if logado:
             sessao = {"access_token": "teste.teste.teste", "token_type": "bearer", "expires_in": 3600,
@@ -454,6 +454,185 @@ class LoginSemEmpresa(unittest.TestCase):
                 self.assertEqual(p.erros, [])
             finally:
                 p.fechar()
+
+
+class AppInstalavel(unittest.TestCase):
+    """Botão "Baixar app" e balãozinho de clientes para responder (pedido do Ricardo, 25/11/2026)."""
+
+    UA_IPHONE = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 "
+                 "(KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1")
+    UA_ANDROID = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/128.0 Mobile Safari/537.36")
+    # guarda o que a página mandou para o ícone do aparelho
+    ICONE = "window.__icone = []; navigator.setAppBadge = async n => { __icone.push(n); }; navigator.clearAppBadge = async () => { __icone.push(0); };"
+    INSTALADO = ("const mm = window.matchMedia.bind(window); window.matchMedia = q => /display-mode: standalone/.test(q) "
+                 "? { matches: true, media: q, addEventListener() {}, removeEventListener() {} } : mm(q);")
+
+    def setUp(self):
+        TAREFAS.clear(); CONVERSAS_SDR.clear(); SITUACAO.clear()
+
+    tearDown = setUp
+
+    def tarefa(self, i, empresa, dias, feita=False):
+        agora = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3)))
+        dia = (agora + datetime.timedelta(days=dias)).date().isoformat()
+        return {"id": f"t{i}", "empresa": empresa, "empresa_nome": f"Empresa {empresa}", "titulo": "Retorno", "vence_em": dia,
+                "feita": feita, "whatsapp": None}
+
+    def com_whatsapp(self):
+        SITUACAO["emp-p"] = {"tem_assinatura": True, "acesso": "total", "status": "ativa", "plano": "completo", "plano_nome": "Completo",
+                             "recursos": ["prospect", "prospect_sdr_whatsapp"], "limites": {}, "periodo_ate": None, "teste_ate": None}
+
+    def abrir(self, *scripts, **opcoes):
+        p = Pagina(**opcoes)
+        p.ctx.add_init_script(";\n".join((self.ICONE,) + scripts))
+        return p, p.abrir("/index.html", 1800)
+
+    def botao(self, pg, onde=".side-f"):
+        return pg.locator(f"{onde} [data-app]")
+
+    def test_arquivo_de_instalacao(self):
+        m = json.loads((RAIZ / "manifest.webmanifest").read_text(encoding="utf-8"))
+        self.assertEqual((m["name"], m["display"], m["start_url"], m["scope"]), ("NEXO Prospect", "standalone", "./", "./"))
+        for ico in m["icons"]:
+            dados = (RAIZ / ico["src"]).read_bytes()
+            tamanho = f'{int.from_bytes(dados[16:20], "big")}x{int.from_bytes(dados[20:24], "big")}'
+            self.assertEqual(tamanho, ico["sizes"], ico["src"])
+        self.assertIn("maskable", [i["purpose"] for i in m["icons"]])
+        html = (RAIZ / "index.html").read_text(encoding="utf-8")
+        self.assertIn('<link rel="manifest" href="manifest.webmanifest">', html)
+        self.assertTrue((RAIZ / "assets/app/apple-touch-icon.png").is_file())
+
+    def test_o_navegador_aceita_instalar(self):
+        p, pg = self.abrir()
+        try:
+            cdp = p.ctx.new_cdp_session(pg)
+            man = cdp.send("Page.getAppManifest")
+            self.assertTrue(man["url"].endswith("/manifest.webmanifest"), man["url"])
+            self.assertEqual(man["errors"], [])
+            erros = [e["errorId"] for e in cdp.send("Page.getInstallabilityErrors")["installabilityErrors"]]
+            self.assertEqual([e for e in erros if e != "in-incognito"], [], "o navegador de teste abre em modo anônimo")
+        finally:
+            p.fechar()
+
+    def test_balao_conta_cada_cliente_uma_vez(self):
+        self.com_whatsapp()
+        TAREFAS.extend([self.tarefa(1, "e1", -2), self.tarefa(2, "e1", 0), self.tarefa(3, "e2", 0),
+                        self.tarefa(4, "e3", 3), self.tarefa(5, "e4", -1, feita=True)])
+        CONVERSAS_SDR.extend([conv_sdr(1, "Já tem retorno", "atendimento_humano", "quente", True, lead_id="e1"),
+                              conv_sdr(2, "Só no WhatsApp", "atendimento_humano", "quente", True),
+                              conv_sdr(3, "Com a IA", "ia_ativa", "morno", False),
+                              conv_sdr(4, "Já li", "atendimento_humano", "morno", False)])
+        p, pg = self.abrir()
+        try:
+            b = self.botao(pg)
+            self.assertEqual(b.locator("[data-app-balao]").inner_text(), "3")
+            self.assertEqual(b.locator("[data-app-rotulo]").inner_text(), "Baixar app")
+            self.assertEqual(b.get_attribute("title"),
+                             "3 clientes para responder: 2 com retorno vencido ou de hoje e 2 esperando no WhatsApp")
+            self.assertEqual(pg.evaluate("window.__icone.at(-1)"), 3, "o mesmo número vai para o ícone do aparelho")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_sem_pendencia_o_botao_fica_sem_balao(self):
+        p, pg = self.abrir()
+        try:
+            b = self.botao(pg)
+            self.assertTrue(b.is_visible())
+            self.assertFalse(b.locator("[data-app-balao]").is_visible())
+            self.assertEqual(pg.evaluate("window.__icone.at(-1)"), 0)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_numero_acompanha_a_releitura_das_tarefas(self):
+        p, pg = self.abrir()
+        try:
+            TAREFAS.append(self.tarefa(1, "e1", 0))
+            pg.evaluate("appAtualizar()"); pg.wait_for_timeout(500)
+            self.assertEqual(self.botao(pg).locator("[data-app-balao]").inner_text(), "1")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_instala_com_um_clique_quando_o_navegador_oferece(self):
+        p, pg = self.abrir()
+        try:
+            pg.evaluate("""() => { window.__pediu = 0; const ev = new Event('beforeinstallprompt', { cancelable: true });
+                ev.prompt = async () => { window.__pediu++; }; window.dispatchEvent(ev); }""")
+            self.botao(pg).click(); pg.wait_for_timeout(300)
+            self.assertEqual(pg.evaluate("window.__pediu"), 1)
+            self.assertFalse(pg.is_visible("#modal.on"), "com o convite do navegador não precisa de passo a passo")
+            self.botao(pg).click(); pg.wait_for_timeout(400)
+            self.assertIn("Instalar no computador", pg.inner_text("#modal"), "o convite só vale uma vez: depois vem o passo a passo")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_no_celular_mostra_o_passo_a_passo_certo_sem_estourar_a_tela(self):
+        TAREFAS.append(self.tarefa(1, "e1", 0))
+        for agente, titulo, passo in ((self.UA_IPHONE, "Instalar no iPhone ou iPad", "Adicionar à Tela de Início"),
+                                      (self.UA_ANDROID, "Instalar no celular", "Instalar app")):
+            p, pg = self.abrir(largura=360, agente_navegador=agente)
+            try:
+                b = self.botao(pg, ".topm")
+                self.assertTrue(b.is_visible(), titulo)
+                self.assertEqual(b.locator("[data-app-balao]").inner_text(), "1")
+                self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 360)
+                b.click(); pg.wait_for_timeout(400)
+                txt = pg.inner_text("#modal")
+                self.assertIn(titulo, txt)
+                self.assertIn(passo, txt)
+                self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 360)
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
+
+    def test_instalado_o_botao_leva_para_quem_responder(self):
+        TAREFAS.append(self.tarefa(1, "e1", 0))
+        p, pg = self.abrir(self.INSTALADO)
+        try:
+            b = self.botao(pg)
+            self.assertEqual(b.locator("[data-app-rotulo]").inner_text(), "Para responder")
+            b.click(); pg.wait_for_timeout(500)
+            self.assertTrue(pg.evaluate("location.hash").startswith("#/tarefas"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_instalado_com_conversa_esperando_abre_as_conversas(self):
+        self.com_whatsapp()
+        CONVERSAS_SDR.append(conv_sdr(1, "Quer preço", "atendimento_humano", "quente", True))
+        p, pg = self.abrir(self.INSTALADO)
+        try:
+            self.botao(pg).click(); pg.wait_for_timeout(500)
+            self.assertTrue(pg.evaluate("location.hash").startswith("#/conversas"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_instalado_sem_pendencia_o_botao_some(self):
+        p, pg = self.abrir(self.INSTALADO)
+        try:
+            self.assertFalse(self.botao(pg).is_visible())
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_iphone_instalado_pede_a_permissao_do_numero_no_icone(self):
+        aviso = ("window.__pediu = 0; window.Notification = { permission: 'default', requestPermission: async () => { __pediu++; "
+                 "window.Notification.permission = 'granted'; return 'granted'; } }")
+        p, pg = self.abrir(self.INSTALADO, aviso, largura=390, agente_navegador=self.UA_IPHONE)
+        try:
+            b = self.botao(pg, ".topm")
+            self.assertEqual(b.locator("[data-app-rotulo]").inner_text(), "Número no ícone")
+            b.click(); pg.wait_for_timeout(500)
+            self.assertEqual(pg.evaluate("window.__pediu"), 1)
+            self.assertFalse(b.is_visible(), "permitido e sem pendência: o botão some")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
 
 
 class FiltroDeLinks(unittest.TestCase):

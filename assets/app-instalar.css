@@ -1,0 +1,10 @@
+/* Botão "Baixar app" com o balãozinho (assets/app-instalar.js). Usa os tokens e componentes do index.html. */
+.btn.app-bt{position:relative;justify-content:flex-start}
+.app-balao{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:11.5px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.side-f .app-bt{height:36px;color:var(--text)}
+.side-f .app-bt .app-balao{margin-left:auto}
+/* no celular o botão fica ao lado do nome do produto: na linha do logo ele empurrava a tela para o lado */
+.topm .app-linha{display:flex;gap:8px;align-items:stretch}
+.topm .app-linha .areas{flex:1 1 auto;min-width:0}
+.topm .app-linha .app-bt{height:auto;min-height:40px;flex:0 0 auto;justify-content:center}
+.app-passos{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;line-height:1.45}
