@@ -355,8 +355,6 @@ h1, h2 { background: var(--metal); -webkit-background-clip: text; background-cli
 /* Data da última atualização do portfólio */
 .atualizado { font-size: .9em; margin-top: -.4em; }
 
-/* Entrada escondida do sistema: parece texto comum */
-.porta, .porta:hover, .porta:focus { color: inherit; text-decoration: none; cursor: default; outline: none; }
 
 /* Com 5 links o menu não cabe em telas médias: abaixo de 1040 px fica só o botão */
 @media (max-width: 1040px) { .menu a:not(.menu-cta) { display: none; } }
@@ -394,3 +392,55 @@ h1, h2 { background: var(--metal); -webkit-background-clip: text; background-cli
 .prospect-acesso b { font-weight: 700; letter-spacing: .18em; }
 .prospect-acesso small { font: 500 13px/1.3 var(--fonte-texto); color: var(--texto-suave); letter-spacing: 0; margin-top: 4px; }
 @media (prefers-reduced-motion: reduce) { .prospect-acesso { transition: none; } }
+
+/* ══ 26/11/2026: destaques, o que a NEXO faz, produtos e rodapé com as frentes ══ */
+
+/* Selos da ficha: o que o projeto é e de quando */
+.projeto-selos { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.selo { font: 600 12px/1 var(--fonte-texto); letter-spacing: .06em; text-transform: uppercase; color: var(--acento-texto); background: var(--metal); border-radius: 999px; padding: 7px 12px; }
+.selo--data { color: var(--texto-suave); background: none; border: 1px solid var(--linha); }
+.projeto-abrir { margin-top: 20px; padding: 13px 22px; font-size: 14px; }
+
+/* Ficha em destaque: borda de prata e título maior */
+.projeto--destaque { border-color: rgb(198 202 209 / .42); background: rgb(18 19 22 / .82); }
+.projeto--destaque h3 { font-size: clamp(26px, 2.7vw, 40px); }
+
+/* O que a NEXO faz */
+.subtitulo { margin: 34px 0 0; font-size: clamp(18px, 1.5vw, 22px); letter-spacing: 0; color: #fff; }
+.subtitulo--primeiro { margin-top: 0; }
+.subtitulo + .servicos { margin-top: 14px; }
+.servicos-acao { margin: 28px 0 0; }
+
+/* Produtos prontos: quatro cartões que são o próprio link */
+.produtos { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.produtos a { height: 100%; display: flex; flex-direction: column; gap: 10px; padding: 22px; text-decoration: none;
+  border: 1px solid var(--linha); border-radius: calc(var(--raio) - 4px); background: rgb(255 255 255 / .03);
+  transition: border-color .25s, background .25s, transform .4s var(--ease); }
+.produtos a:hover { border-color: var(--acento); background: rgb(255 255 255 / .06); transform: translateY(-2px); }
+.produtos a:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+.produtos strong { font: 600 1.12em var(--fonte-titulo); color: #fff; }
+.produtos span { color: var(--texto-suave); font-size: .95em; line-height: 1.5; }
+.produtos .produto-acao { margin-top: auto; padding-top: 8px; font-weight: 600; font-size: .9em; color: var(--acento); }
+.produtos a:hover .produto-acao { color: #fff; }
+@media (max-width: 1040px) { .produtos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .produtos { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .produtos a { transition: none; } }
+
+/* Rodapé: marca, as quatro frentes, nota e, no fim, o login master discreto */
+.rodape-marca { display: flex; flex-wrap: wrap; gap: 6px 20px; align-items: center; min-height: 44px; }
+/* No celular o botão do WhatsApp fica por cima do canto: o rodapé ganha folga para o "Login master" continuar clicável */
+@media (max-width: 860px) { .rodape { padding-bottom: 96px; } }
+.rodape-frentes { display: flex; flex-wrap: wrap; gap: 4px 22px; }
+.rodape-frentes a { display: inline-flex; align-items: center; min-height: 44px; color: var(--texto); text-decoration: none; }
+.rodape-frentes a:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+.rodape-fim { flex-basis: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; font-size: 12.5px; }
+.login-master { display: inline-flex; align-items: center; min-height: 44px; color: #7C828B; text-decoration: none; font-size: 12px; }
+.login-master:hover, .login-master:focus-visible { color: var(--texto); }
+
+/* Revisão de interface (26/11/2026) */
+html { color-scheme: dark; }
+a, button { touch-action: manipulation; }
+/* Link para pular a abertura: só aparece quando recebe o foco do teclado */
+.pular { position: fixed; left: 16px; top: 12px; z-index: 100; padding: 12px 18px; border-radius: 999px; background: var(--acento); color: var(--acento-texto);
+  font: 600 14px/1 var(--fonte-texto); text-decoration: none; transform: translateY(-200%); }
+.pular:focus { transform: none; }
