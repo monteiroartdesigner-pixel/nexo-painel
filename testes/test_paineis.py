@@ -34,6 +34,14 @@ AG_ONCA, AG_PROSP = "00000000-0000-4000-a000-00000000f101", "00000000-0000-4000-
 # ---------------------------------------------------------------- dados inventados
 # ---------------- Master de clientes (assets/master-clientes.js): tudo inventado
 MC_CLIENTES = []   # cada teste do Master de clientes enche com mc_exemplo()
+MC_ENVIOS = []     # nexo_master_sdr_envios: empresas com o WhatsApp configurado
+
+
+def mc_envio(i, nome, liberado=False, modo="autonomo", numero="5541900000001", ativo=True, excluida=False, provedor="ycloud"):
+    return {"empresa_id": i, "nome": nome, "excluida": excluida, "ativo": ativo, "modo": modo, "provedor": provedor, "numero": numero,
+            "envio_liberado": liberado, "envio_liberado_em": "2026-11-25T21:00:00Z" if liberado else None}
+
+
 MC_PLANOS = [
     {"chave": "interno", "nome": "Interno", "preco_centavos": 0, "dias_teste": 0, "ativo": True},
     {"chave": "inicial", "nome": "Inicial", "preco_centavos": 20000, "preco_anual_centavos": 200000, "dias_teste": 3, "ativo": True},
@@ -82,7 +90,7 @@ def mc_exemplo():
 
 
 MC_RPCS = ("nexo_master_clientes", "nexo_master_planos", "nexo_master_novo_cliente", "nexo_master_bloquear", "nexo_master_liberar",
-           "nexo_master_registrar_pagamento")
+           "nexo_master_registrar_pagamento", "nexo_master_sdr_envios", "nexo_master_sdr_envio")
 
 
 def mc_rpc(nome, args):
@@ -91,6 +99,15 @@ def mc_rpc(nome, args):
         return json.loads(json.dumps(MC_CLIENTES))
     if nome == "nexo_master_planos":
         return MC_PLANOS
+    if nome == "nexo_master_sdr_envios":
+        if FALHAR.get("sem_envios"):
+            raise PermissionError("Could not find the function public.nexo_master_sdr_envios in the schema cache")
+        return json.loads(json.dumps(MC_ENVIOS))
+    if nome == "nexo_master_sdr_envio":
+        if FALHAR.get("numero_mudou"):
+            raise PermissionError("pedido_invalido: o número desta empresa mudou; atualize a tela e confira")
+        next(e for e in MC_ENVIOS if e["empresa_id"] == args["p_empresa"])["envio_liberado"] = args["p_liberado"]
+        return {"ok": True, "envio_liberado": args["p_liberado"]}
     if nome == "nexo_master_novo_cliente":
         d = args["p_dados"]
         if d["email"].startswith("repetido"):
@@ -1357,7 +1374,7 @@ class MasterDeClientes(unittest.TestCase):
         MC_CLIENTES.extend(mc_exemplo())
 
     def tearDown(self):
-        MC_CLIENTES.clear(); FALHAR.clear()
+        MC_CLIENTES.clear(); MC_ENVIOS.clear(); FALHAR.clear()
 
     def abrir(self, largura=1440):
         p = Pagina(master=True)
@@ -1592,6 +1609,81 @@ class MasterDeClientes(unittest.TestCase):
             self.ficha(pg, "oficina"); cabe("ficha")
             pg.click('#drawer [data-mc="pagamento"]'); pg.wait_for_timeout(300); cabe("janela")
             self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    # ---- envio automático da IA, liberado por empresa (25/11/2026)
+    def envios(self):
+        MC_ENVIOS.extend([mc_envio("casa", "NEXO Exemplo", liberado=True), mc_envio("loja", "Loja Modelo", numero="5541900000002"),
+                          mc_envio("semnum", "Sem Número <img src=x onerror=alert(1)>", numero=None, modo="sombra", ativo=False),
+                          mc_envio("velho", "Cliente Antigo", excluida=True)])
+
+    def linha_envio(self, pg, i):
+        return pg.inner_text(f'[data-mc-envio-linha="{i}"]')
+
+    def test_envio_da_ia_mostra_quem_esta_liberado(self):
+        self.envios()
+        p, pg = self.abrir()
+        try:
+            self.assertIn("Envio automático da IA", pg.inner_text("#mcEnvios"))
+            for i, textos in {"casa": ["NEXO Exemplo", "Liberado", "Bloquear envio", "Autônomo", "5541900000001"],
+                              "loja": ["Não liberado", "Liberar envio"], "semnum": ["Falta o número", "Desligado"], "velho": ["Excluído"]}.items():
+                for x in textos:
+                    self.assertIn(x, self.linha_envio(pg, i), i)
+            for i in ("semnum", "velho"):
+                self.assertIsNone(pg.query_selector(f'[data-mc-envio="{i}"]'), i + " não tem botão de liberar")
+            self.assertEqual(pg.evaluate("document.querySelectorAll('#main img[src=x]').length"), 0)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_liberar_envio_pede_confirmacao_e_manda_o_numero_conferido(self):
+        self.envios()
+        p, pg = self.abrir()
+        try:
+            pg.click('[data-mc-envio="loja"]'); pg.wait_for_timeout(200)
+            t = pg.inner_text("#modal")
+            self.assertIn("5541900000002", t); self.assertIn("mensagens de verdade", t)
+            pg.click("#modal [data-fechar]"); pg.wait_for_timeout(300)
+            self.assertEqual(self.args(p, "nexo_master_sdr_envio"), [], "cancelar não libera")
+            pg.click('[data-mc-envio="loja"]'); pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertEqual(self.args(p, "nexo_master_sdr_envio"), [{"p_empresa": "loja", "p_liberado": True, "p_numero": "5541900000002"}])
+            self.assertIn("Bloquear envio", self.linha_envio(pg, "loja"))
+            pg.click('[data-mc-envio="casa"]'); pg.wait_for_timeout(200)
+            self.assertIn("deixa de enviar", pg.inner_text("#modal"))
+            pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertEqual(self.args(p, "nexo_master_sdr_envio")[-1], {"p_empresa": "casa", "p_liberado": False, "p_numero": "5541900000001"})
+            self.assertIn("Não liberado", self.linha_envio(pg, "casa"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_numero_que_mudou_avisa_e_nao_marca_como_liberado(self):
+        self.envios(); FALHAR["numero_mudou"] = True
+        p, pg = self.abrir()
+        try:
+            pg.click('[data-mc-envio="loja"]'); pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertIn("mudou", pg.inner_text("#toast"))
+            self.assertIn("Não liberado", self.linha_envio(pg, "loja"))
+            self.assertEqual(p.chamadas.count("nexo_master_sdr_envios"), 2, "a lista é buscada de novo")
+        finally:
+            p.fechar()
+
+    def test_sem_a_atualizacao_do_banco_o_master_continua_normal(self):
+        FALHAR["sem_envios"] = True
+        p, pg = self.abrir()
+        try:
+            self.assertIn("Loja Modelo", self.linha(pg, "loja"))
+            self.assertEqual(pg.inner_text("#mcEnvios").strip(), "")
+        finally:
+            p.fechar()
+
+    def test_envio_da_ia_cabe_no_celular(self):
+        self.envios()
+        p, pg = self.abrir(390)
+        try:
+            self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 390)
+            self.assertLessEqual(pg.evaluate("Math.max(...[...document.querySelectorAll('#mcEnvios, #mcEnvios *')].map(e => e.getBoundingClientRect().right))"), 390)
         finally:
             p.fechar()
 
@@ -3617,6 +3709,24 @@ class WhatsappYcloud(unittest.TestCase):
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
+
+    def test_tela_diz_se_a_nexo_liberou_o_envio_desta_empresa(self):
+        pronto = {"provedor": "ycloud", "instance_id": "5541900000009", "ativo": True, "modo": "autonomo"}
+        for valor, aviso, selo in [(True, "A NEXO liberou o envio automático", "Ligado · autônomo"),
+                                   (False, "ainda não liberou o envio automático", "aguardando liberação"),
+                                   (None, "depende da liberação da NEXO", "Ligado · autônomo")]:
+            SDR_CFG.update({**pronto, "envio_liberado": valor})
+            p = Pagina()
+            try:
+                pg = p.abrir("/#/whatsapp", 1800)
+                txt = pg.inner_text("#main")
+                self.assertIn(aviso, txt, str(valor))
+                self.assertIn(selo.lower(), txt.lower(), str(valor))
+                self.assertNotIn("chave geral", txt)
+                self.assertIn("nova liberação", pg.inner_text("#sdrAutYcloud"))
+                self.assertEqual(p.erros, [])
+            finally:
+                p.fechar()
 
     def test_ycloud_explica_o_modo_autonomo_e_a_pausa_quando_o_cliente_responde_pelo_celular(self):
         p = Pagina()

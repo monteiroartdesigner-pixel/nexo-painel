@@ -34,10 +34,16 @@ function sdrFaltas(c) {
   return f;
 }
 
+// A liberação do envio é da NEXO, empresa por empresa (Master). Sem o campo (banco antigo) a tela não afirma nada.
+const sdrAvisoEnvio = c => c.envio_liberado === true
+  ? "A NEXO liberou o envio automático para esta empresa: no modo Autônomo, a IA responde de verdade. Trocar o número ou o provedor pede uma nova liberação."
+  : c.envio_liberado === false ? "A NEXO ainda não liberou o envio automático para esta empresa. Mesmo no modo Autônomo, a IA só deixa sugestões."
+  : "O envio automático pelo WhatsApp depende da liberação da NEXO para a sua empresa.";
 const sdrCred = (c, tipo) => c.credenciais?.[tipo] || {};
 function sdrEstado(c) {
   if (!c.ativo) return `<span class="badge">Desligado</span>`;
-  return c.modo === "autonomo" ? `<span class="badge bad">Ligado · autônomo</span>` : `<span class="badge ok">Ligado · modo sombra</span>`;
+  if (c.modo !== "autonomo") return `<span class="badge ok">Ligado · modo sombra</span>`;
+  return c.envio_liberado === false ? `<span class="badge warn">Autônomo · aguardando liberação</span>` : `<span class="badge bad">Ligado · autônomo</span>`;
 }
 
 async function sdrTela(el) {
@@ -61,7 +67,7 @@ function sdrDesenhar(el, c) {
       <small>${cr.salva ? `Guardado: <b>${esc(cr.final || "••••")}</b> · fica no cofre e não volta para esta tela.` : dica}</small></div>`;
   el.innerHTML = `<div class="sdr">
     <div class="page-h"><div><h1>WhatsApp e SDR</h1><p>Seu atendimento por IA no WhatsApp, com passagem para uma pessoa quando o lead esquenta.</p></div><div>${sdrEstado(c)}</div></div>
-    <div class="alert">${ic("info")}<div><b>Esta tela só configura.</b> Nada é enviado por aqui. Em modo sombra a IA só deixa sugestões. O envio automático pelo WhatsApp fica desligado até a NEXO liberar o envio real para a sua empresa.
+    <div class="alert">${ic("info")}<div><b>Esta tela só configura.</b> Nada é enviado por aqui. Em modo sombra a IA só deixa sugestões. ${sdrAvisoEnvio(c)}
       ${pode ? "" : "<br>Só o dono ou o administrador da empresa muda estas configurações."}</div></div>
 
     <section class="card sdr-card" aria-labelledby="sdrH1"><h2 id="sdrH1">1. Conexão do WhatsApp</h2>
@@ -117,7 +123,7 @@ function sdrDesenhar(el, c) {
         <select class="select" id="sdrModo" ${dis}><option value="sombra" ${c.modo !== "autonomo" ? "selected" : ""}>Sombra: a IA sugere, uma pessoa envia (recomendado no começo)</option>
           <option value="autonomo" ${c.modo === "autonomo" ? "selected" : ""}>Autônomo: a IA responde sozinha</option></select>
         ${ycloud ? `<small id="sdrAutYcloud">Pela YCloud, no modo autônomo a IA responde sozinha a quem escreve primeiro, e avisa o vendedor quando o cliente esquentar.
-          Se alguém da sua equipe responder pelo celular, a IA pausa naquela conversa (para ela voltar, use "Devolver para IA"). O envio real só começa depois que a NEXO liga a chave geral de envio; até lá a IA só sugere.</small>` : ""}</div>
+          Se alguém da sua equipe responder pelo celular, a IA pausa naquela conversa (para ela voltar, use "Devolver para IA"). O envio real depende da liberação da NEXO para a sua empresa; sem ela a IA só sugere. Trocar o número ou o provedor pede uma nova liberação.</small>` : ""}</div>
       <label class="sdr-check ${c.modo === "autonomo" ? "" : "oculto"}" id="sdrAceiteAutBox"><input type="checkbox" id="sdrAceiteAut" ${dis} ${c.aceite_autonomo_em ? "checked" : ""}>
         <span>Revisei as conversas em modo sombra e aceito que a IA responda sozinha em nome da minha empresa.</span></label>
       <label class="sdr-check"><input type="checkbox" id="sdrSoResp" ${dis} ${c.so_responde_quem_escreveu !== false ? "checked" : ""}>

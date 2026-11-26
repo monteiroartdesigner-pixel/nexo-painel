@@ -2,13 +2,14 @@
 // ============================================================================
 // MASTER DE CLIENTES, dentro do Prospect (pedido do Ricardo, 25/11/2026).
 // Lista e ficha: logins, plano, vencimento, situação, bloquear, liberar e pagamento por fora.
+// Embaixo da lista: envio automático da IA no WhatsApp, liberado empresa por empresa.
 // Só para quem está em nexo.plataforma_admins. O banco confere de novo em cada função
 // public.nexo_master_* (nexo.exigir_plataforma): a tela sozinha não libera nada.
 // Usa rpc, sb, esc, toast, msgErro, abrirModal, fecharModal, fecharGaveta, confirmar, ic, $ e $$ (index.html e base.js),
 // planoDiasAte (plano.js), ctTextoConvite e ctVolta (conta.js). Planos e número do suporte continuam no Marketing.
 // ============================================================================
 
-const MC = { dados: null, ind: null, planos: [], filtro: "todos", busca: "", aberto: null, host: null };
+const MC = { dados: null, ind: null, planos: [], envios: null, filtro: "todos", busca: "", aberto: null, host: null };
 
 const mcData = iso => iso ? new Date(iso).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }) : "";
 const mcDataHora = iso => iso ? new Date(iso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "nunca entrou";
@@ -80,9 +81,11 @@ function mcFiltrados() {
 }
 
 async function mcCarregar() {
-  const [dados, ind, planos] = await Promise.all([rpc("nexo_master_clientes"),
-    rpc("nexo_master_indicadores").catch(() => null), rpc("nexo_master_planos").catch(() => [])]);
-  MC.dados = dados || []; MC.ind = ind; MC.planos = planos || [];
+  const [dados, ind, planos, envios] = await Promise.all([rpc("nexo_master_clientes"),
+    rpc("nexo_master_indicadores").catch(() => null), rpc("nexo_master_planos").catch(() => []),
+    // Sem a atualização do banco a seção não aparece; outro erro é mostrado, para não parecer que ninguém está liberado.
+    rpc("nexo_master_sdr_envios").catch(e => /does not exist|Could not find/i.test(e.message || "") ? null : { erro: mcErro(e) })]);
+  MC.dados = dados || []; MC.ind = ind; MC.planos = planos || []; MC.envios = envios;
 }
 // Depois de uma ação: busca de novo, redesenha a lista e a ficha aberta.
 async function mcAtualizar() {
@@ -119,12 +122,47 @@ function mcDesenhar() {
       <div class="row between mc-topo"><div class="chips" role="group" aria-label="Filtrar clientes">${MC_FILTROS.filter(([k, , some]) => !some || n(k) || MC.filtro === k)
         .map(([k, nome]) => `<button type="button" class="chip" data-mc-filtro="${k}" aria-pressed="${MC.filtro === k}">${nome} <b>${n(k)}</b></button>`).join("")}</div>
         <input class="input mc-busca" id="mcBusca" type="search" placeholder="Buscar por nome ou e-mail" aria-label="Buscar por nome ou e-mail" value="${esc(MC.busca)}"></div>
-      <div id="mcLista"></div></div>`;
+      <div id="mcLista"></div></div>
+    <div id="mcEnvios"></div>`;
   $("#mcRecarregar").onclick = ev => { ev.target.disabled = true; mcAtualizar().then(() => toast("Lista atualizada.")).catch(e => { ev.target.disabled = false; toast(mcErro(e), true); }); };
   $("#mcNovo").onclick = mcNovoCliente;
   $("#mcBusca").oninput = ev => { MC.busca = ev.target.value; mcLista(); };
   $$("[data-mc-filtro]", el).forEach(b => b.onclick = () => { MC.filtro = b.dataset.mcFiltro; mcDesenhar(); });
   mcLista();
+  mcEnvios();
+}
+
+// ---------------------------------------------------------------- envio automático da IA (WhatsApp e SDR)
+// Duas travas no sistema: a chave geral da função e esta, por empresa. Sem a liberação, no modo Autônomo a IA só sugere.
+function mcEnvios() {
+  const el = $("#mcEnvios"), lista = MC.envios;
+  if (lista?.erro) { el.innerHTML = `<div class="alert warn">${ic("alert")}<div>Não consegui ver o envio da IA: ${esc(lista.erro)}</div></div>`; return; }
+  if (!lista?.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<section class="card mc-card" aria-labelledby="mcEnviosH"><div><h2 id="mcEnviosH">Envio automático da IA no WhatsApp</h2>
+      <p class="muted peq">Só envia mensagem sozinha a empresa que você liberar aqui. Trocar o número desfaz a liberação.</p></div>
+    ${lista.map(e => {
+      const modo = !e.ativo ? "Desligado" : e.modo === "autonomo" ? "Autônomo" : "Sombra";
+      const numero = !e.numero ? "Falta o número" : e.provedor === "ycloud" ? `Número ${e.numero}` : `ID do número ${e.numero}`;
+      const selo = e.excluida ? `<span class="badge bad">Excluído</span>` : e.envio_liberado ? `<span class="badge ok">Liberado</span>` : `<span class="badge warn">Não liberado</span>`;
+      const botao = e.envio_liberado ? `<button type="button" class="btn sm danger" data-mc-envio="${esc(e.empresa_id)}">Bloquear envio</button>`
+        : e.numero && !e.excluida ? `<button type="button" class="btn sm pri" data-mc-envio="${esc(e.empresa_id)}">Liberar envio</button>` : "";
+      return `<div class="mc-envio" data-mc-envio-linha="${esc(e.empresa_id)}">
+        <div class="grow"><b>${esc(e.nome)}</b><div class="muted peq">${esc(`${modo} · ${numero}`)}</div></div>
+        <div class="row">${selo}${botao}</div></div>`; }).join("")}</section>`;
+  $$("[data-mc-envio]", el).forEach(b => b.onclick = () => mcEnvio(lista.find(e => e.empresa_id === b.dataset.mcEnvio)));
+}
+
+function mcEnvio(e) {
+  const liberar = !e.envio_liberado;
+  confirmar(liberar ? `Liberar o envio de ${e.nome}?` : `Bloquear o envio de ${e.nome}?`, liberar
+      ? `Confira o ${e.provedor === "ycloud" ? "número" : "ID do número"}: <b>${esc(e.numero)}</b>.<br><br>Com o SDR ligado no modo <b>Autônomo</b>, a IA passa a enviar <b>mensagens de verdade</b> para quem escrever.`
+      : "A IA deixa de enviar mensagens por esta empresa. No modo Autônomo, as respostas ficam só como sugestão. As conversas e a configuração ficam como estão.",
+    async () => {
+      // se o banco recusar (por exemplo, o número mudou), a lista já volta atualizada por trás do aviso
+      try { await mcRpc("nexo_master_sdr_envio", { p_empresa: e.empresa_id, p_liberado: liberar, p_numero: e.numero }); }
+      catch (x) { await mcAtualizar().catch(() => {}); throw x; }
+      toast(liberar ? `Envio liberado para ${e.nome}.` : `Envio bloqueado para ${e.nome}.`); await mcAtualizar();
+    }, liberar ? "Liberar envio" : "Bloquear envio", !liberar);
 }
 
 function mcLista() {

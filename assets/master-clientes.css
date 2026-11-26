@@ -62,3 +62,5 @@
   .mc-pe .btn{flex:1}
   .mc-pe .row{width:100%}
 }
+.mc-envio{display:flex;flex-wrap:wrap;align-items:center;gap:10px;border-top:1px solid var(--border);padding-top:12px}
+.mc-envio .grow{min-width:200px;overflow-wrap:anywhere}
