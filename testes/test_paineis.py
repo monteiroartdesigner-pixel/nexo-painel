@@ -135,6 +135,8 @@ def contexto(com_onca=True, master=False):
     if com_onca:
         empresas.insert(0, {"id": "emp-v", "nome": "NEXO VÁRZEA (teste)", "slug": "nexo-varzea", "status": "ativa",
                             "papel": "dono", "agentes": [{"id": AG_ONCA, "nome": "Onça", "slug": "onca", "nivel": 2, "ativo": True}]})
+    if PAPEL_PROSPECT:
+        empresas[-1]["papel"] = PAPEL_PROSPECT[0]
     return {"email": "teste@exemplo.com", "plataforma": master, "empresas": empresas}
 
 
@@ -163,6 +165,50 @@ VITRINE = []     # nexo_planos_vitrine: planos só para olhar na tela de entrada
 FALHAR = {}      # funções que o banco recusa neste teste
 FICHA_EXTRA = {}  # campos que a ficha do primeiro lead devolve a mais/a menos neste teste (ex.: whatsapp None)
 SDR_CFG = {}     # nexo_sdr_config: cada teste monta
+ROD = {}         # nexo_rodizio_ver: vazio = ferramenta indisponível (como antes da atualização do banco)
+VEND = {}        # nexo_vendedora_inicio
+PAPEL_PROSPECT = []   # troca o papel do login na empresa do Prospect
+
+
+def rod_exemplo(ligado=True):
+    def v(i, nome, acesso="criado", status="ativa", contatos=1, abordados=0, whatsapp=None):
+        return {"id": i, "nome": nome, "email": f"{nome.split()[0].lower()}@exemplo.com", "whatsapp": whatsapp, "status": status, "acesso": acesso,
+                "contatos": contatos, "abordados": abordados}
+    return {"ligado": ligado, "proxima": "v2", "na_fila": 0, "sem_dona_nao_abordadas": 2, "limite_usuarios": 10, "logins_usados": 4,
+            "vendedoras": [v("v1", "Ana", contatos=2, abordados=1, whatsapp="5541900000001"), v("v2", "Bia", "aguardando", contatos=1),
+                           v("v3", "Cris <img src=x onerror=alert(1)>", "sem_acesso", contatos=0)],
+            "atribuicoes": {"l1": {"vendedora": "v1", "nome": "Ana"}, "l2": {"vendedora": "v2", "nome": "Bia"}, "l3": {"vendedora": None, "nome": None}} if ligado else {}}
+
+
+def vend_exemplo():
+    def c(i, nome, status, **x):
+        return {"id": i, "nome": nome, "cidade": "Curitiba", "estado": "PR", "segmento": "padaria", "whatsapp": "5541900000007", "instagram": None, "site": None,
+                "email": None, "status": status, "fonte_url": None, "recebido_em": "2026-11-26T12:00:00Z", "mensagem": f"Oi, {nome}! Mensagem pronta de teste.",
+                "oportunidade": None, "retorno": None, "anotacoes": [], **x}
+    return {"nome": "Ana", "empresa": "Loja Exemplo", "pausada": False,
+            "contatos": [c("m1", "Padaria Um", "qualificado"), c("m2", "Oficina <img src=x onerror=alert(1)>", "qualificado", whatsapp=None, instagram="oficinateste", mensagem=None, site=LINK_RUIM),
+                         c("m3", "Mercado Três", "abordado", anotacoes=[{"em": "2026-11-26T13:00:00Z", "texto": "Pediu catálogo"}]), c("m4", "Hotel Quatro", "cliente")]}
+
+
+def rod_rpc(nome, args):
+    if FALHAR.get("rodizio"):
+        raise PermissionError(FALHAR["rodizio"])
+    if nome == "nexo_rodizio_ver":
+        return json.loads(json.dumps(ROD)) if ROD else None
+    if nome == "nexo_vendedora_inicio":
+        return json.loads(json.dumps(VEND))
+    if nome == "nexo_vendedora_mudar":
+        next(c for c in VEND["contatos"] if c["id"] == args["p_lead"])["status"] = args["p_status"]
+    if nome == "nexo_rodizio_salvar_vendedora" and not args.get("p_id"):
+        d = args["p_dados"]
+        ROD["vendedoras"].append({"id": "vn", "nome": d["nome"], "email": d["email"].lower(), "whatsapp": d["whatsapp"], "status": "ativa", "acesso": "aguardando", "contatos": 0, "abordados": 0})
+        return {"ok": True, "id": "vn", "acesso": "aguardando"}
+    if nome == "nexo_rodizio_ligar":
+        ROD["ligado"] = True
+    if nome == "nexo_rodizio_desligar":
+        ROD["ligado"] = False
+    return {"ok": True, "repartidos": 2}
+
 CANAIS = {"dados": {}, "passos": {}, "atualizado_em": None}   # nexo_canais_cadastro / nexo_canais_salvar
 
 
@@ -316,6 +362,8 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         CANAIS["passos"] = args.get("p_passos") or {}
         CANAIS["atualizado_em"] = "2026-11-24T15:00:00Z"
         return {"ok": True}
+    if nome.startswith("nexo_rodizio_") or nome.startswith("nexo_vendedora_"):
+        return rod_rpc(nome, args)
     if nome == "nexo_sdr_config":
         return json.loads(json.dumps(SDR_CFG))
     if nome == "nexo_sdr_salvar":
@@ -1684,6 +1732,249 @@ class MasterDeClientes(unittest.TestCase):
         try:
             self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 390)
             self.assertLessEqual(pg.evaluate("Math.max(...[...document.querySelectorAll('#mcEnvios, #mcEnvios *')].map(e => e.getBoundingClientRect().right))"), 390)
+        finally:
+            p.fechar()
+
+
+class Rodizio(unittest.TestCase):
+    """Rodízio entre vendedoras, tela de quem administra (26/11/2026). Opcional: desligado ou indisponível, nada muda."""
+
+    def setUp(self):
+        self.antes = list(EMPRESAS_P)
+        EMPRESAS_P[:] = [{**self.antes[0], "id": i, "nome": f"Empresa {i}", "status": "abordar"} for i in ("l1", "l2", "l3")]
+
+    def tearDown(self):
+        EMPRESAS_P[:] = self.antes
+        ROD.clear(); PAPEL_PROSPECT.clear(); FALHAR.clear()
+
+    def abrir(self, rota="/index.html#/rodizio", largura=1440, ligado=True):
+        ROD.update(rod_exemplo(ligado))
+        p = Pagina()
+        p.page.set_viewport_size({"width": largura, "height": 900})
+        return p, p.abrir(rota, 1800)
+
+    def args(self, p, nome):
+        return [a for n, a in p.args if n == nome]
+
+    def test_sem_a_ferramenta_nada_muda(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/index.html#/crm", 1800)
+            self.assertIsNone(pg.query_selector('#nav a[href="#/rodizio"]'))
+            self.assertIsNone(pg.query_selector(".rod-abas"))
+            self.assertIsNone(pg.query_selector(".rod-selo"))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_desligado_mostra_o_menu_mas_clientes_continua_igual(self):
+        p, pg = self.abrir("/index.html#/crm", ligado=False)
+        try:
+            self.assertIsNotNone(pg.query_selector('#nav a[href="#/rodizio"]'))
+            self.assertIsNone(pg.query_selector(".rod-abas"))
+            self.assertIsNone(pg.query_selector(".rod-selo"))
+        finally:
+            p.fechar()
+
+    def test_editor_e_leitor_nao_veem_nem_chamam(self):
+        for papel in ("editor", "leitor"):
+            PAPEL_PROSPECT[:] = [papel]
+            p, pg = self.abrir("/index.html#/crm")
+            try:
+                self.assertIsNone(pg.query_selector('#nav a[href="#/rodizio"]'), papel)
+                self.assertEqual([n for n in p.chamadas if n.startswith("nexo_rodizio_")], [], papel)
+            finally:
+                p.fechar()
+
+    def test_cada_vendedora_tem_as_acoes_da_situacao_dela(self):
+        p, pg = self.abrir()
+        try:
+            self.assertIn("Rodízio ligado", pg.inner_text("#main"))
+            acoes = lambda i: pg.eval_on_selector_all(f'[data-rod-linha="{i}"] [data-rod]', "l => l.map(x => x.dataset.rod)")
+            self.assertEqual(acoes("v1"), ["link", "senha", "editar", "pausar", "excluir"])
+            self.assertEqual(acoes("v2"), ["link", "editar", "pausar", "excluir"])
+            self.assertEqual(acoes("v3"), ["editar", "pausar", "excluir"])
+            self.assertIn("Próxima da vez: Bia", pg.inner_text("#main"))
+            self.assertEqual(pg.evaluate("document.querySelectorAll('#main img[src=x]').length"), 0)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_criar_vendedora_mostra_a_mensagem_com_o_link(self):
+        p, pg = self.abrir()
+        try:
+            pg.click("#rodNova"); pg.wait_for_timeout(200)
+            pg.click("#rodForm [type=submit]"); pg.wait_for_timeout(200)
+            self.assertIn("Informe o nome", pg.inner_text("#modal"))
+            self.assertEqual(self.args(p, "nexo_rodizio_salvar_vendedora"), [])
+            pg.fill("#rodForm [name=nome]", "Duda"); pg.fill("#rodForm [name=email]", "Duda@Exemplo.com"); pg.fill("#rodForm [name=whatsapp]", "(41) 90000-0009")
+            pg.click("#rodForm [type=submit]"); pg.wait_for_timeout(900)
+            a = self.args(p, "nexo_rodizio_salvar_vendedora")[-1]
+            self.assertEqual((a["p_empresa"], a["p_id"], a["p_dados"]["nome"]), ("emp-p", None, "Duda"))
+            self.assertIn("?convite=duda%40exemplo.com", pg.inner_text("#rodMsg"))
+            href = pg.get_attribute("#modal a.btn.pri", "href")
+            self.assertTrue(href.startswith("https://wa.me/5541900000009?text="), href)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_ligar_pergunta_se_reparte_e_desligar_confirma(self):
+        p, pg = self.abrir(ligado=False)
+        try:
+            pg.click("#rodLigar"); pg.wait_for_timeout(200)
+            self.assertIn("as 2 empresas", pg.inner_text("#modal"))
+            pg.click("#modal [data-fechar]"); pg.wait_for_timeout(300)
+            self.assertEqual(self.args(p, "nexo_rodizio_ligar"), [])
+            pg.click("#rodLigar"); pg.click("#rodForm [type=submit]"); pg.wait_for_timeout(900)
+            self.assertEqual(self.args(p, "nexo_rodizio_ligar"), [{"p_empresa": "emp-p", "p_repartir": True}])
+            pg.click("#rodDesligar"); pg.wait_for_timeout(200)
+            self.assertIn("voltam a ser as de sempre", pg.inner_text("#modal"))
+            pg.click("#mOk"); pg.wait_for_timeout(900)
+            self.assertEqual(len(self.args(p, "nexo_rodizio_desligar")), 1)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_pausar_e_excluir_pedem_confirmacao(self):
+        p, pg = self.abrir()
+        try:
+            pg.click('[data-rod="pausar"][data-id="v1"]'); pg.wait_for_timeout(200)
+            pg.check("#rodForm [name=repartir]"); pg.click("#rodForm [type=submit]"); pg.wait_for_timeout(900)
+            self.assertEqual(self.args(p, "nexo_rodizio_pausar"), [{"p_empresa": "emp-p", "p_id": "v1", "p_pausar": True, "p_repartir": True}])
+            pg.click('[data-rod="excluir"][data-id="v2"]'); pg.wait_for_timeout(200)
+            pg.fill("#rodForm [name=nome]", "outra"); pg.click("#rodForm [type=submit]"); pg.wait_for_timeout(300)
+            self.assertIn("não confere", pg.inner_text("#modal"))
+            self.assertEqual(self.args(p, "nexo_rodizio_excluir"), [])
+            pg.fill("#rodForm [name=nome]", "bia"); pg.click("#rodForm [type=submit]"); pg.wait_for_timeout(900)
+            self.assertEqual(self.args(p, "nexo_rodizio_excluir"), [{"p_empresa": "emp-p", "p_id": "v2", "p_confirmacao": "bia"}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_recusa_do_banco_aparece_em_portugues(self):
+        p, pg = self.abrir()
+        try:
+            pg.click("#rodNova"); pg.fill("#rodForm [name=nome]", "Duda"); pg.fill("#rodForm [name=email]", "duda@exemplo.com")
+            FALHAR["rodizio"] = "pedido_invalido: o plano permite 5 logins e todos estão em uso"
+            pg.click("#rodForm [type=submit]"); pg.wait_for_timeout(700)
+            self.assertIn("O plano permite 5 logins", pg.inner_text("#modal"))
+        finally:
+            p.fechar()
+
+    def test_clientes_mostra_para_quem_caiu_e_filtra_por_vendedora(self):
+        p, pg = self.abrir("/index.html#/crm")
+        try:
+            abas = " ".join(pg.inner_text(".rod-abas").split())
+            for t in ("Todas 3", "Ana 2", "Bia 1", "+ Vendedora"):
+                self.assertIn(t, abas)
+            self.assertIn("para Ana", pg.inner_text('#crmCorpo [data-id="l1"]').replace("PARA ANA", "para Ana"))
+            todos = pg.eval_on_selector_all("#crmCorpo [data-id]", "l => l.map(x => x.dataset.id)")
+            self.assertEqual(sorted(todos), ["l1", "l2", "l3"])
+            pg.click('[data-rod-aba="v2"]'); pg.wait_for_timeout(200)
+            self.assertEqual(pg.eval_on_selector_all("#crmCorpo [data-id]", "l => l.map(x => x.dataset.id)"), ["l2"])
+            pg.click('[data-rod-aba=""]'); pg.wait_for_timeout(200)
+            pg.click('#crmCorpo [data-id="l1"] .nm'); pg.wait_for_timeout(900)
+            pg.select_option("#rodPassar", "v2"); pg.wait_for_timeout(700)
+            self.assertEqual(self.args(p, "nexo_rodizio_passar"), [{"p_empresa": "emp-p", "p_lead": "l1", "p_id": "v2"}])
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_cabe_no_celular(self):
+        p, pg = self.abrir(largura=390)
+        try:
+            for onde in ("rodizio", "crm"):
+                pg.evaluate(f"location.hash = '#/{onde}'"); pg.wait_for_timeout(600)
+                self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 390, onde)
+        finally:
+            p.fechar()
+
+
+class TelaDaVendedora(unittest.TestCase):
+    """A vendedora só faz prospecção: Meus contatos e Ajuda, sem chamar nada das outras telas."""
+
+    def setUp(self):
+        PAPEL_PROSPECT[:] = ["vendedora"]; VEND.update(vend_exemplo())
+
+    def tearDown(self):
+        VEND.clear(); PAPEL_PROSPECT.clear(); FALHAR.clear()
+
+    def abrir(self, rota="/index.html", largura=1440):
+        p = Pagina()
+        p.page.set_viewport_size({"width": largura, "height": 900})
+        return p, p.abrir(rota, 1800)
+
+    def args(self, p, nome):
+        return [a for n, a in p.args if n == nome]
+
+    def test_so_meus_contatos_e_ajuda_e_nenhuma_funcao_das_outras_telas(self):
+        for rota in ("/index.html", "/index.html#/campanhas", "/index.html#/master", "/index.html#/plano"):
+            p, pg = self.abrir(rota)
+            try:
+                self.assertEqual(pg.eval_on_selector_all("#nav a span", "l => l.map(x => x.textContent)"), ["Meus contatos", "Ajuda"], rota)
+                self.assertIn("Olá, Ana", pg.inner_text("#main"), rota)
+                # além das dela: o contexto e o que a tela de entrada já chama para qualquer pessoa (convite e planos públicos)
+                livres = {"nexo_contexto", "nexo_aceitar_convites", "nexo_planos_publicos", "nexo_planos_vitrine"}
+                outras = [n for n in p.chamadas if n not in livres and not n.startswith("nexo_vendedora_")]
+                self.assertEqual(outras, [], rota)
+                self.assertTrue(pg.eval_on_selector("#btnEquipeP", "e => e.classList.contains('oculto')"))
+                self.assertEqual(p.erros, [], rota)
+            finally:
+                p.fechar()
+
+    def test_cartao_tem_mensagem_whatsapp_e_nao_aceita_link_malicioso(self):
+        p, pg = self.abrir()
+        try:
+            self.assertIn("Você tem 4 empresas, 2 para abordar", pg.inner_text("#main"))
+            href = pg.get_attribute('[data-vd-wa="m1"]', "href")
+            self.assertTrue(href.startswith("https://wa.me/5541900000007?text=Oi"), href)
+            self.assertIsNone(pg.query_selector('[data-vd-wa="m2"]'))
+            self.assertIn("Sem WhatsApp salvo", pg.inner_text('[data-vd="m2"]'))
+            self.assertEqual(pg.evaluate("document.querySelectorAll('#main img[src=x]').length"), 0)
+            self.assertEqual(pg.evaluate("[...document.querySelectorAll('#main a')].filter(a => a.href.startsWith('javascript:')).length"), 0)
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_marcar_anotar_e_nao_contatar(self):
+        p, pg = self.abrir()
+        try:
+            pg.click('[data-vd-abordado="m1"]'); pg.wait_for_timeout(700)
+            self.assertEqual(self.args(p, "nexo_vendedora_mudar"), [{"p_lead": "m1", "p_status": "abordado", "p_nota": None}])
+            self.assertIsNone(pg.query_selector('[data-vd="m1"]'), "saiu de A abordar")
+            pg.click('[data-vd-anotar="m2"]'); pg.wait_for_timeout(200)
+            pg.click("#vdForm [type=submit]"); pg.wait_for_timeout(200)
+            self.assertIn("Escreva a anotação", pg.inner_text("#modal"))
+            pg.fill("#vdForm [name=texto]", "Ligar semana que vem"); pg.click("#vdForm [type=submit]"); pg.wait_for_timeout(700)
+            self.assertEqual(self.args(p, "nexo_vendedora_anotar"), [{"p_lead": "m2", "p_texto": "Ligar semana que vem", "p_retorno": None}])
+            pg.select_option('[data-vd-sit="m2"]', "nao_contatar"); pg.wait_for_timeout(200)
+            pg.click("#modal [data-fechar]"); pg.wait_for_timeout(300)
+            self.assertEqual(len(self.args(p, "nexo_vendedora_mudar")), 1, "cancelar não muda")
+            pg.click('[data-vd-filtro="abordado"]'); pg.wait_for_timeout(200)
+            self.assertIn("1 anotação", pg.inner_text('[data-vd="m3"]'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_rodizio_desligado_explica(self):
+        FALHAR["rodizio"] = "rodizio_desligado"
+        p, pg = self.abrir()
+        try:
+            self.assertIn("O rodízio está desligado", pg.inner_text("#main"))
+        finally:
+            p.fechar()
+
+    def test_ajuda_e_celular(self):
+        p, pg = self.abrir(largura=390)
+        try:
+            self.assertEqual(pg.evaluate("document.querySelectorAll('.ap-rapido').length"), 0, "sem o botão de cores")
+            self.assertTrue(pg.evaluate("[...document.querySelectorAll('[data-marca]')].some(b => b.disabled && b.getBoundingClientRect().width > 0)"), "o logo continua à vista")
+            self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 390)
+            self.assertLessEqual(pg.evaluate("Math.max(...[...document.querySelectorAll('#main .card, #main .btn')].map(e => e.getBoundingClientRect().right))"), 390)
+            pg.evaluate("location.hash = '#/ajuda'"); pg.wait_for_timeout(500)
+            t = pg.inner_text("#main")
+            self.assertIn("Abrir WhatsApp", t); self.assertNotIn("Buscas", t)
+            self.assertEqual(p.erros, [])
         finally:
             p.fechar()
 

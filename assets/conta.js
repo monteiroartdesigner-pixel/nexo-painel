@@ -262,7 +262,7 @@ function ctTextoConvite(email, nomeEmpresa) {
 if (typeof sb !== "undefined" && sb) sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") setTimeout(ctNovaSenha, 200); });
 
 // ---------------------------------------------------------------- equipe da empresa (Master, dono ou admin)
-const CT_PAPEL = { dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor" };
+const CT_PAPEL = { dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor", vendedora: "Vendedora (só prospecção)" };
 async function abrirEquipe(empresaId, nomeEmpresa) {
   let d;
   try { d = await ctRpc("nexo_membros", { p_empresa: empresaId }); }

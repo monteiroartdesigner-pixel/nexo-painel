@@ -304,6 +304,7 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <link rel="stylesheet" href="assets/master-clientes.css?v=20261129d">
 <link rel="stylesheet" href="assets/app-instalar.css?v=20261129a">
 <link rel="stylesheet" href="assets/fila-envio.css?v=20261129c">
+<link rel="stylesheet" href="assets/rodizio.css?v=20261126a">
 </head>
 <body>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -358,12 +359,14 @@ tbody tr{cursor:pointer;transition:background var(--t)} tbody tr:hover{backgroun
 <script src="assets/conversas.js?v=20261124a"></script>
 <script src="assets/plano.js?v=20261128b"></script>
 <script src="assets/meuplano.js?v=20261128b"></script>
-<script src="assets/conta.js?v=20261128d"></script>
+<script src="assets/conta.js?v=20261129f"></script>
 <script src="assets/explicador.js?v=20261128a"></script>
 <script src="assets/suporte.js?v=20261119n"></script>
-<script src="assets/master-clientes.js?v=20261129e"></script>
+<script src="assets/master-clientes.js?v=20261129f"></script>
 <script src="assets/app-instalar.js?v=20261129a"></script>
 <script src="assets/fila-envio.js?v=20261129c"></script>
+<script src="assets/rodizio.js?v=20261126a"></script>
+<script src="assets/vendedora.js?v=20261126a"></script>
 <script>
 "use strict";
 /* ============================================================ base */
@@ -373,6 +376,7 @@ const S = { agente: null, papel: null, email: "", campanhas: [], empresas: [], t
 let MOCK = null; // testes locais: window.__prospect.mock(dados)
 
 const ICONS = {
+  rodizio: "M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3",
   enviar: "M21 4 3 11l7 2.5L12.5 21 21 4zM10 13.5 21 4",
   master: "M12 3l8 3v6c0 4.6-3.4 8.2-8 9-4.6-.8-8-4.4-8-9V6zM9 12l2 2 4-4",
   home: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z",
@@ -498,9 +502,10 @@ const MODS = [["inicio", "Início", "home"], ["crm", "Clientes", "crm"], ["envia
 const MOD_CONV = ["conversas", "Conversas", "mail", "Conversas"];   // F5 (24/11/2026): conversas do SDR, junto com o WhatsApp e SDR
 const MOD_SDR = ["whatsapp", "WhatsApp e SDR", "wa", "WhatsApp"];
 const MOD_CANAIS = ["canais", "Conectar canais", "link", "Canais"];   // 24/11/2026: cadastro e guia para ligar WhatsApp e Instagram (mesmo recurso do SDR)   // 24/11/2026: só aparece para quem tem o recurso no plano (ou é Master)
+const MOD_RODIZIO = ["rodizio", "Rodízio", "rodizio"];   // 26/11/2026: rodízio entre vendedoras, só para quem administra (assets/rodizio.js)
 const MOD_MASTER = ["master", "Master", "master"];   // 25/11/2026: o Master de clientes mora aqui (assets/master-clientes.js)
 const sdrVisivel = () => S.papel === "plataforma" || !!(PL.sits[S.empresaId]?.recursos || []).includes("prospect_sdr_whatsapp");
-function rotaAtual() { const r = (location.hash.replace(/^#\/?/, "") || "inicio").split("?")[0]; return MODS.some(m => m[0] === r) ? r : "inicio"; }
+function rotaAtual() { const r = (location.hash.replace(/^#\/?/, "") || "inicio").split("?")[0]; return MODS.some(m => m[0] === r) ? r : MODS[0][0]; }
 function pintarNav() {
   const r = rotaAtual(), pend = S.tarefas.filter(t => !t.feita && t.vence_em <= hoje()).length;
   const item = ([k, n, i]) => `<a href="#/${k}" ${r === k ? 'aria-current="page"' : ""} class="${modTrancado(k) ? "trancado" : ""}${k === "master" ? " nav-master" : ""}">${ic(i)}<span>${n}</span>${k === "tarefas" && pend ? `<b class="cnt">${pend}</b>` : ""}${k === "enviar" && !modTrancado(k) && typeof filaLista === "function" && filaLista().length ? `<b class="cnt neutro" title="Mensagens prontas para enviar">${filaLista().length}</b>` : ""}${k === "conversas" && typeof cvAguardando === "function" && cvAguardando() ? `<b class="cnt" title="Leads quentes aguardando você">${cvAguardando()}</b>` : ""}</a>`;
@@ -511,13 +516,14 @@ function pintarNav() {
 }
 window.addEventListener("hashchange", () => { pintarNav(); render(); window.scrollTo(0, 0); });
 // Plano (assets/plano.js): o Prospect inteiro pede o recurso "prospect"; o WhatsApp e SDR pede o dele. Meu plano nunca tranca.
-const PRO_RECURSO = { inicio: "prospect", crm: "prospect", enviar: "prospect", tarefas: "prospect", campanhas: "prospect", whatsapp: "prospect_sdr_whatsapp", conversas: "prospect_sdr_whatsapp", canais: "prospect_sdr_whatsapp" };
+const PRO_RECURSO = { rodizio: "prospect", inicio: "prospect", crm: "prospect", enviar: "prospect", tarefas: "prospect", campanhas: "prospect", whatsapp: "prospect_sdr_whatsapp", conversas: "prospect_sdr_whatsapp", canais: "prospect_sdr_whatsapp" };
 const empresaDoModulo = () => S.empresaId;
 const modTrancado = k => !!PRO_RECURSO[k] && !planoTem(PRO_RECURSO[k], empresaDoModulo(k));
 function render() {
   const r = rotaAtual(), el = $("#main");
+  if (S.vendedora) return vendedoraRender(el);   // a vendedora só tem Meus contatos e Ajuda (assets/vendedora.js)
   if (modTrancado(r)) el.innerHTML = planoBloqueio(PRO_RECURSO[r], empresaDoModulo(r));
-  else ({ inicio: vInicio, crm: vCrm, enviar: vEnviar, tarefas: vTarefas, campanhas: vCampanhas, plano: vPlano, whatsapp: sdrTela, canais: canaisTela, conversas: cvTela, ajuda: vAjuda, master: vMaster })[r](el);
+  else ({ inicio: vInicio, crm: vCrm, enviar: vEnviar, tarefas: vTarefas, campanhas: vCampanhas, plano: vPlano, whatsapp: sdrTela, canais: canaisTela, conversas: cvTela, ajuda: vAjuda, master: vMaster, rodizio: vRodizio })[r](el);
   if (r !== "master") planoFaixa(S.empresaId, el);   // o Master não é de uma empresa: sem faixa de plano nem equipe
   if (r !== "master" && !modTrancado(r) && typeof vendasEquipe === "function") vendasEquipe(el);   // onças da equipe nesta aba (23/11/2026)
   document.title = `${typeof cvTitulo === "function" ? cvTitulo() : ""}${MODS.find(m => m[0] === r)[1]} · NEXO Prospect`;
@@ -556,6 +562,7 @@ async function carregarTudo() {
   try { S.rodadas = await rpc("nexo_rodada_status", { p_agente: S.agente }); } catch { S.rodadas = null; }   // migração 20261119210000
   try { S.tarefas = await rpc("nexo_prospect_tarefas", { p_agente: S.agente, p_filtro: "todas" }) || []; S.faltaCrm = false; }
   catch (e) { S.tarefas = []; S.faltaCrm = true; }
+  if (typeof rodCarregar === "function") await rodCarregar();
   marcarDuplicados(); pintarNav();
 }
 function marcarDuplicados() {
@@ -660,7 +667,7 @@ function filtrados() {
   const f = S.crm, q = norm(f.q);
   let l = S.empresas.filter(e => (!q || norm([e.nome, e.cidade, e.segmento, e.instagram, e.email].join(" ")).includes(q))
     && (!f.camp || (e.campanhas || []).some(c => c.id === f.camp)) && (!f.prio || (e.campanhas || []).some(c => c.prioridade === f.prio))
-    && (!f.pais || e.pais === f.pais) && (!f.contato || e.whatsapp || e.email || e.instagram));
+    && (!f.pais || e.pais === f.pais) && (!f.contato || e.whatsapp || e.email || e.instagram) && (typeof rodPassa !== "function" || rodPassa(e)));
   const k = f.ordem;
   l.sort((a, b) => { const va = k === "proxima" ? (tarefaDe(a)?.vence_em || "9999") : a[k] ?? "", vb = k === "proxima" ? (tarefaDe(b)?.vence_em || "9999") : b[k] ?? ""; return (va > vb ? 1 : va < vb ? -1 : 0) * f.dir; });
   return l;
@@ -678,7 +685,9 @@ function vCrm(el) {
       <button class="chip" id="fct" aria-pressed="${f.contato}">${ic("wa")}Com contato</button>
       <span class="muted peq" id="fnum"></span>
     </div>
+    ${typeof rodAbas === "function" ? rodAbas() : ""}
     <div id="crmCorpo"></div>`;
+  if (typeof rodAbasLigar === "function") rodAbasLigar(el);
   $$("[data-v]", el).forEach(b => b.onclick = () => { f.vista = b.dataset.v; try { localStorage.setItem("prospect.vista", f.vista); } catch {} vCrm(el); });
   $("#fq").oninput = e => { f.q = e.target.value; corpoCrm(); };
   $("#fc").onchange = e => { f.camp = e.target.value; corpoCrm(); };
@@ -700,7 +709,7 @@ function cardLead(e) {
     ${rt ? `<div class="ret-faixa" title="${esc(rt.titulo)} · ${dataBR(rt.vence_em)}">${ic("cal")}<b>${esc(rotRetorno(rt))}</b></div>` : ""}
     <div class="row between" style="flex-wrap:nowrap;align-items:flex-start"><span class="nm">${esc(e.nome)}</span><span class="score ${scoreCls(e.pontuacao)}">${e.pontuacao ?? "–"}</span></div>
     <div class="meta">${esc([e.segmento, e.cidade].filter(Boolean).join(" · "))}</div>
-    <div class="meta">${typeof cvBadge === "function" ? cvBadge(e) : ""}${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : ""}${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${e._dup ? `<span class="badge warn" title="Parecida com: ${esc(e._dup.join(", "))}">possível duplicado</span>` : ""}${duvidaDe(e) ? `<span class="badge warn" title="${esc(duvidaDe(e).pergunta)}">dúvida para você</span>` : ""}</div>
+    <div class="meta">${typeof rodSelo === "function" ? rodSelo(e) : ""}${typeof cvBadge === "function" ? cvBadge(e) : ""}${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : ""}${e.whatsapp ? ic("wa") : ""}${e.email ? ic("mail") : ""}${e.instagram ? ic("ig") : ""}${e._dup ? `<span class="badge warn" title="Parecida com: ${esc(e._dup.join(", "))}">possível duplicado</span>` : ""}${duvidaDe(e) ? `<span class="badge warn" title="${esc(duvidaDe(e).pergunta)}">dúvida para você</span>` : ""}</div>
     ${t && t !== rt ? `<div class="meta"><span class="badge ${t.vence_em < hoje() ? "bad" : t.vence_em === hoje() ? "warn" : ""}">${ic("cal")}${dataBR(t.vence_em)}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.titulo)}</span></div>` : ""}
     <div class="meta"><select class="select kc-st" data-st="${e.id}" draggable="false" ${["leitor"].includes(S.papel) ? "disabled" : ""} aria-label="Classificar ${esc(e.nome)}">${Object.entries(ST).map(([k, [n]]) => `<option value="${k}" ${e.status === k ? "selected" : ""}>${n}</option>`).join("")}</select></div>
   </div>`;
@@ -733,7 +742,7 @@ function tabela(el, l) {
   const f = S.crm, cab = (k, n) => `<th data-ord="${k}" aria-sort="${f.ordem === k ? (f.dir > 0 ? "ascending" : "descending") : "none"}">${n}${f.ordem === k ? (f.dir > 0 ? " ↑" : " ↓") : ""}</th>`;
   el.innerHTML = `<div class="table-wrap"><table><thead><tr>${cab("nome", "Empresa")}${cab("pontuacao", "Nota")}<th>Prioridade</th>${cab("status", "Status")}<th class="hide-m">Contato</th>${cab("cidade", "Local")}<th class="hide-m">Busca</th>${cab("proxima", "Próxima ação")}</tr></thead>
     <tbody>${l.map(e => { const t = tarefaDe(e), p = melhorPrio(e); return `<tr data-id="${e.id}">
-      <td><div style="font-weight:600">${esc(e.nome)}</div><div class="peq muted">${esc(e.segmento || "")}${e._dup ? ` · <span style="color:var(--warn)">possível duplicado</span>` : ""}</div></td>
+      <td><div style="font-weight:600">${esc(e.nome)} ${typeof rodSelo === "function" ? rodSelo(e) : ""}</div><div class="peq muted">${esc(e.segmento || "")}${e._dup ? ` · <span style="color:var(--warn)">possível duplicado</span>` : ""}</div></td>
       <td><span class="score ${scoreCls(e.pontuacao)}">${e.pontuacao ?? "–"}</span></td>
       <td>${p ? `<span class="badge ${PRIO[p][1]}">${PRIO[p][0]}</span>` : `<span class="muted">–</span>`}</td>
       <td><span class="badge ${ST[e.status]?.[1] || ""}">${ST[e.status]?.[0] || esc(e.status)}</span></td>
@@ -772,7 +781,8 @@ function pintarFicha(f) {
       <div class="grow"><h2 style="font-size:19px">${esc(e.nome)}</h2><div class="peq muted">${esc([e.segmento, e.cidade, e.estado, e.pais].filter(Boolean).join(" · "))}${e.pesquisado_em ? " · visto em " + dataBR(e.pesquisado_em) : ""}</div>
         <div class="row" style="margin-top:8px"><span class="score ${scoreCls(e.pontuacao)}" title="Nota do código">${e.pontuacao ?? "–"}</span>
           <select class="select" id="fSt" style="width:auto;height:30px;min-height:30px;padding:3px 8px" ${pode ? "" : "disabled"} aria-label="Status comercial">${Object.entries(ST).map(([k, [n]]) => `<option value="${k}" ${e.status === k ? "selected" : ""}>${n}</option>`).join("")}</select>
-          ${e._dup ? `<span class="badge warn" title="${esc(e._dup.join(", "))}">possível duplicado de ${esc(e._dup[0])}</span>` : ""}</div></div>
+          ${e._dup ? `<span class="badge warn" title="${esc(e._dup.join(", "))}">possível duplicado de ${esc(e._dup[0])}</span>` : ""}</div>
+        ${typeof rodFicha === "function" ? rodFicha(e) : ""}</div>
       <button class="btn icon ghost" data-x aria-label="Fechar">${ic("x")}</button></div>
     <div class="drawer-b">
       <div class="next"><div class="peq" style="color:#8DB5FF;font-weight:600;text-transform:uppercase;letter-spacing:.06em">Próximo passo</div><div style="font-weight:700;font-size:15.5px;margin-top:3px">${esc(pp.t)}</div><div class="t2 peq">${esc(pp.d)}</div>
@@ -802,6 +812,7 @@ function pintarFicha(f) {
   ligarCopiaAoAbrir(d, msgDe(camps));
   const bc = $("[data-add-contato]", d); if (bc) bc.onclick = () => modalContato(f, e);
   const fs = $("#fSt", d); if (fs) fs.onchange = async () => { await mudarStatus(e.id, fs.value); };
+  if (typeof rodFichaLigar === "function") rodFichaLigar(d);
   $$("[data-aba]", d).forEach(b => b.onclick = () => { fichaAba = b.dataset.aba; pintarFicha(f); });
   $$("[data-reg]", d).forEach(b => b.onclick = () => b.dataset.reg === "retorno" ? modalRetorno(f) : modalRegistro(f, b.dataset.reg));
   const responder = async resp => {
@@ -1219,6 +1230,7 @@ async function iniciar() {
   $("#quem").textContent = S.email;
   if (!emp) { $("#main").innerHTML = `<div class="card"><div class="empty"><h2>Sem acesso à área de Vendas</h2><p class="muted" style="margin:0;max-width:440px">O login ${esc(S.email)} ainda não está liberado no Nexo Prospect. Peça à NEXO para liberar este e-mail. Se acabaram de liberar, atualize a página.</p></div></div>`; return; }
   S.agente = emp.agentes.find(a => a.slug === "prospect").id; S.papel = emp.papel; S.empresaId = emp.id; S.empresaNome = emp.nome;
+  if (emp.papel === "vendedora") return vendedoraAbrir();   // não carrega nada das outras telas (e o banco recusaria)
   Suporte.iniciar({ produto: "Vendas", onca: { nome: "Faro", img: "assets/equipe/faro-rosto.webp" }, rpc, nome: () => S.nome,
     empresa: () => emp.nome, abas: ["inicio", "crm", "tarefas", "campanhas", "ajuda"], ir: k => { location.hash = "#/" + k; } });
   if (["plataforma", "dono", "admin"].includes(emp.papel)) { const be = $("#btnEquipeP"); be.classList.remove("oculto"); be.onclick = () => abrirEquipe(emp.id, emp.nome); }
@@ -1230,6 +1242,7 @@ async function iniciar() {
   try { S.crm.vista = localStorage.getItem("prospect.vista") || "kanban"; } catch {}
   $("#main").innerHTML = `<div class="sk" style="height:34px;width:260px"></div><div class="grid g-kpi">${"<div class='sk' style='height:92px'></div>".repeat(5)}</div><div class="sk" style="height:280px"></div>`;
   try { await carregarTudo(); } catch (e) { $("#main").innerHTML = `<div class="alert warn">${ic("alert")}<div>${esc(msgErro(e))}</div></div>`; return; }
+  if (ROD.dados && !MODS.includes(MOD_RODIZIO)) MODS.splice(MODS.findIndex(m => m[0] === "plano"), 0, MOD_RODIZIO);
   pintarNav(); render();
   // Master olhando a empresa de um cliente: aviso fixo no topo, para não confundir com a NEXO.
   if (ctx.plataforma && emp.slug !== "nexo-inteligencia") {

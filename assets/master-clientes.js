@@ -17,7 +17,7 @@ const mcReais = c => c == null ? "a combinar" : (c / 100).toLocaleString("pt-BR"
 const mcDiaCampo = d => d.toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
 const mcFimDoDia = v => v ? new Date(`${v}T23:59:00-03:00`).toISOString() : null;
 const mcDias = n => n === 1 ? "1 dia" : `${n} dias`;
-const mcPapel = { dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor" };
+const mcPapel = { dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor", vendedora: "Vendedora (só prospecção)" };
 
 // Os erros do Master vêm escritos em português depois de "pedido_invalido:".
 function mcErro(e) {
