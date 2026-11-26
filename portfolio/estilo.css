@@ -444,3 +444,53 @@ a, button { touch-action: manipulation; }
 .pular { position: fixed; left: 16px; top: 12px; z-index: 100; padding: 12px 18px; border-radius: 999px; background: var(--acento); color: var(--acento-texto);
   font: 600 14px/1 var(--fonte-texto); text-decoration: none; transform: translateY(-200%); }
 .pular:focus { transform: none; }
+
+/* ══ QUEM FAZ (26/11/2026): nome gigante, palavra atrás da foto recortada e números, em preto e prata ══ */
+.quem { padding-top: 12vh; padding-bottom: 12vh; justify-items: center; }
+.quem-palco {
+  position: relative; width: 100%; max-width: var(--largura); min-height: min(86vh, 780px);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr) minmax(0, .8fr); grid-template-rows: auto 1fr; gap: 0 clamp(16px, 2.5vw, 40px);
+}
+/* a palavra: atrás de tudo. O padding de cima dá lugar ao acento do "Ó" (o degradê só pinta dentro da caixa). */
+.quem-palavra {
+  position: absolute; z-index: 0; left: 50%; top: 5%; transform: translateX(-50%); margin: 0; padding: .24em .04em 0; white-space: nowrap; pointer-events: none; user-select: none;
+  font: 400 clamp(64px, 20.5vw, 262px)/.9 "Anton", "Arial Narrow", Impact, sans-serif; letter-spacing: .01em; text-transform: uppercase;
+  background: linear-gradient(180deg, #D9DDE3 0%, #8E939B 46%, #2C2E33 100%); -webkit-background-clip: text; background-clip: text; color: transparent; opacity: .62;
+}
+/* a foto recortada: na frente da palavra, apoiada no chão da seção e sumindo no preto */
+.quem-foto {
+  position: absolute; z-index: 1; left: 50%; bottom: 0; transform: translateX(-50%); height: 92%; width: auto; max-width: none;
+  filter: grayscale(.2) contrast(1.05);
+  -webkit-mask-image: linear-gradient(to bottom, #000 74%, transparent 100%); mask-image: linear-gradient(to bottom, #000 74%, transparent 100%);
+}
+.quem-papel, .quem-disponivel { position: relative; z-index: 2; margin: 0; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--texto-suave); }
+.quem-papel { grid-column: 1; display: grid; gap: 4px; }
+.quem-papel b { color: var(--texto); font-weight: 600; }
+.quem-disponivel { grid-column: 3; justify-self: end; width: max-content; white-space: nowrap; display: inline-flex; align-items: center; gap: 10px; }
+.quem-disponivel i { width: 7px; height: 7px; border-radius: 50%; background: var(--acento); flex: none; }
+.quem-texto { position: relative; z-index: 2; grid-column: 1; grid-row: 2; align-self: end; padding-bottom: 5%; max-width: 25em; }
+.quem-ola { margin: 0 0 2px; font: italic 400 clamp(22px, 2.3vw, 34px)/1 var(--fonte-texto); color: var(--texto); }
+/* width: max-content faz a caixa cobrir o nome inteiro (o degradê prata não pinta o que vaza da caixa) */
+.quem-nome { margin: 0 0 .12em; width: max-content; padding-top: .04em; white-space: nowrap; font: 400 clamp(60px, 8.2vw, 118px)/.94 "Anton", "Arial Narrow", Impact, sans-serif; letter-spacing: .005em; text-transform: uppercase; }
+.quem-nome span { -webkit-text-fill-color: #fff; }
+.quem-cargo { margin: 0 0 14px; font: 600 clamp(15px, 1.25vw, 19px)/1.25 var(--fonte-titulo); letter-spacing: .08em; text-transform: uppercase; color: var(--acento); }
+.quem-bio { margin: 0 0 22px; color: var(--texto-suave); }
+.quem-lado { position: relative; z-index: 2; grid-column: 3; grid-row: 2; align-self: end; padding-bottom: 5%; }
+.quem-frase { margin: 0 0 18px; color: var(--texto); font-size: 1.02em; line-height: 1.35; }
+.quem-numeros { list-style: none; margin: 0; padding: 0; }
+.quem-numeros li { display: grid; grid-template-columns: minmax(2.2em, auto) 1fr; align-items: center; gap: 18px; padding: 14px 0; border-top: 1px solid var(--linha); }
+.quem-numeros b { font: 400 clamp(40px, 4.2vw, 62px)/1.05 "Anton", "Arial Narrow", Impact, sans-serif; font-variant-numeric: tabular-nums;
+  background: var(--metal); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.quem-numeros span { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--texto-suave); line-height: 1.45; }
+
+/* Tela estreita: tudo empilhado. A palavra vem logo acima da foto, que sobe por cima dela. */
+@media (max-width: 960px) {
+  .quem-palco { display: flex; flex-direction: column; min-height: 0; gap: 0; }
+  .quem-papel { order: 1; }
+  .quem-disponivel { order: 2; margin-top: 8px; white-space: normal; width: auto; }
+  .quem-palavra { order: 3; position: relative; left: auto; top: auto; transform: none; align-self: center; margin-top: 22px; margin-bottom: -.5em; font-size: clamp(56px, 21vw, 190px); }
+  .quem-foto { order: 4; position: relative; left: auto; bottom: auto; transform: none; height: auto; width: min(80%, 380px); align-self: center; }
+  .quem-texto { order: 5; align-self: stretch; padding: 0; margin-top: -9%; max-width: none; }
+  .quem-lado { order: 6; align-self: stretch; padding: 0; margin-top: 30px; }
+  .quem-texto .botao { width: 100%; }
+}
