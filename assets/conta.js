@@ -112,7 +112,7 @@ async function ctCriarConta(escolhido) {
   ctJanela("Teste grátis do NEXO", `<form class="ct-form" data-f>
       <p class="ct-txt">Crie a conta da sua empresa. Sem cartão: o teste começa agora e você decide depois.
         <button type="button" class="ct-link" data-convidado>Recebi um convite de uma empresa</button></p>
-      <fieldset class="ct-planos"><legend>Plano</legend>${planos.map((p, i) => `<label class="ct-plano"><input type="radio" name="plano" value="${esc(p.chave)}" ${(escolhido ? p.chave === escolhido : i === 0) ? "checked" : ""}>
+      <fieldset class="ct-planos"><legend>Plano</legend>${planos.map((p, i) => `<label class="ct-plano"><input type="radio" name="plano" value="${esc(p.chave)}" required ${(planos.some(x => x.chave === escolhido) ? p.chave === escolhido : i === 0) ? "checked" : ""}>
         <span><b>${esc(p.nome)}</b><small>${esc(p.descricao || "")}</small><small>${pl(p.dias_teste, "dia grátis", "dias grátis")} · depois ${esc(ctReais(p.preco_centavos))}</small></span></label>`).join("")}</fieldset>
       <div class="ct-duas"><label class="ct-campo"><span>Seu nome</span><input name="responsavel" autocomplete="name" required maxlength="120"></label>
         <label class="ct-campo"><span>Nome da empresa</span><input name="empresa" autocomplete="organization" required maxlength="120"></label></div>
@@ -159,14 +159,15 @@ function contaLigarLogin(form, campoEmail) {
   form.querySelector("[data-esqueci]").onclick = () => ctEsqueci(campoEmail?.value);
   form.querySelector("[data-criar]").onclick = ctCriarConta;
   // Cadastro fechado (nenhum plano público, 25/11/2026): o botão não promete "teste grátis"; quem recebeu convite continua entrando por ele.
-  ctVitrine(form).then(n => { if (n === 0) { const b = form.querySelector("[data-criar]"); if (b) b.textContent = "Criar conta ou usar um convite"; ctVitrinePlanos(form); } });
+  // 25/11/2026, Ricardo: no Prospect a vitrine completa (mensal, anual e o que cada plano tem) fica sempre; o botão "Contratar" abre a criação do acesso.
+  ctVitrine(form).then(n => { if (n === 0) { const b = form.querySelector("[data-criar]"); if (b) b.textContent = "Criar conta ou usar um convite"; } if (n === 0 || n === -2) ctVitrinePlanos(form); });
   // Link do convite (?convite=email): abre direto a conta de convidado, com o e-mail preenchido.
   const conv = new URLSearchParams(location.search).get("convite");
   if (conv) setTimeout(() => ctContaConvidado(conv), 300);
 }
 
 // Planos só para OLHAR na tela de entrada do Prospect (24/11/2026, pedido do Ricardo: "os planos têm que aparecer assim também na page de login").
-// O cadastro segue fechado (nenhum plano público): aqui não há "teste grátis" nem compra, só o que cada plano tem ligado e desligado, preço mensal e anual.
+// 25/11/2026: o botão de cada plano é "Contratar" e abre a criação do acesso (ctCriarConta); sem plano público, essa janela avisa que é só por convite.
 // Usa nexo_planos_vitrine (anônima, só dados comerciais) e os mesmos desenhos do Meu plano (mpLista, mpEconomia, mpReais, mpTemAnual em meuplano.js).
 async function ctVitrinePlanos(form) {
   if (typeof EXP_PRODUTO === "undefined" || EXP_PRODUTO !== "prospect" || typeof mpLista !== "function") return;
@@ -185,7 +186,7 @@ async function ctVitrinePlanos(form) {
     const dias = Math.min(...planos.map(diasDe).filter(Boolean)) || 0;
     const gratis = d => pl(d, "dia grátis", "dias grátis");
     sec.innerHTML = `<div class="ct-v-topo"><span class="ct-v-eyebrow">Planos</span><h2 id="ctVitTit">Escolha o plano do tamanho da sua empresa</h2>
-        <p>Veja o que cada plano tem. O acesso é por convite: fale com a NEXO para começar.</p></div>
+        <p>Clique em Contratar, crie o seu acesso e use ${dias ? esc(gratis(dias)) : "o teste grátis"} no mensal. Depois do teste, você paga pelo painel na InfinitePay.</p></div>
       ${planos.some(mpTemAnual) ? `<div class="mp-ciclo" role="group" aria-label="Como pagar"><button type="button" data-ciclo="mensal" aria-pressed="${!anual}">Mensal${dias ? ` <span class="mp-tag">${esc(gratis(dias))}</span>` : ""}</button>
         <button type="button" data-ciclo="anual" aria-pressed="${anual}">Anual${e ? ` <span class="mp-tag">${esc(e.texto)}</span>` : ""}</button></div>` : ""}
       <div class="ct-v-grade">${planos.map(p => {
@@ -196,9 +197,14 @@ async function ctVitrinePlanos(form) {
           ${comAnual ? `<p class="mp-eq">${esc(mpReais(Math.round(p.preco_anual_centavos / 12)))}/mês${eco ? ` · <b>economize ${esc(mpReais(eco.eco))}</b> (${esc(eco.texto)})` : ""}</p>` : (anual ? `<p class="mp-eq">Só mensal</p>` : "")}
           ${!comAnual && diasDe(p) ? `<p class="ct-v-gratis"><span aria-hidden="true">✓</span> ${esc(gratis(diasDe(p)))} para testar no mensal</p>` : ""}
           ${p.descricao ? `<p class="ct-v-desc">${esc(p.descricao)}</p>` : ""}
-          <a class="btn prim pri" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener">Falar com a NEXO</a>
+          <button type="button" class="btn prim pri" data-contratar="${esc(p.chave)}">Contratar</button>
           ${mpLista(p)}</article>`;
       }).join("")}</div>`;
+    // Contratar: abre a criação do acesso com o plano já marcado; o ciclo escolhido fica guardado para o Meu plano abrir no mesmo (mensal ou anual).
+    sec.querySelectorAll("[data-contratar]").forEach(b => b.onclick = () => {
+      try { sessionStorage.setItem("plano.ciclo", ciclo); } catch {}
+      ctCriarConta(b.dataset.contratar);
+    });
     sec.querySelectorAll("[data-ciclo]").forEach(b => b.onclick = () => { ciclo = b.dataset.ciclo === "anual" ? "anual" : "mensal"; desenhar(); });
   };
   desenhar();
@@ -214,6 +220,7 @@ async function ctVitrine(form) {
   let planos = [];
   try { planos = await ctRpc("nexo_planos_publicos") || []; } catch { return -1; }   // sem saber, mantém como está
   if (!planos.length) return 0;
+  if (typeof EXP_PRODUTO !== "undefined" && EXP_PRODUTO === "prospect" && typeof mpLista === "function") return -2;   // o Prospect usa a vitrine completa (ctVitrinePlanos)
   if (tela.querySelector(".ct-vitrine")) return -1;
   const dias = Math.min(...planos.map(p => Number(p.dias_teste) || 0));
   const sec = document.createElement("section");
