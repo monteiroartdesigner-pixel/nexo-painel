@@ -180,9 +180,13 @@ async function ctVitrinePlanos(form) {
   const desenhar = () => {
     const anual = ciclo === "anual";
     const e = planos.filter(mpTemAnual).map(mpEconomia).filter(Boolean)[0];
+    // 25/11/2026, Ricardo: "deixar em destaque que tem os 3 dias no mensal". Os dias vêm do plano; a vitrine anônima não manda, então vale o padrão de 3.
+    const diasDe = p => Math.max(0, Number(p.dias_teste ?? 3) || 0);
+    const dias = Math.min(...planos.map(diasDe).filter(Boolean)) || 0;
+    const gratis = d => pl(d, "dia grátis", "dias grátis");
     sec.innerHTML = `<div class="ct-v-topo"><span class="ct-v-eyebrow">Planos</span><h2 id="ctVitTit">Escolha o plano do tamanho da sua empresa</h2>
         <p>Veja o que cada plano tem. O acesso é por convite: fale com a NEXO para começar.</p></div>
-      ${planos.some(mpTemAnual) ? `<div class="mp-ciclo" role="group" aria-label="Como pagar"><button type="button" data-ciclo="mensal" aria-pressed="${!anual}">Mensal</button>
+      ${planos.some(mpTemAnual) ? `<div class="mp-ciclo" role="group" aria-label="Como pagar"><button type="button" data-ciclo="mensal" aria-pressed="${!anual}">Mensal${dias ? ` <span class="mp-tag">${esc(gratis(dias))}</span>` : ""}</button>
         <button type="button" data-ciclo="anual" aria-pressed="${anual}">Anual${e ? ` <span class="mp-tag">${esc(e.texto)}</span>` : ""}</button></div>` : ""}
       <div class="ct-v-grade">${planos.map(p => {
         const comAnual = anual && mpTemAnual(p), eco = comAnual ? mpEconomia(p) : null;
@@ -190,6 +194,7 @@ async function ctVitrinePlanos(form) {
         return `<article class="ct-v-plano"><h3>${esc(p.nome)}</h3>
           <p class="ct-v-preco"><b>${esc(valor)}</b><span>${comAnual ? "/ano" : "/mês"}</span></p>
           ${comAnual ? `<p class="mp-eq">${esc(mpReais(Math.round(p.preco_anual_centavos / 12)))}/mês${eco ? ` · <b>economize ${esc(mpReais(eco.eco))}</b> (${esc(eco.texto)})` : ""}</p>` : (anual ? `<p class="mp-eq">Só mensal</p>` : "")}
+          ${!comAnual && diasDe(p) ? `<p class="ct-v-gratis"><span aria-hidden="true">✓</span> ${esc(gratis(diasDe(p)))} para testar no mensal</p>` : ""}
           ${p.descricao ? `<p class="ct-v-desc">${esc(p.descricao)}</p>` : ""}
           <a class="btn prim pri" href="https://www.instagram.com/nexo.rm/" target="_blank" rel="noopener">Falar com a NEXO</a>
           ${mpLista(p)}</article>`;
