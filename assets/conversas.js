@@ -8,7 +8,9 @@
 // ============================================================================
 
 const CV = { lista: [], filtro: "aguardando", aberta: null, msgs: [], timer: null, tela: null, carregou: false };
-const cvAguardando = () => CV.lista.filter(c => c.estado_ia === "atendimento_humano" && c.nao_lida_humano).length;
+const cvAguardando = () => CV.lista.filter(c => !c.removida_em && c.estado_ia === "atendimento_humano" && c.nao_lida_humano).length;
+// "Remover da lista" (27/11/2026) só esconde: a removida fica na aba Removidas e volta sozinha se o contato escrever de novo.
+const cvDaAba = (aba, c) => aba[0] === "removidas" ? !!c.removida_em : !c.removida_em && aba[2](c);
 const cvSomLigado = () => { try { return localStorage.getItem("prospect.cvSom") !== "0"; } catch { return true; } };
 const cvPode = () => ["plataforma", "dono", "admin", "editor"].includes(S.papel);
 
@@ -23,6 +25,7 @@ function cvQuando(iso) {
   return dia(d) === dia(agora) ? `hoje ${hora}` : `${d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" })} ${hora}`;
 }
 function cvEstado(c) {
+  if (c.removida_em) return ["Removida", ""];
   if (c.estado_ia === "atendimento_humano") return c.nao_lida_humano ? ["Aguardando você", "bad"] : ["Com você", "warn"];
   if (c.estado_ia === "ia_ativa") return ["IA atendendo", "ok"];
   if (c.estado_ia === "encerrada") return ["Encerrada", ""];
@@ -61,7 +64,7 @@ function cvIniciar() {
 }
 
 // Selo no card do kanban (cardLead chama isto).
-function cvDoLead(e) { return CV.lista.find(c => c.lead_id === e.id && c.estado_ia === "atendimento_humano"); }
+function cvDoLead(e) { return CV.lista.find(c => c.lead_id === e.id && !c.removida_em && c.estado_ia === "atendimento_humano"); }
 function cvBadge(e) {
   const c = cvDoLead(e); if (!c) return "";
   return c.nao_lida_humano ? `<span class="badge bad cv-pulso" title="A IA passou esta conversa para você">${ic("wa")}Aguardando você</span>` : `<span class="badge warn" title="Conversa com você">Com você</span>`;
@@ -69,7 +72,8 @@ function cvBadge(e) {
 
 // ---------------------------------------------------------------- tela
 const CV_ABAS = [["aguardando", "Aguardando você", c => c.estado_ia === "atendimento_humano" && c.nao_lida_humano], ["todas", "Todas", () => true],
-  ["ia", "IA atendendo", c => c.estado_ia === "ia_ativa"], ["voce", "Com você", c => c.estado_ia === "atendimento_humano" && !c.nao_lida_humano], ["fim", "Encerradas", c => c.estado_ia === "encerrada"]];
+  ["ia", "IA atendendo", c => c.estado_ia === "ia_ativa"], ["voce", "Com você", c => c.estado_ia === "atendimento_humano" && !c.nao_lida_humano], ["fim", "Encerradas", c => c.estado_ia === "encerrada"],
+  ["removidas", "Removidas", () => true]];
 
 async function cvTela(el) {
   CV.tela = el;
@@ -77,16 +81,18 @@ async function cvTela(el) {
     <div class="sk" style="height:46px"></div><div class="sk" style="height:300px;margin-top:12px"></div>`;
   await cvCarregar();
   if (!CV.carregou) { el.innerHTML = `<div class="page-h"><div><h1>Conversas</h1></div></div><div class="alert warn">${ic("alert")}<div>Seu login não tem acesso às conversas do SDR.</div></div>`; return; }
-  if (!CV.lista.some(c => c.estado_ia === "atendimento_humano" && c.nao_lida_humano) && CV.filtro === "aguardando") CV.filtro = "todas";
+  if (!cvAguardando() && CV.filtro === "aguardando") CV.filtro = "todas";
   cvDesenhar(el);
 }
 
 function cvDesenhar(el) {
-  const aba = CV_ABAS.find(a => a[0] === CV.filtro) || CV_ABAS[1], itens = CV.lista.filter(aba[2]);
+  const temRemovida = CV.lista.some(c => c.removida_em);
+  if (CV.filtro === "removidas" && !temRemovida) CV.filtro = "todas";
+  const aba = CV_ABAS.find(a => a[0] === CV.filtro) || CV_ABAS[1], itens = CV.lista.filter(c => cvDaAba(aba, c));
   el.innerHTML = `<div class="cv">
     <div class="page-h"><div><h1>Conversas</h1><p>O que a IA está atendendo no WhatsApp e quem está esperando por você.</p></div>
       <label class="cv-som"><input type="checkbox" id="cvSom" ${cvSomLigado() ? "checked" : ""}> Som quando um lead esquentar</label></div>
-    <div class="cv-abas" role="tablist">${CV_ABAS.map(([k, n, f]) => `<button type="button" role="tab" class="cv-aba${k === CV.filtro ? " on" : ""}" data-cv-aba="${k}">${n} <b>${CV.lista.filter(f).length}</b></button>`).join("")}</div>
+    <div class="cv-abas" role="tablist">${CV_ABAS.filter(a => a[0] !== "removidas" || temRemovida).map(a => `<button type="button" role="tab" class="cv-aba${a[0] === CV.filtro ? " on" : ""}" data-cv-aba="${a[0]}">${a[1]} <b>${CV.lista.filter(c => cvDaAba(a, c)).length}</b></button>`).join("")}</div>
     <div class="cv-grade">
       <div class="cv-lista">${itens.length ? itens.map(c => { const [en, ecl] = cvEstado(c), [tn, tcl] = cvTemp(c.temperatura);
         return `<button type="button" class="cv-item${CV.aberta === c.id ? " on" : ""}${c.nao_lida_humano && c.estado_ia === "atendimento_humano" ? " urgente" : ""}" data-cv-abrir="${esc(c.id)}">
@@ -127,17 +133,31 @@ async function cvDetalhe(id, buscar) {
   box.innerHTML = `<div class="cv-cab"><div><h2>${esc(cvNome(c))}</h2><div class="muted peq">${esc(cvFone(c.telefone))}</div></div>
       <div class="cv-badges"><span class="badge ${ecl}">${en}</span><span class="badge ${tcl}">${tn}</span></div></div>
     ${resumo}
-    <div class="cv-acoes">${pode && c.estado_ia !== "encerrada" ? `<button class="btn pri" type="button" id="cvAssumir">${ic("wa")}Assumir no WhatsApp</button>` : ""}
+    <div class="cv-acoes">${c.removida_em
+      ? `${pode ? `<button class="btn pri" type="button" id="cvVoltar">Voltar para a lista</button>` : ""}<span class="muted peq">Fora da lista desde ${esc(cvQuando(c.removida_em))}. Se o contato escrever de novo, ela volta sozinha.</span>`
+      : `${pode && c.estado_ia !== "encerrada" ? `<button class="btn pri" type="button" id="cvAssumir">${ic("wa")}Assumir no WhatsApp</button>` : ""}
       ${pode && c.estado_ia === "atendimento_humano" ? `<button class="btn" type="button" id="cvDevolver">Devolver para IA</button>` : ""}
-      ${c.estado_ia === "encerrada" ? `<span class="muted peq">O contato pediu para não receber mensagens.</span>` : ""}</div>
+      ${c.estado_ia === "encerrada" ? `<span class="muted peq">O contato pediu para não receber mensagens.</span>` : ""}
+      ${pode ? `<button class="btn ghost cv-remover" type="button" id="cvRemover">Remover da lista</button>` : ""}`}</div>
     <div class="cv-fio">${CV.msgs.length ? CV.msgs.map(balao).join("") : `<div class="muted peq">Sem mensagens.</div>`}</div>
-    <p class="muted peq">Em modo sombra a IA não envia nada: copie a sugestão e responda pelo seu WhatsApp. "Assumir" pausa a IA nesta conversa.</p>`;
+    ${c.removida_em ? "" : `<p class="muted peq">Em modo sombra a IA não envia nada: copie a sugestão e responda pelo seu WhatsApp. "Assumir" pausa a IA nesta conversa.</p>`}`;
   box.querySelectorAll("[data-cv-copiar]").forEach(b => b.onclick = async () => { const m = CV.msgs.find(x => String(x.id) === b.dataset.cvCopiar); await copiarTexto(m?.texto || ""); toast("Sugestão copiada."); });
   const as = box.querySelector("#cvAssumir");
   if (as) as.onclick = async () => {
     try { const r = await rpc("nexo_sdr_assumir", { p_agente: S.agente, p_conversa: id }); await cvCarregar(); pintarNav(); cvPintarTitulo(); cvDesenhar(CV.tela); if (r?.link_whatsapp) window.open(r.link_whatsapp, "_blank", "noopener"); }
     catch (e) { toast(msgErro(e), true); }
   };
+  const mover = async (remover) => {
+    await rpc("nexo_sdr_remover", { p_agente: S.agente, p_conversa: id, p_remover: remover });
+    if (remover) CV.aberta = null;
+    await cvCarregar(); pintarNav(); cvPintarTitulo(); cvDesenhar(CV.tela);
+    toast(remover ? "Conversa removida da lista." : "Conversa de volta na lista.");
+  };
+  const rm = box.querySelector("#cvRemover");
+  if (rm) rm.onclick = () => confirmar("Remover da lista?", `A conversa com <b>${esc(cvNome(c))}</b> sai da lista. Nada é apagado, e a IA deixa de responder nela. Se o contato escrever de novo, ela volta.`, () => mover(true), "Remover da lista");
+  if (rm) rm.addEventListener("click", () => document.querySelector("#modal [data-fechar]")?.focus());   // pelo teclado, o foco entra na janela, em "Cancelar"
+  const vt = box.querySelector("#cvVoltar");
+  if (vt) vt.onclick = async () => { vt.disabled = true; try { await mover(false); } catch (e) { vt.disabled = false; toast(msgErro(e), true); } };
   const dv = box.querySelector("#cvDevolver");
   if (dv) dv.onclick = async () => {
     if (!confirm("Devolver esta conversa para a IA? Ela volta a responder o contato.")) return;

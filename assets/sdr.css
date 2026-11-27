@@ -28,6 +28,7 @@
 .cv-cab{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap} .cv-cab h2{margin:0;font-size:17px}
 .cv-resumo{background:var(--warn-soft);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent);border-radius:var(--r);padding:10px 12px;display:grid;gap:4px} .cv-resumo p{margin:0}
 .cv-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cv-remover{margin-left:auto}
 .cv-fio{display:grid;gap:8px;max-height:46vh;overflow:auto}
 .cv-msg{max-width:88%;border-radius:12px;padding:8px 11px;display:grid;gap:4px;background:var(--surface-2)}
 .cv-msg.lead{justify-self:start} .cv-msg.nos{justify-self:end;background:var(--primary-soft)}

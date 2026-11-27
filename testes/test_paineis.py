@@ -351,6 +351,15 @@ def rpc_falso(nome, args, com_onca=True, master=False):
         c = next(c for c in CONVERSAS_SDR if c["id"] == args["p_conversa"])
         c["estado_ia"] = "atendimento_humano"; c["nao_lida_humano"] = False
         return {"ok": True, "link_whatsapp": c["link_whatsapp"]}
+    if nome == "nexo_sdr_remover":
+        c = next(c for c in CONVERSAS_SDR if c["id"] == args["p_conversa"])
+        if args.get("p_remover", True):
+            c["removida_em"] = "2026-11-27T12:00:00Z"; c["nao_lida_humano"] = False
+            if c["estado_ia"] == "ia_ativa":
+                c["estado_ia"] = "atendimento_humano"
+        else:
+            c["removida_em"] = None
+        return {"ok": True, "mudou": True}
     if nome == "nexo_sdr_devolver_ia":
         c = next(c for c in CONVERSAS_SDR if c["id"] == args["p_conversa"])
         c["estado_ia"] = "ia_ativa"; c["temperatura"] = "morno"; c["nao_lida_humano"] = False
@@ -3162,6 +3171,62 @@ class ConversasSdr(unittest.TestCase):
         finally:
             p.fechar()
 
+    def test_remover_da_lista_pede_confirmacao_tira_a_conversa_e_apaga_o_alerta(self):
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/conversas", 1800)
+            self.assertEqual(pg.eval_on_selector_all('[data-cv-aba="removidas"]', "xs => xs.length"), 0, "sem removidas, a aba não aparece")
+            pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
+            pg.click("#cvRemover"); pg.wait_for_timeout(300)
+            self.assertIn("Nada é apagado", pg.inner_text("#modal"))
+            self.assertTrue(pg.evaluate("!!document.activeElement.closest('#modal')"), "pelo teclado, o foco entra na janela")
+            pg.click("#modal [data-fechar]"); pg.wait_for_timeout(300)
+            self.assertNotIn("nexo_sdr_remover", p.chamadas, "cancelar não chama o banco")
+            pg.click("#cvRemover"); pg.wait_for_timeout(300); pg.click("#mOk"); pg.wait_for_timeout(800)
+            args = [a for n, a in p.args if n == "nexo_sdr_remover"][-1]
+            self.assertEqual((args["p_conversa"], args["p_remover"]), ("cv1", True))
+            self.assertNotIn("Clínica Alfa", pg.inner_text(".cv-lista"))
+            self.assertEqual(len(pg.query_selector_all('#nav a[href="#/conversas"] .cnt')), 0, "não conta mais como aguardando")
+            self.assertIn("Escolha uma conversa", pg.inner_text("#cvDet"))
+            self.assertEqual(pg.inner_text('[data-cv-aba="todas"] b'), "2")
+            self.assertEqual(pg.inner_text('[data-cv-aba="removidas"] b'), "1")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_aba_removidas_traz_a_conversa_de_volta(self):
+        CONVERSAS_SDR[1]["removida_em"] = "2026-11-27T11:00:00Z"
+        p = Pagina()
+        try:
+            pg = p.abrir("/#/conversas", 1800)
+            pg.click('[data-cv-aba="removidas"]'); pg.wait_for_timeout(200)
+            self.assertEqual(pg.eval_on_selector_all(".cv-item b", "xs => xs.map(x => x.textContent)"), ["Clínica Beta"])
+            pg.click('[data-cv-abrir="cv2"]'); pg.wait_for_timeout(500)
+            det = pg.inner_text("#cvDet")
+            self.assertIn("volta sozinha", det)
+            for sumiu in ("#cvAssumir", "#cvDevolver", "#cvRemover"):
+                self.assertIsNone(pg.query_selector(sumiu), sumiu)
+            pg.click("#cvVoltar"); pg.wait_for_timeout(800)
+            args = [a for n, a in p.args if n == "nexo_sdr_remover"][-1]
+            self.assertEqual((args["p_conversa"], args["p_remover"]), ("cv2", False))
+            self.assertEqual(pg.eval_on_selector_all('[data-cv-aba="removidas"]', "xs => xs.length"), 0)
+            self.assertEqual(pg.inner_text('[data-cv-aba="todas"] b'), "3")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_no_celular_o_botao_de_remover_cabe_na_tela(self):
+        p = Pagina()
+        try:
+            p.page.set_viewport_size({"width": 390, "height": 844})
+            pg = p.abrir("/#/conversas", 1800)
+            pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
+            direita = pg.evaluate("document.querySelector('#cvRemover').getBoundingClientRect().right")
+            self.assertLessEqual(direita, 390)
+            self.assertLessEqual(pg.evaluate("document.documentElement.scrollWidth"), 390)
+        finally:
+            p.fechar()
+
     def test_copiar_a_sugestao_e_o_selo_no_card_do_kanban(self):
         EMPRESAS_P.append({"id": "q1", "nome": "Clínica Alfa", "status": "quente", "pontuacao": 90, "cidade": "Curitiba", "estado": "PR", "pais": "BR",
                            "segmento": "clínica", "whatsapp": "5541999990001", "campanhas": [{"id": "c1", "nome": "Sites", "prioridade": "alta"}]})
@@ -3188,6 +3253,7 @@ class ConversasSdr(unittest.TestCase):
             pg.click('[data-cv-abrir="cv1"]'); pg.wait_for_timeout(500)
             self.assertIn("Resumo da IA", pg.inner_text("#cvDet"))
             self.assertEqual(len(pg.query_selector_all("#cvAssumir, #cvDevolver")), 0)
+            self.assertIsNone(pg.query_selector("#cvRemover"), "leitor não remove")
         finally:
             p.fechar(); contexto = original
 
