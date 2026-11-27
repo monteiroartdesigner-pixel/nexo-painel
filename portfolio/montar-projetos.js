@@ -47,12 +47,8 @@
     texto.appendChild(el("h3", "", p.nome));
     texto.appendChild(el("p", "projeto-tipo", p.tipo));
     const lista = el("ul");
-    p.itens.forEach((item) => lista.appendChild(el("li", "", item)));
+    p.itens.slice(0, 3).forEach((item) => lista.appendChild(el("li", "", item)));
     texto.appendChild(lista);
-    const serve = el("p", "projeto-serve");
-    serve.appendChild(el("b", "", "Serve para"));
-    serve.appendChild(document.createTextNode(" " + p.serve));
-    texto.appendChild(serve);
     if (p.link) {
       const abrir = el("a", "botao botao--linha projeto-abrir", `Abrir o ${p.nome}`);
       abrir.href = p.link; abrir.target = "_blank"; abrir.rel = "noopener";

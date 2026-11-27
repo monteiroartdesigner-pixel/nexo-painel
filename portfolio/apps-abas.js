@@ -26,12 +26,10 @@
     const txt = el("div", "abas-texto");
     txt.appendChild(el("h3", "", p.nome));
     txt.appendChild(el("p", "projeto-tipo", p.tipo));
-    if (p.serve) txt.appendChild(el("p", "abas-serve", "Serve para " + p.serve));
     const acao = el("a", "botao", p.link ? "Acessar o app" : "Pedir acesso pelo WhatsApp");
     acao.href = p.link || linkZap(p); acao.target = "_blank"; acao.rel = "noopener";
     if (p.link) acao.setAttribute("aria-label", `Acessar o ${p.nome} (abre em outra aba)`);
     txt.appendChild(acao);
-    if (p.link) txt.appendChild(el("p", "abas-endereco", p.link.replace(/^https?:\/\//, "").replace(/\/$/, "")));
     q.append(capa, txt);
     quadros.appendChild(q);
   });

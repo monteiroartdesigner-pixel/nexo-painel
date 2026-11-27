@@ -21,7 +21,7 @@
  *   - Projeto de cliente só entra com a autorização dele.
  */
 window.PROJETOS = {
-  atualizado: "2026-11-26",
+  atualizado: "2026-11-27",
   lista: [
     {
       id: "nexo-prospect",
@@ -77,25 +77,6 @@ window.PROJETOS = {
       ],
       serve: "escolinhas, escolas de dança, música, idiomas e cursos com turmas.",
       link: "https://nexosportsapp.com.br/",
-    },
-    {
-      id: "movin",
-      nome: "MOVIN",
-      tipo: "Protótipo navegável de um estúdio de treino: o painel da dona e o app da aluna.",
-      selo: "Protótipo",
-      formato: "dupla",
-      videos: [
-        { arquivo: "movin-painel", descricao: "Vídeo: painel da dona do estúdio MOVIN" },
-        { arquivo: "movin-app", descricao: "Vídeo: app da aluna do estúdio MOVIN" },
-      ],
-      itens: [
-        "Painel com o recebido no mês, quem está em dia, pendente ou em atraso.",
-        "Convite por link: a própria aluna preenche o cadastro e envia o atestado.",
-        "Cobranças com quatro lembretes, de três dias antes até o dia do vencimento.",
-        "Construtor de treinos, grade com lotação por horário e mural de recados.",
-        "No app: treino do dia, registro de carga, check-in, reagendamento e faturas.",
-      ],
-      serve: "estúdios, academias, clínicas e negócios com cliente recorrente e mensalidade.",
     },
     {
       id: "meinerz",
