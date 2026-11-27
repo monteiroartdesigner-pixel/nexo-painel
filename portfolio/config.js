@@ -2,7 +2,7 @@ window.SITE = {
   nome: "NEXO — Inteligência e Automação Empresarial",
 
   whatsapp: {
-    numero: "5541998460993", // só dígitos
+    numero: "5545988057280", // só dígitos
     mensagem: "Olá! Vi o portfólio da NEXO e quero uma demonstração.",
   },
 
