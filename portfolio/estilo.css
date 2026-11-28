@@ -511,3 +511,24 @@ a, button { touch-action: manipulation; }
   .segmentos td:nth-child(2)::before { content: none; }
 }
 @media (max-width: 480px) { .servicos { grid-template-columns: 1fr; } }
+
+/* ══ Fundo de vidro canelado (28/11/2026): preto, branco e cinza, escuro, fixo atrás de tudo ══
+   A imagem é mais alta que a tela; a rolagem a desloca devagar (--rol vem de fundo-vidro.js). */
+.fundo-vidro {
+  position: fixed; z-index: -1; left: 0; right: 0; top: -4vh; height: 230vh; pointer-events: none;
+  background: var(--fundo) url("assets/img/vidro.webp") center top / cover no-repeat; opacity: .72;
+  transform: translate3d(0, calc(var(--rol, 0) * -120vh), 0); will-change: transform;
+}
+/* Grão: pontilhado cinza por cima do degradê, parado (o degradê granulado da referência) */
+.fundo-vidro::after {
+  content: ""; position: absolute; inset: 0; mix-blend-mode: screen; opacity: .34;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  .5 .5 0 0 -.28'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+@media (max-width: 760px) { .fundo-vidro { background-image: url("assets/img/vidro-celular.webp"); } }
+/* A abertura termina no preto: a primeira seção depois dela começa preta e o vidro vai aparecendo */
+.cine + .secao::before { content: ""; position: absolute; z-index: -1; inset: 0 0 auto; height: 55vh; pointer-events: none; background: linear-gradient(var(--fundo), transparent); }
+/* Texto solto sobre o vidro (seção "Olá, eu sou"): uma sombra escura e difusa por trás garante a leitura onde o fundo clareia */
+.quem-texto::before, .quem-lado::before {
+  content: ""; position: absolute; z-index: -1; inset: -12% -16%; pointer-events: none;
+  background: radial-gradient(closest-side, rgb(0 0 0 / .62), rgb(0 0 0 / .38) 60%, transparent);
+}
