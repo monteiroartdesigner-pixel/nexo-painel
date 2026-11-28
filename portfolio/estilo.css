@@ -532,3 +532,23 @@ a, button { touch-action: manipulation; }
   content: ""; position: absolute; z-index: -1; inset: -12% -16%; pointer-events: none;
   background: radial-gradient(closest-side, rgb(0 0 0 / .62), rgb(0 0 0 / .38) 60%, transparent);
 }
+
+/* ══ Avaliações no Google (28/11/2026): nota do perfil e os textos reais, em preto e prata ══ */
+.nota-google { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; margin-top: 6px; }
+.nota-numero { margin: 0; font: 400 clamp(56px, 6vw, 88px)/1.05 "Anton", "Arial Narrow", Impact, sans-serif; font-variant-numeric: tabular-nums;
+  background: var(--metal); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.estrelas { margin: 0; color: var(--acento); font-size: 20px; line-height: 1; letter-spacing: .2em; }
+.nota-total { margin: 8px 0 0; font-size: .95em; }
+.nota-google .botao { margin-left: auto; }
+.avaliacoes { list-style: none; margin: 28px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.avaliacoes li { display: flex; flex-direction: column; gap: 12px; padding: 22px; border: 1px solid var(--linha); border-radius: calc(var(--raio) - 4px); background: rgb(255 255 255 / .03); }
+.avaliacoes .estrelas { font-size: 15px; }
+.avaliacoes blockquote { margin: 0; color: var(--texto); line-height: 1.5; overflow-wrap: anywhere; }
+.avaliacoes blockquote::before { content: "“"; }
+.avaliacoes blockquote::after { content: "”"; }
+.avaliacoes cite { margin-top: auto; font-style: normal; font-size: .9em; color: var(--texto-suave); }
+@media (max-width: 960px) { .avaliacoes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .avaliacoes { grid-template-columns: 1fr; }
+  .nota-google .botao { margin-left: 0; width: 100%; }
+}
