@@ -13,6 +13,8 @@
 .mc-tabela td{vertical-align:middle}
 .mc-tabela th{cursor:default}
 .mc-nome{min-width:140px;overflow-wrap:anywhere}
+.mc-zap{display:inline-flex;gap:6px;align-items:center;padding:4px 0;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mc-zap svg{width:14px;height:14px;flex:none}
 .mc-acoes{text-align:right;white-space:nowrap}
 .mc-acoes .btn+.btn{margin-left:6px}
 .mc-acao{min-width:84px}
@@ -46,6 +48,9 @@
   .mc-tabela td[data-r]>*{grid-column:2}
   .mc-tabela td[data-r]>.badge{justify-self:start}
   .mc-nome{font-size:15.5px;padding-bottom:6px!important}
+  /* no toque, o número e os botões do contato ficam fáceis de acertar */
+  .mc-zap{min-height:44px}
+  #drawer .mc-contato .btn{min-height:44px}
   .mc-acoes{display:flex!important;gap:8px;padding-top:10px!important;white-space:normal}
   .mc-acoes .btn{flex:1}
   .mc-acoes .btn+.btn{margin-left:0}

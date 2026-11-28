@@ -18,6 +18,10 @@ const mcDiaCampo = d => d.toLocaleDateString("en-CA", { timeZone: "America/Sao_P
 const mcFimDoDia = v => v ? new Date(`${v}T23:59:00-03:00`).toISOString() : null;
 const mcDias = n => n === 1 ? "1 dia" : `${n} dias`;
 const mcPapel = { dono: "Dono", admin: "Administrador", editor: "Editor", leitor: "Leitor", vendedora: "Vendedora (só prospecção)" };
+// WhatsApp do cadastro: com DDD ganha o 55; número incompleto fica sem link (devolve "").
+const mcZap = v => { const d = String(v || "").replace(/\D/g, ""); const n = d.length === 10 || d.length === 11 ? "55" + d : d; return /^55\d{10,11}$/.test(n) ? n : ""; };
+const mcFone = n => `(${n.slice(2, 4)}) ${n.slice(4, -4)}-${n.slice(-4)}`;
+const mcZapLink = n => `<a class="mc-zap" data-mc-zap target="_blank" rel="noopener" href="https://wa.me/${n}" title="Abrir conversa no WhatsApp">${ic("wa")}${mcFone(n)}</a>`;
 
 // Os erros do Master vêm escritos em português depois de "pedido_invalido:".
 function mcErro(e) {
@@ -175,7 +179,7 @@ function mcLista() {
       : sit.chave === "bloqueado" ? `<button type="button" class="btn sm pri mc-acao" data-mc-liberar="${esc(c.id)}">Liberar</button>`
       : `<button type="button" class="btn sm danger mc-acao" data-mc-bloquear="${esc(c.id)}">Bloquear</button>`;
     return `<tr data-mc-abrir="${esc(c.id)}">
-      <td class="mc-nome"><b>${esc(c.nome)}</b></td>
+      <td class="mc-nome"><b>${esc(c.nome)}</b><div class="peq">${mcZap(c.whatsapp) ? mcZapLink(mcZap(c.whatsapp)) : `<span class="muted">sem WhatsApp</span>`}</div></td>
       <td data-r="E-mail"><span class="mc-email">${esc(login.email)}</span>${login.extra ? `<div class="muted peq">${esc(login.extra)}</div>` : ""}</td>
       <td data-r="Plano">${esc(s.tem_assinatura ? s.plano_nome || s.plano : "—")}<div class="muted peq">${esc(mcPreco(c))}</div></td>
       <td data-r="Vence em" class="tnum">${esc(sit.vence)}</td>
@@ -199,6 +203,12 @@ function mcFicha(id) {
   const vitalicio = s.status === "vitalicia" || s.era_vitalicio;
   const campo = (rot, val) => `<div><div class="muted peq">${rot}</div><b>${esc(val)}</b></div>`;
   const botao = (acao, rot, cls = "") => `<button type="button" class="btn sm ${cls}" data-mc="${acao}">${rot}</button>`;
+  const zap = mcZap(c.whatsapp);
+  const contato = `<section><h3>Contato</h3><div class="mc-login mc-contato">
+      <div class="grow">${c.responsavel ? `<div class="muted peq">${esc(c.responsavel)}</div>` : ""}${zap ? `<b class="tnum">${mcFone(zap)}</b>`
+        : c.whatsapp ? `<b class="tnum">${esc(c.whatsapp)}</b><div class="muted peq">Número incompleto: confira o DDD.</div>` : `<span class="muted">Sem WhatsApp no cadastro.</span>`}</div>
+      <div class="row">${zap ? `<a class="btn sm pri" data-mc-zap target="_blank" rel="noopener" href="https://wa.me/${zap}">${ic("wa")}Abrir WhatsApp</a>${botao("copiarfone", "Copiar número")}` : ""}
+        ${excluido ? "" : botao("fone", c.whatsapp ? "Trocar número" : "Adicionar WhatsApp")}</div></div></section>`;
   const emTeste = s.status === "teste", ativaEmDia = s.status === "ativa";
   const acoesPlano = excluido ? "" : [
     !semPlano && !vitalicio ? botao("pagamento", "Registrar pagamento", "pri") : "",
@@ -223,10 +233,11 @@ function mcFicha(id) {
     s.plano_pedido ? `Pediu o plano ${MC.planos.find(p => p.chave === s.plano_pedido)?.nome || s.plano_pedido} em ${mcData(s.pedido_em)}.` : ""].filter(Boolean);
   d.setAttribute("aria-label", `Ficha de ${c.nome}`); d.setAttribute("aria-hidden", "false");
   d.innerHTML = `<div class="drawer-h"><div class="grow"><h2>${esc(c.nome)}</h2>
-        <div class="muted peq">${esc([c.responsavel, c.whatsapp, `cliente desde ${mcData(c.criado_em)}`].filter(Boolean).join(" · "))}</div></div>
+        <div class="muted peq">${esc(`cliente desde ${mcData(c.criado_em)}`)}</div></div>
       <span class="badge ${sit.cor}">${esc(sit.texto)}</span><button type="button" class="btn sm icon" data-mc="fechar" aria-label="Fechar">✕</button></div>
     <div class="drawer-b">
       ${avisos.map(a => `<div class="alert">${ic("alert")}<div>${esc(a)}</div></div>`).join("")}
+      ${contato}
       <section><h3>Mensalidade</h3><div class="mc-bloco"><div class="mc-tres">
           ${campo("Plano", semPlano ? "Sem plano" : `${s.plano_nome || s.plano} · ${mcPreco(c)}`)}${campo(rotVence, sit.vence)}${campo("Situação", sit.detalhe || sit.texto)}</div>
         ${acoesPlano ? `<div class="row">${acoesPlano}</div>` : ""}</div></section>
@@ -240,6 +251,8 @@ function mcFicha(id) {
   d.classList.add("on"); $("#overlay").classList.add("on");
   const acoes = { fechar: () => { MC.aberto = null; fecharGaveta(); }, bloquear: () => mcBloquear(c), liberar: () => mcLiberar(c), pagamento: () => mcPagamento(c),
     data: () => mcMudarData(c), plano: () => mcTrocarPlano(c), login: () => mcNovoLogin(c), excluir: () => mcExcluir(c), restaurar: () => mcRestaurar(c),
+    fone: () => mcTrocarFone(c),
+    copiarfone: () => navigator.clipboard.writeText(mcFone(zap)).then(() => toast("Número copiado.")).catch(() => toast("O navegador bloqueou a cópia.", true)),
     ver: () => { try { sessionStorage.setItem("vendas.empresa", c.id); } catch {} location.hash = "#/inicio"; location.reload(); } };
   $$("[data-mc]", d).forEach(b => b.onclick = () => acoes[b.dataset.mc]());
   $$("[data-mc-senha]", d).forEach(b => b.onclick = () => mcNovaSenha(b.dataset.mcSenha));
@@ -272,6 +285,17 @@ function mcJanela(titulo, corpo, rotulo, aoSalvar, perigo = false) {
   });
 }
 const mcCampo = (rot, html, dica = "") => `<label class="field"><span>${rot}</span>${html}${dica ? `<small>${dica}</small>` : ""}</label>`;
+
+// Grava só o WhatsApp: a função do banco mantém o resto do cadastro como está.
+function mcTrocarFone(c) {
+  mcJanela(`WhatsApp · ${c.nome}`, mcCampo("DDD + número", `<input class="input" name="whatsapp" inputmode="tel" maxlength="20" autocomplete="off" value="${esc(mcZap(c.whatsapp) ? mcFone(mcZap(c.whatsapp)) : c.whatsapp || "")}" placeholder="(45) 99999-0000">`,
+      "É o contato de quem contratou, para você chamar quando precisar. Em branco tira o número."), "Salvar número", async f => {
+    const txt = f.elements.whatsapp.value.trim();
+    if (txt && !mcZap(txt)) throw new Error("pedido_invalido: informe o DDD e o número completo");
+    await mcRpc("nexo_master_salvar_empresa", { p_id: c.id, p_dados: { whatsapp: mcZap(txt) } });
+    toast(txt ? "Número salvo." : "Número retirado."); await mcAtualizar();
+  });
+}
 
 function mcBloquear(c) {
   const vit = c.situacao?.status === "vitalicia";

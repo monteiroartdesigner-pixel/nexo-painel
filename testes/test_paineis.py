@@ -90,7 +90,7 @@ def mc_exemplo():
 
 
 MC_RPCS = ("nexo_master_clientes", "nexo_master_planos", "nexo_master_novo_cliente", "nexo_master_bloquear", "nexo_master_liberar",
-           "nexo_master_registrar_pagamento", "nexo_master_sdr_envios", "nexo_master_sdr_envio")
+           "nexo_master_registrar_pagamento", "nexo_master_sdr_envios", "nexo_master_sdr_envio", "nexo_master_salvar_empresa")
 
 
 def mc_rpc(nome, args):
@@ -115,6 +115,9 @@ def mc_rpc(nome, args):
         MC_CLIENTES.append(mc_cli("novo", d["nome"], {"status": "teste", "teste_ate": mc_dia(3)}, logins=[],
                                   convites=[{"id": "cv-n", "email": d["email"].lower(), "papel": "admin"}]))
         return {"ok": True, "empresa": "novo", "login": "convite"}
+    if nome == "nexo_master_salvar_empresa" and any(c["id"] == args["p_id"] for c in MC_CLIENTES):
+        next(c for c in MC_CLIENTES if c["id"] == args["p_id"]).update(args["p_dados"])
+        return {"ok": True, "id": args["p_id"]}
     c = next(c for c in MC_CLIENTES if c["id"] == args["p_empresa"])
     if nome == "nexo_master_bloquear":
         c["situacao"].update({"status": "suspensa", "status_gravado": "suspensa", "acesso": "leitura", "bloqueado_nexo": True, "bloqueado_em": mc_dia(0)})
@@ -1471,6 +1474,47 @@ class MasterDeClientes(unittest.TestCase):
             self.assertEqual(pg.eval_on_selector_all("tr[data-mc-abrir]", "l => l.map(x => x.dataset.mcAbrir)"), ["oficina"])
             pg.fill("#mcBusca", "clinica ex"); pg.wait_for_timeout(200)
             self.assertEqual(pg.eval_on_selector_all("tr[data-mc-abrir]", "l => l.map(x => x.dataset.mcAbrir)"), ["clinica"], "busca sem acento")
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_whatsapp_com_link_na_lista_e_na_ficha(self):
+        mc = {c["id"]: c for c in MC_CLIENTES}
+        mc["clinica"]["whatsapp"] = "81992000000"      # sem o 55, como vem do cadastro
+        mc["loja"]["whatsapp"] = "5545999000000"       # já com o 55
+        mc["oficina"]["whatsapp"] = None
+        mc["demo"]["whatsapp"] = "123"                 # número incompleto não vira link
+        p, pg = self.abrir()
+        try:
+            link = lambda i: pg.eval_on_selector(f'tr[data-mc-abrir="{i}"] a[data-mc-zap]', "a => [a.href, a.target, a.textContent.trim()]")
+            self.assertEqual(link("clinica"), ["https://wa.me/5581992000000", "_blank", "(81) 99200-0000"])
+            self.assertEqual(link("loja")[0], "https://wa.me/5545999000000")
+            for i in ("oficina", "demo"):
+                self.assertIsNone(pg.query_selector(f'tr[data-mc-abrir="{i}"] a[data-mc-zap]'), i)
+            self.assertIn("sem WhatsApp", self.linha(pg, "oficina"))
+            texto = self.ficha(pg, "clinica")
+            self.assertIn("(81) 99200-0000", texto)
+            self.assertEqual(pg.eval_on_selector("#drawer a[data-mc-zap]", "a => a.href"), "https://wa.me/5581992000000")
+            self.assertIsNotNone(pg.query_selector('#drawer [data-mc="copiarfone"]'))
+            self.assertEqual(p.erros, [])
+        finally:
+            p.fechar()
+
+    def test_ficha_sem_numero_deixa_cadastrar_sem_mexer_no_resto(self):
+        next(c for c in MC_CLIENTES if c["id"] == "oficina")["whatsapp"] = None
+        p, pg = self.abrir()
+        try:
+            self.assertIn("Sem WhatsApp no cadastro", self.ficha(pg, "oficina"))
+            pg.click('#drawer [data-mc="fone"]'); pg.wait_for_timeout(250)
+            pg.fill("#mcForm [name=whatsapp]", "999")
+            self.enviar(pg, 300)
+            self.assertIn("DDD", pg.inner_text("#mcForm .mc-erro"))
+            self.assertEqual(self.args(p, "nexo_master_salvar_empresa"), [], "número incompleto não é salvo")
+            pg.fill("#mcForm [name=whatsapp]", "(45) 99900-0000")
+            self.enviar(pg, 900)
+            self.assertEqual(self.args(p, "nexo_master_salvar_empresa"),
+                             [{"p_id": "oficina", "p_dados": {"whatsapp": "5545999000000"}}])
+            self.assertEqual(pg.eval_on_selector("#drawer a[data-mc-zap]", "a => a.href"), "https://wa.me/5545999000000")
             self.assertEqual(p.erros, [])
         finally:
             p.fechar()
